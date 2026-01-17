@@ -1,0 +1,7 @@
+{
+  "id": "zed",
+  "name": "Zed",
+  "icon": "/client-logos/zed.svg",
+  "description": "High-performance multiplayer code editor",
+  "manual_instructions": "To manually configure Zed:\n1. Open Zed Settings\n2. Add to 'mcp_servers':\n   \"mcp-scooter\": {\n     \"url\": \"http://localhost:6277/profiles/{profile}/sse\"\n   }"
+}

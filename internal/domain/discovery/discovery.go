@@ -2,7 +2,9 @@ package discovery
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -12,8 +14,10 @@ import (
 type ToolDefinition struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Category    string `json:"category"`
 	Source      string `json:"source"` // "local", "community"
 	Installed   bool   `json:"installed"`
+	Icon        string `json:"icon,omitempty"`
 }
 
 // DiscoveryEngine manages tools for an MCP session.
@@ -23,24 +27,51 @@ type DiscoveryEngine struct {
 	lastUsed    map[string]time.Time
 	registry    []ToolDefinition
 	wasmDir     string
+	registryDir string
 	ctx         context.Context
 }
 
-func NewDiscoveryEngine(ctx context.Context, wasmDir string) *DiscoveryEngine {
+func NewDiscoveryEngine(ctx context.Context, wasmDir string, registryDir string) *DiscoveryEngine {
 	e := &DiscoveryEngine{
 		activeTools: make(map[string]*WASMWorker),
 		lastUsed:    make(map[string]time.Time),
-		registry: append(PrimordialTools(),
-			ToolDefinition{Name: "test-tool", Description: "Minimal Go-WASM tool for verification", Source: "local"},
-			ToolDefinition{Name: "postgres-mcp", Description: "Postgres database explorer", Source: "community"},
-			ToolDefinition{Name: "jira-mcp", Description: "Manage JIRA issues", Source: "community"},
-			ToolDefinition{Name: "linear-mcp", Description: "Manage Linear issues", Source: "community"},
-		),
-		wasmDir: wasmDir,
-		ctx:     ctx,
+		registry:    PrimordialTools(),
+		wasmDir:     wasmDir,
+		registryDir: registryDir,
+		ctx:         ctx,
 	}
+	e.loadRegistry()
 	go e.monitor()
 	return e
+}
+
+func (e *DiscoveryEngine) loadRegistry() {
+	if e.registryDir == "" {
+		return
+	}
+
+	files, err := os.ReadDir(e.registryDir)
+	if err != nil {
+		fmt.Printf("Warning: failed to read registry directory %s: %v\n", e.registryDir, err)
+		return
+	}
+
+	for _, file := range files {
+		if filepath.Ext(file.Name()) == ".json" {
+			data, err := os.ReadFile(filepath.Join(e.registryDir, file.Name()))
+			if err != nil {
+				fmt.Printf("Warning: failed to read tool definition %s: %v\n", file.Name(), err)
+				continue
+			}
+
+			var td ToolDefinition
+			if err := json.Unmarshal(data, &td); err != nil {
+				fmt.Printf("Warning: failed to parse tool definition %s: %v\n", file.Name(), err)
+				continue
+			}
+			e.Register(td)
+		}
+	}
 }
 
 // Find searches for tools in the registry.
@@ -50,6 +81,21 @@ func (e *DiscoveryEngine) Find(query string) []ToolDefinition {
 
 	// Simple mock filter for now
 	return e.registry
+}
+
+// Register adds a new tool definition to the registry.
+func (e *DiscoveryEngine) Register(td ToolDefinition) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Check for duplicates
+	for i, existing := range e.registry {
+		if existing.Name == td.Name {
+			e.registry[i] = td
+			return
+		}
+	}
+	e.registry = append(e.registry, td)
 }
 
 // Add installs and activates a tool.

@@ -1,0 +1,5 @@
+{
+  "name": "test-tool",
+  "description": "Minimal Go-WASM tool for verification",
+  "source": "local"
+}

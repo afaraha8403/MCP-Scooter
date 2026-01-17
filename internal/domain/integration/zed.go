@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 )
 
-// ZedIntegration handles configuring Zed to use MCP Scout.
+// ZedIntegration handles configuring Zed to use MCP Scooter.
 type ZedIntegration struct{}
 
-// Configure adds the MCP Scout server to Zed's settings.json.
-func (z *ZedIntegration) Configure(port int) error {
+// Configure adds the MCP Scooter server to Zed's settings.json.
+func (z *ZedIntegration) Configure(port int, profileID string) error {
 	path, err := z.findConfig()
 	if err != nil {
 		return err
@@ -35,13 +35,14 @@ func (z *ZedIntegration) Configure(port int) error {
 		config["context_servers"] = contextServers
 	}
 
-	// Add or update MCP Scout entry
-	// Zed supports SSE via a command that starts a proxy or directly if supported.
-	// However, the PRD says: "Scout acts as a local proxy. It writes a config that points the client to http://localhost:6277/sse"
-	// For Zed, it usually expects a command. We might need a small wrapper or just use the URL if Zed supports it.
-	// Actually, many clients support SSE directly now.
-	contextServers["mcp-scout"] = map[string]interface{}{
-		"url": fmt.Sprintf("http://localhost:%d/sse", port),
+	// Add or update MCP Scooter entry
+	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	if profileID == "work" {
+		url = fmt.Sprintf("http://localhost:%d/sse", port)
+	}
+
+	contextServers["mcp-scooter"] = map[string]interface{}{
+		"url": url,
 	}
 
 	newData, err := json.MarshalIndent(config, "", "  ")

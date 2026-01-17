@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mcp-scout/scooter/internal/domain/discovery"
-	"github.com/mcp-scout/scooter/internal/domain/integration"
-	"github.com/mcp-scout/scooter/internal/domain/profile"
+	"github.com/mcp-scooter/scooter/internal/domain/discovery"
+	"github.com/mcp-scooter/scooter/internal/domain/integration"
+	"github.com/mcp-scooter/scooter/internal/domain/profile"
 )
 
 // ControlServer handles management requests (CRUD for profiles).
@@ -18,15 +18,17 @@ type ControlServer struct {
 	mux                *http.ServeMux
 	store              *profile.Store
 	manager            *ProfileManager
+	settings           profile.Settings
 	onboardingRequired bool
 }
 
 // NewControlServer creates a new management server.
-func NewControlServer(store *profile.Store, manager *ProfileManager, onboardingRequired bool) *ControlServer {
+func NewControlServer(store *profile.Store, manager *ProfileManager, settings profile.Settings, onboardingRequired bool) *ControlServer {
 	s := &ControlServer{
 		mux:                http.NewServeMux(),
 		store:              store,
 		manager:            manager,
+		settings:           settings,
 		onboardingRequired: onboardingRequired,
 	}
 	s.routes()
@@ -38,12 +40,52 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("POST /api/profiles", s.handleCreateProfile)
 	s.mux.HandleFunc("PUT /api/profiles", s.handleUpdateProfile)
 	s.mux.HandleFunc("DELETE /api/profiles", s.handleDeleteProfile)
-	s.mux.HandleFunc("POST /api/integrations/install", s.handleInstallIntegration)
+	s.mux.HandleFunc("POST /api/clients/sync", s.handleInstallIntegration)
 	s.mux.HandleFunc("POST /api/onboarding/start-fresh", s.handleOnboardingStartFresh)
 	s.mux.HandleFunc("POST /api/onboarding/import", s.handleOnboardingImport)
+	s.mux.HandleFunc("POST /api/reset", s.handleReset)
+	s.mux.HandleFunc("GET /api/tools", s.handleGetTools)
+	s.mux.HandleFunc("POST /api/tools", s.handleRegisterTool)
+	s.mux.HandleFunc("GET /api/clients", s.handleGetClients)
+	s.mux.HandleFunc("GET /api/settings", s.handleGetSettings)
+	s.mux.HandleFunc("PUT /api/settings", s.handleUpdateSettings)
+}
+
+func (s *ControlServer) handleGetSettings(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(s.settings)
+}
+
+func (s *ControlServer) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
+	var settings profile.Settings
+	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.settings = settings
+	if s.store != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(s.settings)
 }
 
 func (s *ControlServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Global CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	s.mux.ServeHTTP(w, r)
 }
 
@@ -58,7 +100,7 @@ func (s *ControlServer) handleGetProfiles(w http.ResponseWriter, r *http.Request
 	info := make([]ProfileInfo, len(profiles))
 	s.manager.mu.RLock()
 	for i, p := range profiles {
-		_, running := s.manager.servers[p.ID]
+		_, running := s.manager.engines[p.ID]
 		info[i] = ProfileInfo{
 			Profile: p,
 			Running: running,
@@ -67,22 +109,22 @@ func (s *ControlServer) handleGetProfiles(w http.ResponseWriter, r *http.Request
 	s.manager.mu.RUnlock()
 
 	response := struct {
-		Profiles           []ProfileInfo `json:"profiles"`
-		OnboardingRequired bool          `json:"onboarding_required"`
+		Profiles           []ProfileInfo    `json:"profiles"`
+		Settings           profile.Settings `json:"settings"`
+		OnboardingRequired bool             `json:"onboarding_required"`
 	}{
 		Profiles:           info,
+		Settings:           s.settings,
 		OnboardingRequired: s.onboardingRequired,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(response)
 }
 
 func (s *ControlServer) handleOnboardingStartFresh(w http.ResponseWriter, r *http.Request) {
 	defaultProfile := profile.Profile{
 		ID:       "work",
-		Port:     6277,
 		AuthMode: "none",
 	}
 
@@ -92,7 +134,7 @@ func (s *ControlServer) handleOnboardingStartFresh(w http.ResponseWriter, r *htt
 	}
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles()); err != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -100,6 +142,7 @@ func (s *ControlServer) handleOnboardingStartFresh(w http.ResponseWriter, r *htt
 
 	s.onboardingRequired = false
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(defaultProfile)
 }
@@ -120,17 +163,121 @@ func (s *ControlServer) handleOnboardingImport(w http.ResponseWriter, r *http.Re
 		}
 	}
 
+	if len(s.manager.GetProfiles()) > 0 {
+		s.onboardingRequired = false
+	}
+
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles()); err != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 
-	s.onboardingRequired = false
-
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+func (s *ControlServer) handleReset(w http.ResponseWriter, r *http.Request) {
+	s.manager.ClearProfiles()
+	s.onboardingRequired = true
+
+	if s.store != nil {
+		if err := s.store.Save([]profile.Profile{}, s.settings); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "reset_successful"})
+}
+
+func (s *ControlServer) handleGetTools(w http.ResponseWriter, r *http.Request) {
+	engine := discovery.NewDiscoveryEngine(context.Background(), s.manager.wasmDir, s.manager.registryDir)
+	
+	s.manager.mu.RLock()
+	for _, td := range s.manager.customTools {
+		engine.Register(td)
+	}
+	s.manager.mu.RUnlock()
+
+	tools := engine.Find("")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"tools": tools,
+	})
+}
+
+type ClientDefinition struct {
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	Icon               string `json:"icon"`
+	Description        string `json:"description"`
+	ManualInstructions string `json:"manual_instructions"`
+}
+
+func (s *ControlServer) handleGetClients(w http.ResponseWriter, r *http.Request) {
+	clients := []ClientDefinition{}
+	clientsDir := s.manager.clientsDir
+
+	if clientsDir != "" {
+		files, err := os.ReadDir(clientsDir)
+		if err == nil {
+			for _, file := range files {
+				if filepath.Ext(file.Name()) == ".json" {
+					data, err := os.ReadFile(filepath.Join(clientsDir, file.Name()))
+					if err != nil {
+						continue
+					}
+					var cd ClientDefinition
+					if err := json.Unmarshal(data, &cd); err == nil {
+						clients = append(clients, cd)
+					}
+				}
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"clients": clients,
+	})
+}
+
+func (s *ControlServer) handleRegisterTool(w http.ResponseWriter, r *http.Request) {
+	var td discovery.ToolDefinition
+	if err := json.NewDecoder(r.Body).Decode(&td); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.manager.mu.Lock()
+	// Check for duplicates
+	found := false
+	for i, existing := range s.manager.customTools {
+		if existing.Name == td.Name {
+			s.manager.customTools[i] = td
+			found = true
+			break
+		}
+	}
+	if !found {
+		s.manager.customTools = append(s.manager.customTools, td)
+	}
+	s.manager.mu.Unlock()
+
+	addLog(fmt.Sprintf("Registered tool: %s", td.Name))
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(td)
+}
+
+// Simple global log helper for the server
+func addLog(msg string) {
+	fmt.Printf("[API] %s\n", msg)
 }
 
 func (s *ControlServer) handleCreateProfile(w http.ResponseWriter, r *http.Request) {
@@ -150,8 +297,10 @@ func (s *ControlServer) handleCreateProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	s.onboardingRequired = false
+
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles()); err != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -174,7 +323,7 @@ func (s *ControlServer) handleUpdateProfile(w http.ResponseWriter, r *http.Reque
 	}
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles()); err != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -196,8 +345,13 @@ func (s *ControlServer) handleDeleteProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Update onboardingRequired if no profiles left
+	if len(s.manager.GetProfiles()) == 0 {
+		s.onboardingRequired = true
+	}
+
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles()); err != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -216,38 +370,32 @@ func (s *ControlServer) handleInstallIntegration(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Find port for the profile
-	port := 6277
-	for _, p := range s.manager.GetProfiles() {
-		if p.ID == req.Profile {
-			port = p.Port
-			break
-		}
-	}
+	// Use configured McpPort from settings
+	mcpPort := s.settings.McpPort
 
 	var err error
 	switch req.Target {
 	case "cursor":
 		c := &integration.CursorIntegration{}
-		err = c.Configure(port)
+		err = c.Configure(mcpPort, req.Profile)
 	case "claude-desktop":
 		c := &integration.ClaudeIntegration{}
-		err = c.Configure(port)
+		err = c.Configure(mcpPort, req.Profile)
 	case "claude-code":
 		c := &integration.ClaudeIntegration{}
-		err = c.ConfigureCode(port)
+		err = c.ConfigureCode(mcpPort, req.Profile)
 	case "vscode":
 		v := &integration.VSCodeIntegration{}
-		err = v.Configure(port)
+		err = v.Configure(mcpPort, req.Profile)
 	case "antigravity", "gemini-cli":
 		g := &integration.GeminiIntegration{}
-		err = g.Configure(port)
+		err = g.Configure(mcpPort, req.Profile)
 	case "codex":
 		c := &integration.CodexIntegration{}
-		err = c.Configure(port)
+		err = c.Configure(mcpPort, req.Profile)
 	case "zed":
 		z := &integration.ZedIntegration{}
-		err = z.Configure(port)
+		err = z.Configure(mcpPort, req.Profile)
 	default:
 		err = fmt.Errorf("unknown integration target")
 	}
@@ -261,55 +409,62 @@ func (s *ControlServer) handleInstallIntegration(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
-// ProfileServer handles MCP traffic for a specific profile.
-type ProfileServer struct {
-	profile   profile.Profile
-	mux       *http.ServeMux
-	server    *http.Server
-	discovery *discovery.DiscoveryEngine
-	wasmDir   string
+// McpGateway handles MCP traffic for all profiles on a single port.
+type McpGateway struct {
+	manager *ProfileManager
+	mux     *http.ServeMux
 }
 
-func NewProfileServer(p profile.Profile, wasmDir string) *ProfileServer {
-	ps := &ProfileServer{
-		profile:   p,
-		mux:       http.NewServeMux(),
-		discovery: discovery.NewDiscoveryEngine(context.Background(), wasmDir),
-		wasmDir:   wasmDir,
+func NewMcpGateway(manager *ProfileManager) *McpGateway {
+	g := &McpGateway{
+		manager: manager,
+		mux:     http.NewServeMux(),
 	}
-	ps.routes()
-	return ps
+	g.routes()
+	return g
 }
 
-func (ps *ProfileServer) routes() {
-	ps.mux.HandleFunc("GET /sse", ps.handleSSE)
-	ps.mux.HandleFunc("POST /message", ps.handleMessage) // MCP JSON-RPC endpoint
+func (g *McpGateway) routes() {
+	// Standard MCP routes with profile ID in the path
+	g.mux.HandleFunc("GET /profiles/{id}/sse", g.handleSSE)
+	g.mux.HandleFunc("POST /profiles/{id}/message", g.handleMessage)
+	
+	// Default routes for "work" profile (compatibility)
+	g.mux.HandleFunc("GET /sse", func(w http.ResponseWriter, r *http.Request) {
+		r.SetPathValue("id", "work")
+		g.handleSSE(w, r)
+	})
+	g.mux.HandleFunc("POST /message", func(w http.ResponseWriter, r *http.Request) {
+		r.SetPathValue("id", "work")
+		g.handleMessage(w, r)
+	})
 }
 
-func (ps *ProfileServer) Start() error {
-	ps.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", ps.profile.Port),
-		Handler: ps.mux,
+func (g *McpGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Global CORS headers for MCP clients
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
 	}
-	fmt.Printf("Starting profile server '%s' on port %d\n", ps.profile.ID, ps.profile.Port)
-	return ps.server.ListenAndServe()
+
+	g.mux.ServeHTTP(w, r)
 }
 
-func (ps *ProfileServer) Stop() error {
-	if ps.server != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		return ps.server.Shutdown(ctx)
+func (g *McpGateway) handleSSE(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	engine, ok := g.manager.GetEngine(id)
+	if !ok {
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
 	}
-	return nil
-}
 
-func (ps *ProfileServer) handleSSE(w http.ResponseWriter, r *http.Request) {
-	// ... (SSE implementation remains similar, but now tied to discovery session)
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -322,7 +477,7 @@ func (ps *ProfileServer) handleSSE(w http.ResponseWriter, r *http.Request) {
 	defer ticker.Stop()
 
 	// Notify about active tools on connection
-	active := ps.discovery.ListActive()
+	active := engine.ListActive()
 	activeData, _ := json.Marshal(active)
 	fmt.Fprintf(w, "event: tools\ndata: %s\n\n", string(activeData))
 	flusher.Flush()
@@ -330,7 +485,7 @@ func (ps *ProfileServer) handleSSE(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case <-ticker.C:
-			fmt.Fprintf(w, "event: pulse\ndata: {\"profile\": \"%s\", \"status\": \"ok\", \"timestamp\": \"%s\"}\n\n", ps.profile.ID, time.Now().Format(time.RFC3339))
+			fmt.Fprintf(w, "event: pulse\ndata: {\"profile\": \"%s\", \"status\": \"ok\", \"timestamp\": \"%s\"}\n\n", id, time.Now().Format(time.RFC3339))
 			flusher.Flush()
 		case <-r.Context().Done():
 			return
@@ -338,7 +493,14 @@ func (ps *ProfileServer) handleSSE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (ps *ProfileServer) handleMessage(w http.ResponseWriter, r *http.Request) {
+func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	engine, ok := g.manager.GetEngine(id)
+	if !ok {
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
+	}
+
 	var req JSONRPCRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -353,13 +515,13 @@ func (ps *ProfileServer) handleMessage(w http.ResponseWriter, r *http.Request) {
 			"protocolVersion": "2024-11-05",
 			"capabilities":    map[string]interface{}{},
 			"serverInfo": map[string]string{
-				"name":    "mcp-scout",
+				"name":    "mcp-scooter",
 				"version": "0.1.0",
 			},
 		})
 
 	case "list_tools":
-		tools := ps.discovery.Find("")
+		tools := engine.Find("")
 		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
 			"tools": tools,
 		})
@@ -375,7 +537,7 @@ func (ps *ProfileServer) handleMessage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Call unified tool executor
-		result, err := ps.discovery.CallTool(params.Name, params.Arguments)
+		result, err := engine.CallTool(params.Name, params.Arguments)
 		if err != nil {
 			resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, fmt.Sprintf("Tool error: %v", err))
 		} else {
@@ -394,22 +556,28 @@ func (ps *ProfileServer) handleMessage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// ProfileManager manages active profile servers.
+// ProfileManager manages discovery engines for active profiles.
 type ProfileManager struct {
-	mu       sync.RWMutex
-	profiles []profile.Profile
-	servers  map[string]*ProfileServer
-	wasmDir  string
+	mu          sync.RWMutex
+	profiles    []profile.Profile
+	engines     map[string]*discovery.DiscoveryEngine
+	wasmDir     string
+	registryDir string
+	clientsDir  string
+	customTools []discovery.ToolDefinition
 }
 
-func NewProfileManager(initial []profile.Profile, wasmDir string) *ProfileManager {
+func NewProfileManager(initial []profile.Profile, wasmDir string, registryDir string, clientsDir string) *ProfileManager {
 	pm := &ProfileManager{
-		profiles: initial,
-		servers:  make(map[string]*ProfileServer),
-		wasmDir:  wasmDir,
+		profiles:    initial,
+		engines:     make(map[string]*discovery.DiscoveryEngine),
+		wasmDir:     wasmDir,
+		registryDir: registryDir,
+		clientsDir:  clientsDir,
+		customTools: []discovery.ToolDefinition{},
 	}
 	for _, p := range initial {
-		pm.startServer(p)
+		pm.engines[p.ID] = discovery.NewDiscoveryEngine(context.Background(), wasmDir, registryDir)
 	}
 	return pm
 }
@@ -418,6 +586,21 @@ func (pm *ProfileManager) GetProfiles() []profile.Profile {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 	return pm.profiles
+}
+
+func (pm *ProfileManager) GetEngine(id string) (*discovery.DiscoveryEngine, bool) {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	engine, ok := pm.engines[id]
+	return engine, ok
+}
+
+func (pm *ProfileManager) ClearProfiles() {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	pm.profiles = []profile.Profile{}
+	pm.engines = make(map[string]*discovery.DiscoveryEngine)
 }
 
 func (pm *ProfileManager) AddProfile(p profile.Profile) error {
@@ -431,7 +614,7 @@ func (pm *ProfileManager) AddProfile(p profile.Profile) error {
 	}
 
 	pm.profiles = append(pm.profiles, p)
-	pm.startServer(p)
+	pm.engines[p.ID] = discovery.NewDiscoveryEngine(context.Background(), pm.wasmDir, pm.registryDir)
 	return nil
 }
 
@@ -441,9 +624,7 @@ func (pm *ProfileManager) UpdateProfile(p profile.Profile) error {
 
 	for i, existing := range pm.profiles {
 		if existing.ID == p.ID {
-			pm.stopServer(existing.ID)
 			pm.profiles[i] = p
-			pm.startServer(p)
 			return nil
 		}
 	}
@@ -456,30 +637,10 @@ func (pm *ProfileManager) RemoveProfile(id string) error {
 
 	for i, p := range pm.profiles {
 		if p.ID == id {
-			pm.stopServer(id)
+			delete(pm.engines, id)
 			pm.profiles = append(pm.profiles[:i], pm.profiles[i+1:]...)
 			return nil
 		}
 	}
 	return fmt.Errorf("profile not found")
-}
-
-func (pm *ProfileManager) startServer(p profile.Profile) {
-	if p.Port == 0 {
-		return // Don't start server if port is 0
-	}
-	ps := NewProfileServer(p, pm.wasmDir)
-	pm.servers[p.ID] = ps
-	go func() {
-		if err := ps.Start(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Profile server '%s' failed: %v\n", p.ID, err)
-		}
-	}()
-}
-
-func (pm *ProfileManager) stopServer(id string) {
-	if ps, ok := pm.servers[id]; ok {
-		ps.Stop()
-		delete(pm.servers, id)
-	}
 }

@@ -1,0 +1,7 @@
+{
+  "id": "vscode",
+  "name": "VS Code",
+  "icon": "/client-logos/vscode.svg",
+  "description": "Microsoft's ubiquitous code editor with MCP extensions",
+  "manual_instructions": "To manually configure VS Code:\n1. Install an MCP client extension (e.g., 'MCP Client')\n2. Open Extension Settings\n3. Add server: http://localhost:6277/profiles/{profile}/sse"
+}

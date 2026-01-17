@@ -1,4 +1,4 @@
-module github.com/mcp-scout/scooter
+module github.com/mcp-scooter/scooter
 
 go 1.24.5
 

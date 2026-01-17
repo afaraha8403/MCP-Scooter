@@ -8,11 +8,11 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-// CodexIntegration handles configuring Codex to use MCP Scout.
+// CodexIntegration handles configuring Codex to use MCP Scooter.
 type CodexIntegration struct{}
 
-// Configure adds the MCP Scout server to Codex's config.toml.
-func (c *CodexIntegration) Configure(port int) error {
+// Configure adds the MCP Scooter server to Codex's config.toml.
+func (c *CodexIntegration) Configure(port int, profileID string) error {
 	path, err := c.findConfig()
 	if err != nil {
 		return err
@@ -35,10 +35,15 @@ func (c *CodexIntegration) Configure(port int) error {
 		config["mcpServers"] = mcpServers
 	}
 
-	// Add or update MCP Scout entry
-	mcpServers["mcp-scout"] = map[string]interface{}{
+	// Add or update MCP Scooter entry
+	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	if profileID == "work" {
+		url = fmt.Sprintf("http://localhost:%d/sse", port)
+	}
+
+	mcpServers["mcp-scooter"] = map[string]interface{}{
 		"type": "sse",
-		"url":  fmt.Sprintf("http://localhost:%d/sse", port),
+		"url":  url,
 	}
 
 	newData, err := toml.Marshal(config)

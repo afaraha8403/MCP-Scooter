@@ -1,0 +1,6 @@
+{
+  "name": "brave-search",
+  "description": "Search the web with Brave Search API",
+  "source": "community",
+  "icon": "/mcp-logos/brave-search.svg"
+}

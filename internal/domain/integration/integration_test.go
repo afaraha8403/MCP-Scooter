@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mcp-scout/scooter/internal/domain/integration"
+	"github.com/mcp-scooter/scooter/internal/domain/integration"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,9 +50,9 @@ func TestCursorIntegration(t *testing.T) {
 	err = json.Unmarshal(data, &config)
 	require.NoError(t, err)
 
-	scout := config.McpServers["mcp-scout"].(map[string]interface{})
-	assert.Equal(t, "sse", scout["type"])
-	assert.Equal(t, "http://localhost:6277/sse", scout["url"])
+	scooter := config.McpServers["mcp-scooter"].(map[string]interface{})
+	assert.Equal(t, "sse", scooter["type"])
+	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
 }
 
 func TestVSCodeIntegration(t *testing.T) {
@@ -73,9 +73,9 @@ func TestVSCodeIntegration(t *testing.T) {
 	err = json.Unmarshal(data, &config)
 	require.NoError(t, err)
 
-	scout := config.McpServers["mcp-scout"].(map[string]interface{})
-	assert.Equal(t, "sse", scout["type"])
-	assert.Equal(t, "http://localhost:6277/sse", scout["url"])
+	scooter := config.McpServers["mcp-scooter"].(map[string]interface{})
+	assert.Equal(t, "sse", scooter["type"])
+	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
 }
 
 func TestGeminiIntegration(t *testing.T) {
@@ -96,9 +96,9 @@ func TestGeminiIntegration(t *testing.T) {
 	err = json.Unmarshal(data, &config)
 	require.NoError(t, err)
 
-	scout := config.McpServers["mcp-scout"].(map[string]interface{})
-	assert.Equal(t, "sse", scout["type"])
-	assert.Equal(t, "http://localhost:6277/sse", scout["url"])
+	scooter := config.McpServers["mcp-scooter"].(map[string]interface{})
+	assert.Equal(t, "sse", scooter["type"])
+	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
 }
 
 func TestCodexIntegration(t *testing.T) {
@@ -118,9 +118,9 @@ func TestCodexIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	mcpServers := config["mcpServers"].(map[string]interface{})
-	scout := mcpServers["mcp-scout"].(map[string]interface{})
-	assert.Equal(t, "sse", scout["type"])
-	assert.Equal(t, "http://localhost:6277/sse", scout["url"])
+	scooter := mcpServers["mcp-scooter"].(map[string]interface{})
+	assert.Equal(t, "sse", scooter["type"])
+	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
 }
 
 func TestZedIntegration(t *testing.T) {
@@ -141,6 +141,6 @@ func TestZedIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	contextServers := config["context_servers"].(map[string]interface{})
-	scout := contextServers["mcp-scout"].(map[string]interface{})
-	assert.Equal(t, "http://localhost:6277/sse", scout["url"])
+	scooter := contextServers["mcp-scooter"].(map[string]interface{})
+	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
 }

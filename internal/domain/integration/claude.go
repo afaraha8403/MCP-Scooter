@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 )
 
-// ClaudeIntegration handles configuring Claude Desktop to use MCP Scout.
+// ClaudeIntegration handles configuring Claude Desktop to use MCP Scooter.
 type ClaudeIntegration struct{}
 
-// Configure adds the MCP Scout server to Claude Desktop's config file.
-func (c *ClaudeIntegration) Configure(port int) error {
+// Configure adds the MCP Scooter server to Claude Desktop's config file.
+func (c *ClaudeIntegration) Configure(port int, profileID string) error {
 	path, err := c.findConfig()
 	if err != nil {
 		return err
@@ -30,10 +30,15 @@ func (c *ClaudeIntegration) Configure(port int) error {
 		config.McpServers = make(map[string]interface{})
 	}
 
-	// Add or update MCP Scout entry for Claude
-	config.McpServers["mcp-scout"] = map[string]interface{}{
+	// Add or update MCP Scooter entry for Claude
+	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	if profileID == "work" {
+		url = fmt.Sprintf("http://localhost:%d/sse", port)
+	}
+
+	config.McpServers["mcp-scooter"] = map[string]interface{}{
 		"type": "sse",
-		"url":  fmt.Sprintf("http://localhost:%d/sse", port),
+		"url":  url,
 	}
 
 	newData, err := json.MarshalIndent(config, "", "  ")
@@ -44,8 +49,8 @@ func (c *ClaudeIntegration) Configure(port int) error {
 	return os.WriteFile(path, newData, 0644)
 }
 
-// ConfigureCode adds the MCP Scout server to Claude Code's settings file.
-func (c *ClaudeIntegration) ConfigureCode(port int) error {
+// ConfigureCode adds the MCP Scooter server to Claude Code's settings file.
+func (c *ClaudeIntegration) ConfigureCode(port int, profileID string) error {
 	path, err := c.findCodeConfig()
 	if err != nil {
 		return err
@@ -64,9 +69,14 @@ func (c *ClaudeIntegration) ConfigureCode(port int) error {
 		config.McpServers = make(map[string]interface{})
 	}
 
-	config.McpServers["mcp-scout"] = map[string]interface{}{
+	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	if profileID == "work" {
+		url = fmt.Sprintf("http://localhost:%d/sse", port)
+	}
+
+	config.McpServers["mcp-scooter"] = map[string]interface{}{
 		"type": "sse",
-		"url":  fmt.Sprintf("http://localhost:%d/sse", port),
+		"url":  url,
 	}
 
 	newData, err := json.MarshalIndent(config, "", "  ")

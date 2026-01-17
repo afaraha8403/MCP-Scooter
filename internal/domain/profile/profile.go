@@ -7,9 +7,6 @@ type Profile struct {
 	// Unique identifier for the profile (e.g., "work", "personal")
 	ID string `yaml:"id"`
 
-	// Port to listen on (e.g., 6277)
-	Port int `yaml:"port"`
-
 	// AuthMode determines how to authenticate with remote servers ("oauth2", "none", etc.)
 	AuthMode string `yaml:"auth_mode"`
 
@@ -27,10 +24,6 @@ type Profile struct {
 func (p Profile) Validate() error {
 	if p.ID == "" {
 		return errors.New("profile id is required")
-	}
-	// Reserve ports < 1024 for system
-	if p.Port > 0 && p.Port < 1024 {
-		return errors.New("port must be greater than 1024 or 0 (dynamic)")
 	}
 	return nil
 }

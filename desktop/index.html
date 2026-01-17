@@ -3,13 +3,196 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/src/assets/logo.svg" />
+  <link rel="icon" type="image/svg+xml" href="/logo/logo-dark.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MCP Scooter</title>
+  <style>
+    /* Splash screen styles - shown before React loads */
+    :root {
+      --splash-bg: #0a0a0f;
+      --splash-text: #e0e0e0;
+      --splash-accent: #00b386;
+      --splash-dim: #666;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--splash-bg);
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      overflow: hidden;
+    }
+    
+    #splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--splash-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.3s ease-out;
+    }
+    
+    #splash-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .splash-logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 24px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(0.95); }
+    }
+    
+    .splash-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--splash-text);
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+    }
+    
+    .splash-subtitle {
+      font-size: 12px;
+      color: var(--splash-dim);
+      margin-bottom: 32px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+    
+    .splash-terminal {
+      width: 400px;
+      max-width: 90vw;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    
+    .splash-terminal-header {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .splash-terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    
+    .splash-terminal-dot.red { background: #ff5f56; }
+    .splash-terminal-dot.yellow { background: #ffbd2e; }
+    .splash-terminal-dot.green { background: #27ca40; }
+    
+    .splash-log {
+      color: var(--splash-dim);
+      margin: 4px 0;
+      opacity: 0;
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+    
+    .splash-log.success { color: var(--splash-accent); }
+    .splash-log.active { color: var(--splash-text); }
+    .splash-log .prefix { color: var(--splash-accent); }
+    
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    
+    .splash-progress {
+      margin-top: 16px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    
+    .splash-progress-bar {
+      height: 100%;
+      background: var(--splash-accent);
+      width: 0%;
+      transition: width 0.3s ease-out;
+    }
+  </style>
 </head>
 
 <body>
+  <div id="splash-screen">
+    <img class="splash-logo" src="/logo/logo-dark.svg" alt="MCP Scooter Logo" />
+    <div class="splash-title">MCP SCOOTER</div>
+    <div class="splash-subtitle">Model Context Protocol Gateway</div>
+    
+    <div class="splash-terminal">
+      <div class="splash-terminal-header">
+        <div class="splash-terminal-dot red"></div>
+        <div class="splash-terminal-dot yellow"></div>
+        <div class="splash-terminal-dot green"></div>
+      </div>
+      <div id="splash-logs"></div>
+      <div class="splash-progress">
+        <div class="splash-progress-bar" id="splash-progress"></div>
+      </div>
+    </div>
+  </div>
+  
   <div id="root"></div>
+  
+  <script>
+    // Splash screen logging system
+    window.splashLog = function(message, type = 'normal') {
+      const logs = document.getElementById('splash-logs');
+      const progress = document.getElementById('splash-progress');
+      if (!logs) return;
+      
+      const line = document.createElement('div');
+      line.className = 'splash-log ' + type;
+      line.innerHTML = '<span class="prefix">›</span> ' + message;
+      line.style.animationDelay = (logs.children.length * 0.1) + 's';
+      logs.appendChild(line);
+      
+      // Auto-scroll
+      logs.scrollTop = logs.scrollHeight;
+      
+      // Update progress based on log count (rough estimate)
+      const progressPercent = Math.min((logs.children.length / 8) * 100, 95);
+      if (progress) progress.style.width = progressPercent + '%';
+    };
+    
+    window.hideSplash = function() {
+      const splash = document.getElementById('splash-screen');
+      const progress = document.getElementById('splash-progress');
+      if (progress) progress.style.width = '100%';
+      
+      setTimeout(() => {
+        if (splash) splash.classList.add('hidden');
+        setTimeout(() => {
+          if (splash) splash.style.display = 'none';
+        }, 300);
+      }, 200);
+    };
+    
+    // Initial boot messages
+    setTimeout(() => window.splashLog('Initializing MCP Scooter...', 'active'), 100);
+    setTimeout(() => window.splashLog('Loading configuration...'), 400);
+    setTimeout(() => window.splashLog('Starting React runtime...'), 700);
+  </script>
+  
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

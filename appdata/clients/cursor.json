@@ -1,0 +1,7 @@
+{
+  "id": "cursor",
+  "name": "Cursor",
+  "icon": "/client-logos/cursor.svg",
+  "description": "AI-powered code editor built on VS Code",
+  "manual_instructions": "To manually configure Cursor:\n1. Open Cursor Settings\n2. Go to Features > MCP\n3. Add a new MCP server\n4. Name: MCP Scooter\n5. Type: SSE\n6. URL: http://localhost:6277/profiles/{profile}/sse"
+}

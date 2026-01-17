@@ -1,0 +1,6 @@
+{
+  "name": "github",
+  "description": "Manage GitHub repositories and issues",
+  "source": "community",
+  "icon": "/mcp-logos/github.svg"
+}

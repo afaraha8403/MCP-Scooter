@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mcp-scout/scooter/internal/domain/profile"
+	"github.com/mcp-scooter/scooter/internal/domain/profile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

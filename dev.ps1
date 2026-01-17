@@ -1,4 +1,4 @@
-# MCP Scout Development Helper Script
+# MCP Scooter Development Helper Script
 # Usage: .\dev.ps1
 
 $RootDir = Get-Location
@@ -19,7 +19,7 @@ if (!(Get-Command "cargo" -ErrorAction SilentlyContinue)) {
     }
 }
 
-Write-Host "--- MCP Scout Dev Startup ---" -ForegroundColor Green
+Write-Host "--- MCP Scooter Dev Startup ---" -ForegroundColor Green
 
 # 1. Start Go Backend in the background
 Write-Host "[1/2] Starting Go Backend (Control Server on :6200)..." -ForegroundColor Cyan

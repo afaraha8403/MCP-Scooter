@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 )
 
-// VSCodeIntegration handles configuring VS Code to use MCP Scout.
+// VSCodeIntegration handles configuring VS Code to use MCP Scooter.
 type VSCodeIntegration struct{}
 
-// Configure adds the MCP Scout server to VS Code's mcp.json.
+// Configure adds the MCP Scooter server to VS Code's mcp.json.
 // Note: While the PRD mentions ~/.vscode/mcp.json, VS Code usually
 // uses settings.json for global settings or project-level mcp.json.
 // We will follow the PRD's request for ~/.vscode/mcp.json as a convention
 // that extensions might pick up.
-func (v *VSCodeIntegration) Configure(port int) error {
+func (v *VSCodeIntegration) Configure(port int, profileID string) error {
 	path, err := v.findConfig()
 	if err != nil {
 		return err
@@ -34,10 +34,15 @@ func (v *VSCodeIntegration) Configure(port int) error {
 		config.McpServers = make(map[string]interface{})
 	}
 
-	// Add or update MCP Scout entry
-	config.McpServers["mcp-scout"] = map[string]interface{}{
+	// Add or update MCP Scooter entry
+	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	if profileID == "work" {
+		url = fmt.Sprintf("http://localhost:%d/sse", port)
+	}
+
+	config.McpServers["mcp-scooter"] = map[string]interface{}{
 		"type": "sse",
-		"url":  fmt.Sprintf("http://localhost:%d/sse", port),
+		"url":  url,
 	}
 
 	newData, err := json.MarshalIndent(config, "", "  ")

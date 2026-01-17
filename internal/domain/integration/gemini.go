@@ -10,8 +10,8 @@ import (
 // GeminiIntegration handles configuring Google Antigravity and Gemini CLI.
 type GeminiIntegration struct{}
 
-// Configure adds the MCP Scout server to Gemini's settings.json.
-func (g *GeminiIntegration) Configure(port int) error {
+// Configure adds the MCP Scooter server to Gemini's settings.json.
+func (g *GeminiIntegration) Configure(port int, profileID string) error {
 	path, err := g.findConfig()
 	if err != nil {
 		return err
@@ -30,10 +30,15 @@ func (g *GeminiIntegration) Configure(port int) error {
 		config.McpServers = make(map[string]interface{})
 	}
 
-	// Add or update MCP Scout entry
-	config.McpServers["mcp-scout"] = map[string]interface{}{
+	// Add or update MCP Scooter entry
+	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	if profileID == "work" {
+		url = fmt.Sprintf("http://localhost:%d/sse", port)
+	}
+
+	config.McpServers["mcp-scooter"] = map[string]interface{}{
 		"type": "sse",
-		"url":  fmt.Sprintf("http://localhost:%d/sse", port),
+		"url":  url,
 	}
 
 	newData, err := json.MarshalIndent(config, "", "  ")
