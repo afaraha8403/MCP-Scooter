@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FluentProvider, webLightTheme, webDarkTheme } from "@fluentui/react-components";
 import { SettingsModal } from "./components/SettingsModal";
+import { ProfileSelectionModal } from "./components/ProfileSelectionModal";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
@@ -61,20 +62,32 @@ function App() {
   const [appSettings, setAppSettings] = useState<Settings>({ control_port: 6200, mcp_port: 6277 });
   const [portConflicts, setPortConflicts] = useState<{ port: number; process: ProcessInfo }[]>([]);
 
+  // Track logged messages to avoid duplicates in splash screen
+  const loggedMessages = useRef<Set<string>>(new Set());
+  const lastConnectionState = useRef<boolean | null>(null);
+
   // Interactive UI State
-  const [activeTab, setActiveTab] = useState<"active" | "library" | "clients">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "catalog" | "clients">("active");
   const [searchQuery, setSearchQuery] = useState("");
   const [newProfile, setNewProfile] = useState({ id: "" });
   const [newTool, setNewTool] = useState({ name: "", description: "", category: "utility", source: "community" });
   const [toolInput, setToolInput] = useState("{}");
   const [showSettings, setShowSettings] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const CONTROL_API = `http://localhost:${appSettings.control_port}/api`;
 
   // Splash screen helper
-  const splashLog = (message: string, type: string = 'normal') => {
+  const splashLog = (message: string, type: string = 'normal', once: boolean = false) => {
+    if (once && loggedMessages.current.has(message)) {
+      return;
+    }
+    
     if (typeof window !== 'undefined' && (window as any).splashLog) {
       (window as any).splashLog(message, type);
+      if (once) {
+        loggedMessages.current.add(message);
+      }
     }
   };
 
@@ -89,28 +102,28 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    splashLog('Checking port availability...', 'active');
+    splashLog('Checking port availability...', 'active', true);
     
     const checkConflicts = async () => {
       try {
         const conflicts: { port: number; process: ProcessInfo }[] = [];
         
-        splashLog(`Scanning port ${appSettings.control_port}...`);
+        splashLog(`Scanning port ${appSettings.control_port}...`, 'normal', true);
         const controlUsage = await invoke<ProcessInfo | null>("check_port_usage", { port: appSettings.control_port });
         if (controlUsage && controlUsage.name !== "scooter.exe" && controlUsage.name !== "main.exe" && controlUsage.name !== "desktop.exe") {
           conflicts.push({ port: appSettings.control_port, process: controlUsage });
-          splashLog(`Port ${appSettings.control_port} in use by ${controlUsage.name}`, 'active');
+          splashLog(`Port ${appSettings.control_port} in use by ${controlUsage.name}`, 'active', true);
         } else {
-          splashLog(`Port ${appSettings.control_port} available`, 'success');
+          splashLog(`Port ${appSettings.control_port} available`, 'success', true);
         }
 
-        splashLog(`Scanning port ${appSettings.mcp_port}...`);
+        splashLog(`Scanning port ${appSettings.mcp_port}...`, 'normal', true);
         const mcpUsage = await invoke<ProcessInfo | null>("check_port_usage", { port: appSettings.mcp_port });
         if (mcpUsage && mcpUsage.name !== "scooter.exe" && mcpUsage.name !== "main.exe" && mcpUsage.name !== "desktop.exe") {
           conflicts.push({ port: appSettings.mcp_port, process: mcpUsage });
-          splashLog(`Port ${appSettings.mcp_port} in use by ${mcpUsage.name}`, 'active');
+          splashLog(`Port ${appSettings.mcp_port} in use by ${mcpUsage.name}`, 'active', true);
         } else {
-          splashLog(`Port ${appSettings.mcp_port} available`, 'success');
+          splashLog(`Port ${appSettings.mcp_port} available`, 'success', true);
         }
 
         setPortConflicts(conflicts);
@@ -125,7 +138,7 @@ function App() {
   }, [appSettings.control_port, appSettings.mcp_port]);
 
   useEffect(() => {
-    splashLog('Connecting to backend...', 'active');
+    splashLog('Connecting to backend...', 'active', true);
     fetchProfiles();
     fetchAllTools();
     fetchClients();
@@ -156,22 +169,29 @@ function App() {
       const data = await res.json();
       const updatedProfiles = data.profiles || [];
       setProfiles(updatedProfiles);
-      if (data.settings) {
+      if (data.settings && (data.settings.control_port !== appSettings.control_port || data.settings.mcp_port !== appSettings.mcp_port)) {
         setAppSettings(data.settings);
       }
       setOnboardingRequired(data.onboarding_required);
       if (updatedProfiles.length > 0 && !selectedProfileId) {
         setSelectedProfileId(updatedProfiles[0].id);
       }
-      setStatus(s => ({ ...s, connected: true }));
-      splashLog('Backend connected!', 'success');
+      
+      if (lastConnectionState.current !== true) {
+        setStatus(s => ({ ...s, connected: true }));
+        splashLog('Backend connected!', 'success');
+        lastConnectionState.current = true;
+      }
       
       // Hide splash after successful connection
       setTimeout(() => hideSplash(), 500);
     } catch (err) {
       console.error("Failed to fetch profiles", err);
-      setStatus(s => ({ ...s, connected: false }));
-      splashLog('Waiting for backend...', 'active');
+      if (lastConnectionState.current !== false) {
+        setStatus(s => ({ ...s, connected: false }));
+        splashLog('Waiting for backend...', 'active');
+        lastConnectionState.current = false;
+      }
     } finally {
       setLoading(false);
     }
@@ -222,6 +242,10 @@ function App() {
         setSelectedProfileId("");
         setOnboardingRequired(true);
         setShowSettings(false);
+        // Force a reload to ensure clean state and return to onboarding
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         const text = await res.text();
         addLog(`Reset failed: ${text}`, "ERROR");
@@ -257,12 +281,14 @@ function App() {
 
   const filteredTools = allTools
     .filter(t => 
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      t.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (t.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (t.description || "").toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
-      const aNameMatch = a.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const bNameMatch = b.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const aName = a.name || "";
+      const bName = b.name || "";
+      const aNameMatch = aName.toLowerCase().includes(searchQuery.toLowerCase());
+      const bNameMatch = bName.toLowerCase().includes(searchQuery.toLowerCase());
       if (aNameMatch && !bNameMatch) return -1;
       if (!aNameMatch && bNameMatch) return 1;
       return 0;
@@ -572,17 +598,12 @@ function App() {
             <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} alt="S" />
           </div>
           
-          <div className="profile-selector-container">
+          <div className="profile-selector-container" onClick={() => setShowProfileModal(true)} style={{ cursor: 'pointer' }}>
             <span className="profile-label">Profile</span>
-            <select 
-              className="profile-select"
-              value={selectedProfileId}
-              onChange={(e) => setSelectedProfileId(e.target.value)}
-            >
-              {profiles.map(p => (
-                <option key={p.id} value={p.id}>{p.id}</option>
-              ))}
-            </select>
+            <div className="profile-select-display" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '8px' }}>
+              <span style={{ fontWeight: 700, fontSize: '14px' }}>{selectedProfileId || 'Select Profile'}</span>
+              <span style={{ fontSize: '10px', opacity: 0.5 }}>▼</span>
+            </div>
           </div>
 
           <button className="add-profile-btn" onClick={() => setDrawer({ type: "add-profile" })} title="Add Profile">
@@ -591,7 +612,7 @@ function App() {
         </div>
 
         {/* Main Grid */}
-        <div className={`main-grid ${activeTab !== 'active' ? 'library-full' : ''}`}>
+        <div className={`main-grid ${activeTab !== 'active' ? 'catalog-full' : ''}`}>
           {/* Main Content Section */}
           <section className="section-container">
             <header className="section-header">
@@ -603,13 +624,13 @@ function App() {
                   Active Tools
                 </span>
                 <span 
-                  className={`tab-link ${activeTab === 'library' ? 'active' : ''}`}
+                  className={`tab-link ${activeTab === 'catalog' ? 'active' : ''}`}
                   onClick={() => {
-                    setActiveTab('library');
+                    setActiveTab('catalog');
                     setSearchQuery(""); // Clear search when switching
                   }}
                 >
-                  Tool Library
+                  Catalog
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'clients' ? 'active' : ''}`}
@@ -624,13 +645,13 @@ function App() {
               <span className="badge">
                 {activeTab === 'active' 
                   ? `${selectedProfile?.allow_tools?.length || 0} Loaded` 
-                  : activeTab === 'library'
-                  ? `${filteredTools.length} Available`
-                  : `${allClients.length} Configurable`}
+                  : activeTab === 'catalog'
+                  ? `${(filteredTools || []).length} Available`
+                  : `${(allClients || []).length} Configurable`}
               </span>
             </header>
 
-            {activeTab === 'library' && (
+            {activeTab === 'catalog' && (
               <div className="search-container">
                 <span className="search-icon">🔍</span>
                 <input 
@@ -687,13 +708,13 @@ function App() {
                   </>
                 )}
 
-                {activeTab === 'library' && (
+                {activeTab === 'catalog' && (
                   <>
-                    {Object.entries(toolsByCategory).map(([category, tools]) => (
+                    {(Object.entries(toolsByCategory || {})).map(([category, tools]) => (
                       <div key={category} className="category-section" style={{ gridColumn: '1 / -1' }}>
                         <div className="category-title">{category}</div>
                         <div className="card-grid grid-layout">
-                          {tools.map(tool => {
+                          {(tools || []).map(tool => {
                             const isActive = selectedProfile?.allow_tools?.includes(tool.name);
                             return (
                               <div key={tool.name} className="compact-card">
@@ -798,20 +819,22 @@ function App() {
           </section>
 
           {/* Logs Column */}
-          <div className="section-container" style={{ gap: "16px" }}>
-            {/* Log Stream */}
-            <section className="section-container">
-              <header className="section-header">Real-time Stream</header>
-              <div className="scroll-section log-stream">
-                {logs.map((log, i) => (
-                  <div key={i} style={{ fontFamily: "Google Sans Code, JetBrains Mono, monospace", fontSize: "10px", marginBottom: "4px" }}>
-                    <span style={{ opacity: 0.5 }}>[{log.timestamp}]</span>{" "}
-                    <span style={{ color: log.level === "ERROR" ? "#ff4d4d" : "inherit" }}>{log.message}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
+          {activeTab === 'active' && (
+            <div className="section-container" style={{ gap: "16px" }}>
+              {/* Log Stream */}
+              <section className="section-container">
+                <header className="section-header">Real-time Stream</header>
+                <div className="scroll-section log-stream">
+                  {logs.map((log, i) => (
+                    <div key={i} style={{ fontFamily: "Google Sans Code, JetBrains Mono, monospace", fontSize: "10px", marginBottom: "4px" }}>
+                      <span style={{ opacity: 0.5 }}>[{log.timestamp}]</span>{" "}
+                      <span style={{ color: log.level === "ERROR" ? "#ff4d4d" : "inherit" }}>{log.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
         </div>
       </div>
 
@@ -851,6 +874,15 @@ function App() {
         onUpdateSettings={updateGlobalSettings}
         onDeleteProfile={deleteProfile}
         onReset={handleResetApp}
+      />
+
+      <ProfileSelectionModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        profiles={profiles}
+        selectedProfileId={selectedProfileId}
+        onSelectProfile={setSelectedProfileId}
+        onCreateProfile={() => setDrawer({ type: "add-profile" })}
       />
 
       {/* Drawer Overlay */}

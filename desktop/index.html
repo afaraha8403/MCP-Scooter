@@ -35,7 +35,7 @@
       align-items: center;
       justify-content: center;
       z-index: 9999;
-      transition: opacity 0.3s ease-out;
+      transition: opacity 0.8s ease-in-out;
     }
     
     #splash-screen.hidden {
@@ -80,6 +80,26 @@
       padding: 16px;
       font-size: 11px;
       line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #splash-logs {
+      max-height: 200px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    #splash-logs::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #splash-logs::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
     }
     
     .splash-terminal-header {
@@ -104,12 +124,20 @@
       color: var(--splash-dim);
       margin: 4px 0;
       opacity: 0;
-      animation: fadeIn 0.3s ease-out forwards;
+      animation: fadeIn 0.5s ease-out forwards;
+      word-wrap: break-word;
+      white-space: pre-wrap;
     }
     
     .splash-log.success { color: var(--splash-accent); }
     .splash-log.active { color: var(--splash-text); }
     .splash-log .prefix { color: var(--splash-accent); }
+    .splash-log .timestamp { 
+      opacity: 0.5; 
+      font-size: 9px; 
+      margin-right: 4px;
+      font-family: 'Consolas', monospace;
+    }
     
     @keyframes fadeIn {
       to { opacity: 1; }
@@ -127,7 +155,7 @@
       height: 100%;
       background: var(--splash-accent);
       width: 0%;
-      transition: width 0.3s ease-out;
+      transition: width 0.8s ease-out;
     }
   </style>
 </head>
@@ -160,14 +188,19 @@
       const progress = document.getElementById('splash-progress');
       if (!logs) return;
       
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      
       const line = document.createElement('div');
       line.className = 'splash-log ' + type;
-      line.innerHTML = '<span class="prefix">›</span> ' + message;
-      line.style.animationDelay = (logs.children.length * 0.1) + 's';
+      line.innerHTML = `<span class="timestamp">[${timestamp}]</span> <span class="prefix">›</span> ` + message;
+      line.style.animationDelay = (logs.children.length * 0.2) + 's';
       logs.appendChild(line);
       
       // Auto-scroll
-      logs.scrollTop = logs.scrollHeight;
+      requestAnimationFrame(() => {
+        logs.scrollTop = logs.scrollHeight;
+      });
       
       // Update progress based on log count (rough estimate)
       const progressPercent = Math.min((logs.children.length / 8) * 100, 95);
@@ -183,14 +216,14 @@
         if (splash) splash.classList.add('hidden');
         setTimeout(() => {
           if (splash) splash.style.display = 'none';
-        }, 300);
-      }, 200);
+        }, 800);
+      }, 600);
     };
     
     // Initial boot messages
-    setTimeout(() => window.splashLog('Initializing MCP Scooter...', 'active'), 100);
-    setTimeout(() => window.splashLog('Loading configuration...'), 400);
-    setTimeout(() => window.splashLog('Starting React runtime...'), 700);
+    setTimeout(() => window.splashLog('Initializing MCP Scooter...', 'active'), 200);
+    setTimeout(() => window.splashLog('Loading configuration...'), 800);
+    setTimeout(() => window.splashLog('Starting React runtime...'), 1400);
   </script>
   
   <script type="module" src="/src/main.tsx"></script>

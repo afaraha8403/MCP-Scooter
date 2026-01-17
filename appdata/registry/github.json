@@ -1,6 +1,219 @@
 {
+  "$schema": "../schemas/mcp-registry.schema.json",
   "name": "github",
-  "description": "Manage GitHub repositories and issues",
+  "version": "1.0.0",
+  "title": "GitHub",
+  "description": "Interact with GitHub repositories, issues, pull requests, and more",
+  "category": "development",
   "source": "community",
-  "icon": "/mcp-logos/github.svg"
+  "tags": ["github", "git", "repositories", "issues", "pull-requests"],
+  "icon": "/mcp-logos/github.svg",
+  "color": "#24292F",
+  "about": "## GitHub MCP\n\nInteract with GitHub to manage repositories, issues, pull requests, and more directly from your AI assistant.\n\n### Features\n\n- **Repository Management** - Create, fork, and manage repositories\n- **Issues & PRs** - Create, update, and search issues and pull requests\n- **Code Search** - Search code across repositories\n- **File Operations** - Read and create/update files\n\n### Authentication\n\nRequires a GitHub Personal Access Token (PAT) with appropriate scopes.\n\n### Required Scopes\n\n- `repo` - Full control of private repositories\n- `read:user` - Read user profile data",
+  "homepage": "https://github.com",
+  "repository": "https://github.com/anthropics/mcp-github",
+  "documentation": "https://docs.github.com/en/rest",
+  "authorization": {
+    "type": "bearer_token",
+    "required": true,
+    "env_var": "GITHUB_TOKEN",
+    "display_name": "GitHub Personal Access Token",
+    "description": "A GitHub PAT with repo and read:user scopes",
+    "help_url": "https://github.com/settings/tokens/new",
+    "scopes": ["repo", "read:user"]
+  },
+  "tools": [
+    {
+      "name": "search_repositories",
+      "title": "Search Repositories",
+      "description": "Search for GitHub repositories by name, description, or other criteria.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (supports GitHub search syntax)"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination",
+            "default": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Results per page (max 100)",
+            "default": 30
+          }
+        },
+        "required": ["query"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_file_contents",
+      "title": "Get File Contents",
+      "description": "Retrieve the contents of a file from a GitHub repository.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Repository owner (username or organization)"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository name"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to the file in the repository"
+          },
+          "branch": {
+            "type": "string",
+            "description": "Branch name (defaults to default branch)"
+          }
+        },
+        "required": ["owner", "repo", "path"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "create_issue",
+      "title": "Create Issue",
+      "description": "Create a new issue in a GitHub repository.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Repository owner"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository name"
+          },
+          "title": {
+            "type": "string",
+            "description": "Issue title"
+          },
+          "body": {
+            "type": "string",
+            "description": "Issue body (markdown supported)"
+          },
+          "labels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Labels to apply to the issue"
+          }
+        },
+        "required": ["owner", "repo", "title"]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false
+      }
+    },
+    {
+      "name": "create_pull_request",
+      "title": "Create Pull Request",
+      "description": "Create a new pull request in a GitHub repository.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Repository owner"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository name"
+          },
+          "title": {
+            "type": "string",
+            "description": "Pull request title"
+          },
+          "body": {
+            "type": "string",
+            "description": "Pull request description"
+          },
+          "head": {
+            "type": "string",
+            "description": "The branch containing your changes"
+          },
+          "base": {
+            "type": "string",
+            "description": "The branch you want to merge into"
+          }
+        },
+        "required": ["owner", "repo", "title", "head", "base"]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "requiresApproval": true
+      }
+    },
+    {
+      "name": "push_files",
+      "title": "Push Files",
+      "description": "Create or update files in a GitHub repository.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Repository owner"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository name"
+          },
+          "branch": {
+            "type": "string",
+            "description": "Branch to push to"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" },
+                "content": { "type": "string" }
+              }
+            },
+            "description": "Files to create or update"
+          },
+          "message": {
+            "type": "string",
+            "description": "Commit message"
+          }
+        },
+        "required": ["owner", "repo", "branch", "files", "message"]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "requiresApproval": true
+      }
+    }
+  ],
+  "package": {
+    "type": "npm",
+    "name": "@anthropic/mcp-github",
+    "version": "^1.0.0"
+  },
+  "runtime": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic/mcp-github"]
+  },
+  "metadata": {
+    "author": "Anthropic",
+    "license": "MIT"
+  }
 }

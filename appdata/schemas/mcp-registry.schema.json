@@ -1,0 +1,615 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mcp-scooter.com/schemas/registry/v1.json",
+  "title": "MCP Registry Entry",
+  "description": "Schema for MCP server definitions in the MCP Scout registry",
+  "type": "object",
+  "required": ["name", "version", "title", "description", "category", "source", "authorization", "tools", "package"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema for validation"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "minLength": 2,
+      "maxLength": 64,
+      "description": "Unique identifier. Lowercase letters, numbers, and hyphens only. Must start with a letter."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$",
+      "description": "Semantic version (e.g., 1.0.0, 2.1.0-beta.1)"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 64,
+      "description": "Human-friendly display name"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "One-line summary of what this MCP does"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "development",
+        "database",
+        "productivity",
+        "communication",
+        "search",
+        "cloud",
+        "analytics",
+        "ai",
+        "utility",
+        "custom"
+      ],
+      "description": "Primary category for filtering"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["official", "community", "enterprise", "local"],
+      "description": "Origin of the tool"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$",
+        "maxLength": 32
+      },
+      "maxItems": 10,
+      "uniqueItems": true,
+      "description": "Additional searchable keywords"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Path to SVG icon (relative: /mcp-logos/name.svg or absolute URL)"
+    },
+    "banner": {
+      "type": "string",
+      "description": "Path to banner image for detail view"
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+      "description": "Brand color in hex format (e.g., #FB542B)"
+    },
+    "about": {
+      "type": "string",
+      "maxLength": 10000,
+      "description": "Markdown documentation explaining the MCP in detail"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Official product/service homepage"
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "description": "Source code repository URL"
+    },
+    "documentation": {
+      "type": "string",
+      "format": "uri",
+      "description": "Link to detailed API docs"
+    },
+    "authorization": {
+      "$ref": "#/definitions/authorization"
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/tool"
+      },
+      "description": "List of tools/functions this MCP server exposes"
+    },
+    "package": {
+      "$ref": "#/definitions/package"
+    },
+    "runtime": {
+      "$ref": "#/definitions/runtime"
+    },
+    "metadata": {
+      "$ref": "#/definitions/metadata"
+    }
+  },
+  "definitions": {
+    "authorization": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["none", "api_key", "oauth2", "bearer_token", "custom"],
+          "description": "Authentication type required by this MCP"
+        },
+        "required": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether authentication is required to use this MCP"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "api_key" } }
+          },
+          "then": {
+            "properties": {
+              "env_var": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]*$",
+                "description": "Environment variable name for the API key"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "Human-friendly name shown in UI"
+              },
+              "description": {
+                "type": "string",
+                "description": "Help text explaining what this key is"
+              },
+              "help_url": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL where user can obtain the API key"
+              },
+              "validation": {
+                "type": "object",
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "description": "Regex to validate key format"
+                  },
+                  "test_endpoint": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL to verify key works"
+                  }
+                }
+              }
+            },
+            "required": ["env_var", "display_name"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "oauth2" } }
+          },
+          "then": {
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": ["google", "github", "slack", "microsoft", "custom"],
+                "description": "Known OAuth provider for UI hints"
+              },
+              "display_name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "oauth": {
+                "type": "object",
+                "required": ["authorization_url", "token_url", "scopes", "token_env"],
+                "properties": {
+                  "authorization_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "token_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 1
+                  },
+                  "scope_descriptions": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                  },
+                  "pkce_required": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "client_id_env": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "client_secret_env": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "token_env": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "refresh_token_env": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  }
+                }
+              }
+            },
+            "required": ["provider", "oauth"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "bearer_token" } }
+          },
+          "then": {
+            "properties": {
+              "env_var": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "display_name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "help_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "scopes": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "required": ["env_var", "display_name"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "custom" } }
+          },
+          "then": {
+            "properties": {
+              "display_name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "env_vars": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "display_name"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[A-Z][A-Z0-9_]*$"
+                    },
+                    "display_name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "secret": {
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "required": {
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "default": {
+                      "type": "string"
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                },
+                "minItems": 1
+              }
+            },
+            "required": ["env_vars"]
+          }
+        }
+      ]
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name", "description", "inputSchema"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "minLength": 2,
+          "maxLength": 64,
+          "description": "Unique tool identifier (snake_case)"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Human-friendly name for UI"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500,
+          "description": "What this tool does. Be specific for LLM discovery."
+        },
+        "inputSchema": {
+          "type": "object",
+          "description": "JSON Schema defining input parameters",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "object"
+            },
+            "properties": {
+              "type": "object"
+            },
+            "required": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["type", "properties"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "description": "JSON Schema defining output structure"
+        },
+        "annotations": {
+          "type": "object",
+          "properties": {
+            "readOnlyHint": {
+              "type": "boolean",
+              "description": "True if tool only reads data"
+            },
+            "destructiveHint": {
+              "type": "boolean",
+              "description": "True if tool can delete/modify data"
+            },
+            "idempotentHint": {
+              "type": "boolean",
+              "description": "True if repeated calls produce same result"
+            },
+            "openWorldHint": {
+              "type": "boolean",
+              "description": "True if tool accesses external services"
+            },
+            "requiresApproval": {
+              "type": "boolean",
+              "description": "True if Scout should prompt for Human-in-the-Loop approval"
+            },
+            "rateLimit": {
+              "type": "string",
+              "description": "Human-readable rate limit info"
+            },
+            "costPerCall": {
+              "type": "string",
+              "description": "Estimated cost per invocation"
+            }
+          }
+        }
+      }
+    },
+    "package": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["npm", "pypi", "cargo", "wasm", "docker", "binary"],
+          "description": "Package/installation type"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "npm" } }
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "npm package name"
+              },
+              "version": {
+                "type": "string",
+                "description": "Version range (e.g., ^1.2.0)"
+              },
+              "registry": {
+                "type": "string",
+                "format": "uri",
+                "default": "https://registry.npmjs.org"
+              }
+            },
+            "required": ["name"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "pypi" } }
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "index": {
+                "type": "string",
+                "format": "uri",
+                "default": "https://pypi.org/simple"
+              }
+            },
+            "required": ["name"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "wasm" } }
+          },
+          "then": {
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Remote WASM file URL"
+              },
+              "local_path": {
+                "type": "string",
+                "description": "Local path to WASM file"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "SHA256 checksum"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "docker" } }
+          },
+          "then": {
+            "properties": {
+              "image": {
+                "type": "string",
+                "description": "Docker image name with tag"
+              },
+              "registry": {
+                "type": "string",
+                "default": "docker.io"
+              }
+            },
+            "required": ["image"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "binary" } }
+          },
+          "then": {
+            "properties": {
+              "platforms": {
+                "type": "object",
+                "propertyNames": {
+                  "enum": ["windows-x64", "windows-arm64", "darwin-x64", "darwin-arm64", "linux-x64", "linux-arm64"]
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "required": ["url"],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "required": ["platforms"]
+          }
+        }
+      ]
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "transport": {
+          "type": "string",
+          "enum": ["stdio", "http", "sse", "streamable-http"],
+          "description": "How Scout communicates with the MCP server"
+        },
+        "command": {
+          "type": "string",
+          "description": "Command to execute"
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Command arguments"
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Additional environment variables"
+        },
+        "cwd": {
+          "type": ["string", "null"],
+          "description": "Working directory"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1000,
+          "default": 30000,
+          "description": "Timeout in milliseconds"
+        },
+        "healthCheck": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "interval": {
+              "type": "integer",
+              "minimum": 1000
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        },
+        "maintainers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "deprecated": {
+          "type": "boolean",
+          "default": false
+        },
+        "deprecation_message": {
+          "type": ["string", "null"]
+        },
+        "minimum_scout_version": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

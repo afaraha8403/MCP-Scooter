@@ -1,6 +1,81 @@
 {
+  "$schema": "../schemas/mcp-registry.schema.json",
   "name": "context7",
-  "description": "Context-aware search and retrieval for your codebase",
+  "version": "1.0.0",
+  "title": "Context7",
+  "description": "Up-to-date documentation for any library directly in your prompts",
+  "category": "development",
   "source": "community",
-  "icon": "/mcp-logos/context7.svg"
+  "tags": ["documentation", "libraries", "code", "reference"],
+  "icon": "/mcp-logos/context7.svg",
+  "color": "#6366F1",
+  "about": "## Context7 MCP\n\nContext7 pulls up-to-date, version-specific documentation and code examples straight from the source — and places them directly in your prompt.\n\n### Why Context7?\n\n- **Always Current** - Documentation is fetched in real-time\n- **Version Specific** - Get docs for the exact version you're using\n- **Code Examples** - Includes working code snippets\n\n### Supported Libraries\n\nContext7 supports thousands of libraries across multiple ecosystems including npm, PyPI, and more.\n\n### Usage\n\nSimply ask about any library and Context7 will fetch the relevant documentation.",
+  "homepage": "https://context7.com",
+  "repository": "https://github.com/upstash/context7",
+  "authorization": {
+    "type": "none"
+  },
+  "tools": [
+    {
+      "name": "resolve_library_id",
+      "title": "Resolve Library",
+      "description": "Resolves a library name to a Context7-compatible library ID. Always call this first before fetching documentation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "library_name": {
+            "type": "string",
+            "description": "The name of the library to search for (e.g., 'react', 'nextjs', 'postgres')"
+          }
+        },
+        "required": ["library_name"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_library_docs",
+      "title": "Get Documentation",
+      "description": "Fetches up-to-date documentation for a library. Use the library ID from resolve_library_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "context7_compatible_library_id": {
+            "type": "string",
+            "description": "The Context7 library ID (from resolve_library_id)"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Optional: Focus the documentation on a specific topic"
+          },
+          "tokens": {
+            "type": "integer",
+            "description": "Maximum number of tokens for the response",
+            "default": 5000
+          }
+        },
+        "required": ["context7_compatible_library_id"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    }
+  ],
+  "package": {
+    "type": "npm",
+    "name": "@anthropic/mcp-context7",
+    "version": "^1.0.0"
+  },
+  "runtime": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic/mcp-context7"]
+  },
+  "metadata": {
+    "author": "Upstash",
+    "license": "MIT"
+  }
 }

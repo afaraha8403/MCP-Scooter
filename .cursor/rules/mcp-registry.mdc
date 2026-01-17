@@ -1,0 +1,176 @@
+---
+description: Rules for working with MCP Scout registry and creating new MCP definitions
+globs:
+  - "appdata/registry/**/*.json"
+  - "internal/domain/registry/**/*.go"
+  - ".doc/**/*.md"
+alwaysApply: false
+---
+
+# MCP Scout Registry Rules
+
+## Project Overview
+
+MCP Scout (Scooter) is a lightweight desktop application that acts as the universal "Operating System" for the Model Context Protocol (MCP). It manages MCP tools through a registry system with strict JSON schema validation.
+
+## Registry JSON Schema
+
+All MCP registry entries in `appdata/registry/` MUST follow this schema:
+
+### Required Fields
+
+| Field | Type | Rules |
+|-------|------|-------|
+| `name` | string | Lowercase letters, numbers, hyphens only. Pattern: `^[a-z][a-z0-9-]*$`. 2-64 chars. |
+| `version` | string | Semantic version. Pattern: `^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$` |
+| `title` | string | Human-friendly display name. Max 64 chars. |
+| `description` | string | One-line summary. 10-200 chars. |
+| `category` | enum | One of: `development`, `database`, `productivity`, `communication`, `search`, `cloud`, `analytics`, `ai`, `utility`, `custom` |
+| `source` | enum | One of: `official`, `community`, `enterprise`, `local` |
+| `authorization` | object | Auth configuration (see below) |
+| `tools` | array | At least one tool definition |
+| `package` | object | Installation configuration |
+
+### Authorization Types
+
+#### Type: `none`
+```json
+{
+  "authorization": {
+    "type": "none"
+  }
+}
+```
+
+#### Type: `api_key`
+```json
+{
+  "authorization": {
+    "type": "api_key",
+    "required": true,
+    "env_var": "UPPERCASE_ENV_VAR",
+    "display_name": "Human Friendly Name",
+    "description": "Help text for the user",
+    "help_url": "https://where-to-get-the-key.com"
+  }
+}
+```
+
+#### Type: `oauth2`
+```json
+{
+  "authorization": {
+    "type": "oauth2",
+    "required": true,
+    "provider": "google|github|slack|microsoft|custom",
+    "display_name": "Provider Account",
+    "oauth": {
+      "authorization_url": "https://...",
+      "token_url": "https://...",
+      "scopes": ["scope1", "scope2"],
+      "pkce_required": true,
+      "token_env": "TOKEN_ENV_VAR"
+    }
+  }
+}
+```
+
+#### Type: `bearer_token`
+```json
+{
+  "authorization": {
+    "type": "bearer_token",
+    "required": true,
+    "env_var": "TOKEN_ENV_VAR",
+    "display_name": "Personal Access Token",
+    "help_url": "https://where-to-get-token.com",
+    "scopes": ["scope1"]
+  }
+}
+```
+
+#### Type: `custom`
+```json
+{
+  "authorization": {
+    "type": "custom",
+    "display_name": "Connection Details",
+    "env_vars": [
+      {
+        "name": "ENV_VAR_NAME",
+        "display_name": "Field Label",
+        "description": "Help text",
+        "secret": true,
+        "required": true
+      }
+    ]
+  }
+}
+```
+
+### Tool Definition Schema
+
+```json
+{
+  "name": "snake_case_name",
+  "title": "Human Title",
+  "description": "Clear description of what this tool does (min 10 chars)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "param_name": {
+        "type": "string|integer|boolean|array|object",
+        "description": "Parameter description"
+      }
+    },
+    "required": ["param_name"]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "openWorldHint": true,
+    "requiresApproval": false
+  }
+}
+```
+
+### Package Types
+
+- `npm`: Requires `name` field (e.g., `@scope/package`)
+- `pypi`: Requires `name` field
+- `wasm`: Requires `url` or `local_path`
+- `docker`: Requires `image` field
+- `binary`: Requires `platforms` object with platform-specific URLs
+
+### Icon Requirements
+
+- Icons MUST be stored in `desktop/public/mcp-logos/`
+- Format: SVG preferred
+- Naming: Match the MCP `name` field (e.g., `brave-search.svg`)
+- Reference in JSON as: `/mcp-logos/{name}.svg`
+
+## Validation
+
+Run validation before committing:
+```bash
+make validate
+# or
+./validate-registry.exe appdata/registry
+```
+
+## File Naming
+
+- Registry JSON files: `{name}.json` in `appdata/registry/`
+- Name must match the `name` field inside the JSON
+
+## Code Style
+
+### Go Code
+- Use the types in `internal/domain/registry/types.go`
+- Validate using `registry.Validate(&entry)`
+- All validation errors go to `ValidationResult.Errors`
+
+### JSON
+- Use 2-space indentation
+- Include `$schema` reference: `"../schemas/mcp-registry.schema.json"`
+- Always include the `about` field with markdown documentation

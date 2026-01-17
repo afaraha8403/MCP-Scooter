@@ -1,0 +1,39 @@
+---
+description: General project identity and high-level rules for MCP Scout
+globs: **/*
+alwaysApply: true
+---
+
+# MCP Scout - Project Rules
+
+## Project Identity
+
+MCP Scout (Scooter) is a lightweight, native desktop application that serves as the universal "Operating System" for the Model Context Protocol (MCP). It manages AI tool integrations through a registry system.
+
+## Critical Files
+
+When working with MCP Scout, always reference:
+- Schema: `appdata/schemas/mcp-registry.schema.json`
+- Specification: `.doc/mcp-registry-specification.md`
+- PRD: `.doc/prd.md`
+
+## Code Style
+
+### Go
+- Follow standard Go conventions
+- Use types from `internal/domain/registry/types.go`
+- Tests in `*_test.go` files
+
+### JSON
+- 2-space indentation
+- Include `$schema` reference where applicable
+- Include `about` field with markdown docs in registry files
+
+## Commands
+
+```bash
+make validate      # Validate registry
+make test          # Run tests
+make build         # Build binary
+make ci            # Full CI check
+```

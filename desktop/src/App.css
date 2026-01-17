@@ -212,15 +212,12 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.main-grid.library-full {
-  grid-template-columns: 1fr;
-}
-
-.main-grid.library-full > section:last-child {
-  display: none;
+.main-grid.catalog-full {
+  display: flex;
+  flex-direction: column;
 }
 
 .section-container {
@@ -245,7 +242,7 @@ body {
   cursor: pointer;
   padding-bottom: 4px;
   border-bottom: 2px solid transparent;
-  transition: all 0.2s;
+  transition: all 0.3s;
   opacity: 0.7;
   font-size: 11px;
   font-weight: 700;
@@ -336,7 +333,7 @@ body {
   border-radius: 6px;
   font-size: 13px;
   color: var(--text-primary);
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .search-input:focus {
@@ -362,7 +359,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.1s;
+  transition: all 0.2s;
 }
 
 .compact-card:hover {
@@ -475,7 +472,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  animation: slideIn 0.2s cubic-bezier(0, 0, 0.2, 1);
+  animation: slideIn 0.35s cubic-bezier(0, 0, 0.2, 1);
 }
 
 @keyframes slideIn {
@@ -492,6 +489,19 @@ body {
 }
 
 .drawer-title { font-weight: 600; font-size: 15px; color: var(--text-primary); }
+
+.profile-selection-modal {
+  border-left: 4px solid var(--accent-primary);
+}
+
+.profile-card:hover {
+  background: var(--card-hover);
+  border-color: var(--accent-primary);
+}
+
+.profile-card.active {
+  background: var(--card-hover);
+}
 
 /* Form styles */
 .form-field {
@@ -588,7 +598,7 @@ button.primary:hover {
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   text-align: center;
-  animation: fadeIn 0.4s cubic-bezier(0, 0, 0, 1);
+  animation: fadeIn 0.6s cubic-bezier(0, 0, 0, 1);
   backdrop-filter: blur(20px);
 }
 

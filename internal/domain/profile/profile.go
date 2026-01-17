@@ -5,19 +5,19 @@ import "errors"
 // Profile represents an isolated environment for MCP tools.
 type Profile struct {
 	// Unique identifier for the profile (e.g., "work", "personal")
-	ID string `yaml:"id"`
+	ID string `yaml:"id" json:"id"`
 
 	// AuthMode determines how to authenticate with remote servers ("oauth2", "none", etc.)
-	AuthMode string `yaml:"auth_mode"`
+	AuthMode string `yaml:"auth_mode" json:"auth_mode"`
 
 	// RemoteServerURL is the URL of the remote MCP server to proxy to
-	RemoteServerURL string `yaml:"remote_server_url"`
+	RemoteServerURL string `yaml:"remote_server_url" json:"remote_server_url"`
 
 	// Env contains environment variables to inject into tools
-	Env map[string]string `yaml:"env"`
+	Env map[string]string `yaml:"env" json:"env"`
 
 	// AllowTools is a list of allowed tool names
-	AllowTools []string `yaml:"allow_tools"`
+	AllowTools []string `yaml:"allow_tools" json:"allow_tools"`
 }
 
 // Validate checks if the profile configuration is valid.

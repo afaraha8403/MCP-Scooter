@@ -1,6 +1,100 @@
 {
+  "$schema": "../schemas/mcp-registry.schema.json",
   "name": "brave-search",
-  "description": "Search the web with Brave Search API",
+  "version": "1.0.0",
+  "title": "Brave Search",
+  "description": "Search the web privately using Brave Search API",
+  "category": "search",
   "source": "community",
-  "icon": "/mcp-logos/brave-search.svg"
+  "tags": ["web-search", "privacy", "brave", "api"],
+  "icon": "/mcp-logos/brave-search.svg",
+  "color": "#FB542B",
+  "about": "## Brave Search MCP\n\nSearch the web privately using the Brave Search API. Unlike other search engines, Brave doesn't track your searches or build a profile on you.\n\n### Features\n\n- **Web Search** - Full web search with snippets and metadata\n- **News Search** - Filter for recent news articles\n- **Local Search** - Find local businesses and places\n\n### Getting Started\n\n1. Get an API key at [brave.com/search/api](https://brave.com/search/api)\n2. Add this tool: `scooter_add(\"brave-search\")`\n3. Enter your API key when prompted\n\n### Pricing\n\nBrave Search API offers 2,000 free queries/month.",
+  "homepage": "https://brave.com/search",
+  "repository": "https://github.com/anthropics/mcp-brave-search",
+  "documentation": "https://api.search.brave.com/app/documentation",
+  "authorization": {
+    "type": "api_key",
+    "required": true,
+    "env_var": "BRAVE_API_KEY",
+    "display_name": "Brave Search API Key",
+    "description": "Your Brave Search API key from brave.com/search/api",
+    "help_url": "https://brave.com/search/api/register",
+    "validation": {
+      "pattern": "^BSA[a-zA-Z0-9]{29,}$"
+    }
+  },
+  "tools": [
+    {
+      "name": "brave_web_search",
+      "title": "Web Search",
+      "description": "Search the web using Brave Search. Returns page titles, URLs, and text snippets.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The search query"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of results to return (1-20)",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 20
+          },
+          "freshness": {
+            "type": "string",
+            "description": "Filter results by recency",
+            "enum": ["day", "week", "month", "year"]
+          }
+        },
+        "required": ["query"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "brave_local_search",
+      "title": "Local Search",
+      "description": "Search for local businesses and places using Brave Search.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The local search query (e.g., 'coffee shops near me')"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of results to return",
+            "default": 5
+          }
+        },
+        "required": ["query"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    }
+  ],
+  "package": {
+    "type": "npm",
+    "name": "@anthropic/mcp-brave-search",
+    "version": "^1.0.0"
+  },
+  "runtime": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic/mcp-brave-search"]
+  },
+  "metadata": {
+    "author": "Anthropic",
+    "license": "MIT"
+  }
 }
