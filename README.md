@@ -39,8 +39,8 @@ As AI agents become more powerful, developers face a growing crisis:
 
 | Problem | What Happens Today | MCP Scout Solution |
 |---------|-------------------|-------------------|
-| **Context Bloat** | Connecting 50 tools floods your LLM with 50 unused definitions, degrading performance and burning tokens | **Dynamic Discovery** — Tools load on-demand. Your LLM only sees what it needs. |
-| **Configuration Chaos** | Using Cursor for work + Claude for personal? You're copy-pasting JSON configs and API keys across 8 different files | **One Hub, All Clients** — Configure once, use everywhere. |
+| **Context Bloat** | Connecting 50 tools floods your LLM with 50 unused definitions, **consuming your context window**, degrading performance and burning tokens | **Dynamic Discovery** — Tools load on-demand. Your LLM only sees what it needs for the task at hand. |
+| **Configuration Chaos** | Using Cursor for work + Claude for personal? Switching between personal and work accounts (like Postman or Slack) requires manually swapping API keys and JSON configs across 8 different files | **One Hub, All Clients** — Use **Profiles** to isolate accounts. Switch context once, and all your tools follow. |
 | **The Docker Tax** | Docker MCP Gateway needs 2-4GB RAM and 3-5 seconds to start. That's not "local-first." | **Native & Lightweight** — <50MB RAM, <10ms tool startup. No containers. |
 | **Security Leaks** | Work credentials mixed with personal tools. No isolation. No audit trail. | **Profile Isolation** — Work and personal identities never cross-contaminate. |
 
@@ -70,11 +70,13 @@ If MCP is the "USB port" for AI, **MCP Scout is the Universal Hub**.
 ## ✨ Features
 
 ### 🔍 Dynamic Tool Discovery
-No more hard-coding tool definitions. Scout exposes three "primordial tools" to any AI client:
+No more hard-coding tool definitions. Scout exposes three "primordial tools" to any AI client, enabling **"auto-choosing"** of tools based on the context of your question:
 
 - **`scout_find`** — Search for tools by capability
 - **`scout_add`** — Install and enable tools on-demand  
 - **`scout_remove`** — Unload tools to free context space
+
+**How it works:** Your LLM taps into the Scout discovery tool → It gets a list of available capabilities → It auto-chooses the right tool for your specific question → Scout loads only what's needed. This avoids loading the entire toolset and keeps your context window clean.
 
 Your agent asks for "database tools" → Scout finds them → Agent installs what it needs → Done.
 
