@@ -8,22 +8,37 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --accent-primary: #00b386;
+            --background-base: #0a0a0f;
+            --background-card: rgba(255, 255, 255, 0.03);
+            --text-primary: #e0e0e0;
+            --text-secondary: #888888;
+            --border-subtle: rgba(255, 255, 255, 0.05);
+        }
+
         body {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Outfit', "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+            background-color: var(--background-base);
+            color: var(--text-primary);
         }
 
         .glass {
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--background-card);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
         }
+
+        .text-accent { color: var(--accent-primary); }
+        .bg-accent { background-color: var(--accent-primary); }
+        .border-accent { border-color: var(--accent-primary); }
     </style>
 </head>
 
-<body class="bg-[#050505] text-white selection:bg-cyan-500 selection:text-black">
-    <nav class="fixed top-0 w-full z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
+<body class="selection:bg-[#00b386] selection:text-black">
+    <nav class="fixed top-0 w-full z-50 border-b border-white/5 bg-[#0a0a0f]/50 backdrop-blur-md">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <img src="logo.svg" alt="MCP Scooter Logo" class="w-8 h-8 object-contain">
@@ -31,7 +46,7 @@
             </div>
             <div class="flex gap-8 text-sm font-medium text-gray-400">
                 <a href="#features" class="hover:text-white transition-colors">Features</a>
-                <a href="/docs" class="hover:text-white transition-colors">Docs</a>
+                <a href="#docs" class="hover:text-white transition-colors">Docs</a>
                 <a href="https://github.com/mcp-scooter" class="hover:text-white transition-colors">GitHub</a>
             </div>
         </div>
@@ -40,7 +55,7 @@
     <main class="pt-32 pb-20 px-6">
         <div class="max-w-4xl mx-auto text-center">
             <h1
-                class="text-6xl md:text-8xl font-extrabold mb-6 tracking-tighter bg-gradient-to-b from-white to-gray-500 bg-clip-text text-transparent">
+                class="text-6xl md:text-8xl font-extrabold mb-6 tracking-tighter bg-gradient-to-b from-white to-[#00b386] bg-clip-text text-transparent">
                 The Universal Hub <br> for AI Tools.
             </h1>
             <p class="text-xl md:text-2xl text-gray-400 mb-12 font-light leading-relaxed">
@@ -50,7 +65,7 @@
 
             <div class="flex flex-col md:flex-row items-center justify-center gap-4 mb-20">
                 <button
-                    class="w-full md:w-auto px-8 py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform">
+                    class="w-full md:w-auto px-8 py-4 bg-[#00b386] text-black font-bold rounded-full hover:scale-105 transition-transform">
                     Download for Windows
                 </button>
                 <div class="flex flex-col items-center gap-1">
@@ -63,19 +78,19 @@
 
             <div class="grid md:grid-cols-3 gap-6 text-left">
                 <div class="glass p-8 rounded-3xl">
-                    <div class="text-cyan-500 mb-4 font-bold text-lg">01 / NATIVE</div>
+                    <div class="text-[#00b386] mb-4 font-bold text-lg">01 / NATIVE</div>
                     <h3 class="text-xl font-bold mb-2">Ultra-Lightweight</h3>
                     <p class="text-gray-500 text-sm leading-relaxed">Built with Go & WASM. Uses &lt;50MB RAM and starts
                         tools in under 10ms. No Docker needed.</p>
                 </div>
                 <div class="glass p-8 rounded-3xl">
-                    <div class="text-blue-500 mb-4 font-bold text-lg">02 / SECURE</div>
+                    <div class="text-[#00b386] mb-4 font-bold text-lg">02 / SECURE</div>
                     <h3 class="text-xl font-bold mb-2">Identity Sync</h3>
                     <p class="text-gray-500 text-sm leading-relaxed">Isolated profiles for Work, Personal, and Projects.
                         Native OS credential encryption.</p>
                 </div>
                 <div class="glass p-8 rounded-3xl">
-                    <div class="text-emerald-500 mb-4 font-bold text-lg">03 / DYNAMIC</div>
+                    <div class="text-[#00b386] mb-4 font-bold text-lg">03 / DYNAMIC</div>
                     <h3 class="text-xl font-bold mb-2">Scooter Gateway</h3>
                     <p class="text-gray-500 text-sm leading-relaxed">Dynamic lazy-loading. Agents find and install tools
                         autonomously without context bloat.</p>
@@ -84,9 +99,161 @@
         </div>
     </main>
 
+    <section id="docs" class="py-24 border-t border-white/5 bg-[#08080b]">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row gap-12">
+                <!-- Sidebar -->
+                <aside class="w-full md:w-64 flex-shrink-0">
+                    <div class="sticky top-24">
+                        <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6">Documentation</h4>
+                        <nav class="flex flex-col gap-4 text-sm">
+                            <a href="#install" class="text-gray-400 hover:text-white transition-colors">Installation</a>
+                            <a href="#profiles" class="text-gray-400 hover:text-white transition-colors">Identity Profiles</a>
+                            <a href="#integrations" class="text-gray-400 hover:text-white transition-colors">Client Integrations</a>
+                            <a href="#primordial-tools" class="text-gray-400 hover:text-white transition-colors">Primordial Tools</a>
+                            <a href="#registry" class="text-gray-400 hover:text-white transition-colors">MCP Registry</a>
+                            <a href="#security" class="text-gray-400 hover:text-white transition-colors">Security & Privacy</a>
+                            <a href="#github-hosting" class="text-gray-400 hover:text-white transition-colors">Hosting on GitHub</a>
+                        </nav>
+                    </div>
+                </aside>
+
+                <!-- Content -->
+                <div class="flex-1 space-y-20">
+                    <div id="install" class="scroll-mt-24">
+                        <h2 class="text-3xl font-bold mb-6">Installation</h2>
+                        <div class="prose prose-invert max-w-none text-gray-400 leading-relaxed">
+                            <p class="mb-4">MCP Scooter is designed to be ultra-lightweight and run natively on your machine without Docker overhead.</p>
+                            <div class="glass rounded-xl p-4 font-mono text-sm mb-4">
+                                <span class="text-gray-500"># Windows (PowerShell)</span><br>
+                                <span class="text-white">irm https://mcp-scooter.com/install.ps1 | iex</span>
+                            </div>
+                            <p>For macOS and Linux, we provide pre-built binaries via GitHub Releases. You can also build from source using Go 1.24+ and Rust.</p>
+                        </div>
+                    </div>
+
+                    <div id="profiles" class="scroll-mt-24">
+                        <h2 class="text-3xl font-bold mb-6">Identity Profiles</h2>
+                        <div class="prose prose-invert max-w-none text-gray-400 leading-relaxed">
+                            <p class="mb-4">Profiles are the heart of Scooter. They allow you to isolate tools and credentials between work and personal environments.</p>
+                            <ul class="list-disc pl-6 space-y-2 text-[#888888]">
+                                <li><strong>Isolation:</strong> Different ports for different profiles (e.g., 6277 for Work, 6278 for Personal).</li>
+                                <li><strong>Security:</strong> Credentials are stored in your native OS keychain (macOS Keychain, Windows Credential Manager).</li>
+                                <li><strong>Zero Drift:</strong> Configure once, use across all clients like Cursor, Claude, and VS Code.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div id="integrations" class="scroll-mt-24">
+                        <h2 class="text-3xl font-bold mb-6">Client Integrations</h2>
+                        <div class="prose prose-invert max-w-none text-gray-400 leading-relaxed">
+                            <p class="mb-4">Scooter automates the configuration of your favorite AI clients. It acts as an SSE proxy, so your clients don't need to know about auth or dynamic loading.</p>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                                <div class="glass p-4 rounded-xl text-center">
+                                    <div class="text-white font-bold">Cursor</div>
+                                    <div class="text-xs text-gray-500">mcp.json</div>
+                                </div>
+                                <div class="glass p-4 rounded-xl text-center">
+                                    <div class="text-white font-bold">Claude</div>
+                                    <div class="text-xs text-gray-500">claude_desktop_config.json</div>
+                                </div>
+                                <div class="glass p-4 rounded-xl text-center">
+                                    <div class="text-white font-bold">VS Code</div>
+                                    <div class="text-xs text-gray-500">MCP Extension</div>
+                                </div>
+                                <div class="glass p-4 rounded-xl text-center">
+                                    <div class="text-white font-bold">Zed</div>
+                                    <div class="text-xs text-gray-500">settings.json</div>
+                                </div>
+                                <div class="glass p-4 rounded-xl text-center">
+                                    <div class="text-white font-bold">Claude Code</div>
+                                    <div class="text-xs text-gray-500">settings.json</div>
+                                </div>
+                                <div class="glass p-4 rounded-xl text-center">
+                                    <div class="text-white font-bold">Gemini CLI</div>
+                                    <div class="text-xs text-gray-500">config.json</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="primordial-tools" class="scroll-mt-24">
+                        <h2 class="text-3xl font-bold mb-6">Primordial Tools</h2>
+                        <div class="prose prose-invert max-w-none text-gray-400 leading-relaxed">
+                            <p class="mb-4">Every AI client connected to Scooter sees these three tools by default. They enable dynamic, on-demand tool loading.</p>
+                            <div class="space-y-4">
+                                <div class="glass p-4 rounded-xl border-l-4 border-l-[#00b386]">
+                                    <code class="text-[#00b386]">scout_find(query)</code>
+                                    <p class="text-sm mt-2 text-gray-400">Search for tools by name or capability across the registry.</p>
+                                </div>
+                                <div class="glass p-4 rounded-xl border-l-4 border-l-[#00b386]">
+                                    <code class="text-[#00b386]">scout_add(tool_name)</code>
+                                    <p class="text-sm mt-2 text-gray-400">Instantly install and enable a tool for the current session.</p>
+                                </div>
+                                <div class="glass p-4 rounded-xl border-l-4 border-l-[#00b386]">
+                                    <code class="text-[#00b386]">scout_remove(tool_name)</code>
+                                    <p class="text-sm mt-2 text-gray-400">Unload a tool to free up context window space and RAM.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="registry" class="scroll-mt-24">
+                        <h2 class="text-3xl font-bold mb-6">MCP Registry</h2>
+                        <div class="prose prose-invert max-w-none text-gray-400 leading-relaxed">
+                            <p class="mb-4">The registry defines how MCP servers are discovered and executed. Every tool in Scooter is a simple JSON manifest.</p>
+                            <div class="glass rounded-xl p-6 overflow-x-auto text-xs font-mono text-gray-300">
+<pre>{
+  "name": "brave-search",
+  "version": "1.0.0",
+  "title": "Brave Search",
+  "authorization": {
+    "type": "api_key",
+    "env_var": "BRAVE_API_KEY"
+  },
+  "runtime": {
+    "command": "npx",
+    "args": ["-y", "@anthropic/mcp-github"]
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="security" class="scroll-mt-24">
+                        <h2 class="text-3xl font-bold mb-6">Security & Privacy</h2>
+                        <div class="prose prose-invert max-w-none text-gray-400 leading-relaxed">
+                            <p class="mb-4">Scooter is local-first. Your data never leaves your machine unless you explicitly connect to a remote tool.</p>
+                            <ul class="list-disc pl-6 space-y-2 text-[#888888]">
+                                <li><strong>Local-First:</strong> No cloud dependencies. The server runs entirely on your hardware.</li>
+                                <li><strong>Keychain Integration:</strong> Tokens and API keys are stored in encrypted system vaults.</li>
+                                <li><strong>Human-in-the-loop:</strong> Sensitive actions (like file deletion or DB queries) require your manual approval.</li>
+                                <li><strong>WASM Isolation:</strong> Tools run in a secure sandbox, preventing them from accessing files outside their scope.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div id="github-hosting" class="scroll-mt-24">
+                        <h2 class="text-3xl font-bold mb-6">Hosting on GitHub</h2>
+                        <div class="prose prose-invert max-w-none text-gray-400 leading-relaxed">
+                            <p class="mb-4 text-[#00b386] font-semibold">Yes! You can host your own MCP Scooter landing page or documentation site directly on GitHub Pages.</p>
+                            <p class="mb-4">This site itself is built as a static HTML/Tailwind app, making it perfect for GitHub's native hosting. To deploy your own:</p>
+                            <ol class="list-decimal pl-6 space-y-2 text-[#888888]">
+                                <li>Create a repository (e.g., <code class="text-white">my-mcp-docs</code>).</li>
+                                <li>Place your <code class="text-white">index.html</code> and assets in the root or a <code class="text-white">web/</code> folder.</li>
+                                <li>Enable <strong>GitHub Pages</strong> in Repository Settings.</li>
+                                <li>Set up a Custom Domain (optional) to point to your documentation hub.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <footer class="border-t border-white/5 py-12 px-6">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-            <span class="text-gray-600 text-sm">© 2026 MCP Scooter Team. MIT License.</span>
+            <span class="text-gray-600 text-sm">© 2026 MCP Scooter Team. PolyForm Shield License.</span>
             <div class="flex gap-6 text-gray-400">
                 <a href="#" class="hover:text-white transition-colors">Documentation</a>
                 <a href="#" class="hover:text-white transition-colors">GitHub</a>
