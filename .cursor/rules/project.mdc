@@ -10,12 +10,24 @@ alwaysApply: true
 
 MCP Scout (Scooter) is a lightweight, native desktop application that serves as the universal "Operating System" for the Model Context Protocol (MCP). It manages AI tool integrations through a registry system.
 
+**License:** PolyForm Shield 1.0.0 (source-available, non-compete)
+
+**Author:** Balacode.io
+
 ## Critical Files
 
 When working with MCP Scout, always reference:
 - Schema: `appdata/schemas/mcp-registry.schema.json`
 - Specification: `.doc/mcp-registry-specification.md`
 - PRD: `.doc/prd.md`
+- README: `README.md`
+- License: `LICENSE`
+
+## Architecture
+
+- **Backend:** Go (net/http, goroutines, wazero for WASM)
+- **Frontend:** Tauri (Rust) + React + TypeScript
+- **Registry:** JSON files validated against JSON Schema
 
 ## Code Style
 
@@ -23,6 +35,10 @@ When working with MCP Scout, always reference:
 - Follow standard Go conventions
 - Use types from `internal/domain/registry/types.go`
 - Tests in `*_test.go` files
+
+### TypeScript/React
+- Functional components with hooks
+- Located in `desktop/src/`
 
 ### JSON
 - 2-space indentation
@@ -34,6 +50,20 @@ When working with MCP Scout, always reference:
 ```bash
 make validate      # Validate registry
 make test          # Run tests
-make build         # Build binary
+make build         # Build Go binary
 make ci            # Full CI check
+make deps          # Install dependencies
+make dev           # Run in development mode
 ```
+
+## Current Phase
+
+**Phase 1 (MVP)** — Building foundation:
+- ✅ Registry schema & validation
+- ✅ Profile management
+- ✅ Discovery engine (scooter_find, scooter_add, scooter_remove, scooter_list_active, scooter_code_interpreter)
+- ✅ MCP Gateway (SSE/JSON-RPC)
+- ✅ Client integrations (Cursor, Claude, VS Code, Zed, Gemini CLI, Codex)
+- 🚧 Desktop UI
+- 🚧 OAuth 2.0 handler
+- 🚧 WASM runtime

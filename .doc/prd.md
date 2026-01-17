@@ -7,7 +7,7 @@ Author: Product Team
 
 ## **1\. Executive Summary**
 
-**MCP Scooter** is a lightweight, open-source desktop application that acts as the universal "Operating System" for the Model Context Protocol (MCP). It solves the critical scalability issues of AI agents—context bloat, configuration fatigue, and security risks—by replacing heavy Docker containers with a native, high-performance **Dynamic Gateway**.
+**MCP Scooter** is a lightweight, source-available desktop application that acts as the universal "Operating System" for the Model Context Protocol (MCP). It solves the critical scalability issues of AI agents—context bloat, configuration fatigue, and security risks—by replacing heavy Docker containers with a native, high-performance **Dynamic Gateway**.
 
 **The Core Promise:** *"MCP Scooter runs in your system tray, manages your professional and personal AI identities, and instantly spawns tools for any AI client (Cursor, Claude, Antigravity) with zero latency and \<50MB RAM usage."*
 
@@ -268,12 +268,16 @@ The project includes a front-facing website hosted on **GitHub Pages** to serve 
 
 ## **10\. Repository Standards**
 
-To ensure a high-quality open-source ecosystem, the repository must adhere to the following:
+To ensure a high-quality source-available ecosystem, the repository must adhere to the following:
 
 * **README.md:**  
-  * Must include **Shields.io** badges for Build Status, License (MIT), and Platform Support.  
-  * Quick Start guide for "Zero to Hello World" in under 30 seconds.  
+  * Must include **Shields.io** badges for Build Status, License (PolyForm Shield), and Platform Support.  
+  * Quick Start guide with download links for releases.  
+  * Build-from-source instructions for contributors.  
   * High-level Architecture Diagram (Text-based Mermaid.js).  
+* **LICENSE:**  
+  * **PolyForm Shield 1.0.0** — Allows free use and modification, but prohibits competing products/services.  
+  * Users can build products *with* MCP Scout, but cannot fork it to create a competing MCP gateway.  
 * **CONTRIBUTING.md:**  
   * Instructions for setting up the Go/Rust dev environment.  
   * Guidelines for submitting new tools to the "Scout Store."  
