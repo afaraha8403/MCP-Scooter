@@ -177,7 +177,6 @@ Want to contribute or hack on MCP Scout? Here's how to build it yourself.
 - **Rust** (for Tauri) — [Install](https://rustup.rs/)
 
 #### Build & Run
-
 ```bash
 # Clone the repository
 git clone https://github.com/mcp-scooter/scooter.git
@@ -185,12 +184,15 @@ cd scooter
 
 # Install dependencies
 make deps
+./tasks.ps1 deps
 
 # Build everything
 make all
+./tasks.ps1 all
 
 # Run in development mode
 make dev
+./tasks.ps1 dev
 ```
 
 #### Validate Registry
@@ -210,9 +212,11 @@ MCP Scout uses GitHub Actions for automated releases. To trigger a release:
 ```bash
 # Release a stable version (e.g., 1.0.0)
 make release
+./tasks.ps1 release
 
 # Release a beta version (e.g., 1.0.0-beta.1)
 make release-beta
+./tasks.ps1 release-beta
 ```
 
 This will automatically tag the current commit and push it to GitHub, triggering the build and release workflow.
@@ -323,47 +327,47 @@ See `.doc/mcp-registry-specification.md` for the full specification.
 
 ### Development Setup
 
-The project uses a tiered testing strategy to ensure reliability.
+The project uses a tiered testing strategy. You can use **make** (macOS/Linux) or **tasks.ps1** (Windows PowerShell).
 
 #### Level 1-2: Unit Tests & Validation
 ```bash
 # Run all tests
 make test
+./tasks.ps1 test
 
 # Run all unit tests (verbose)
 make test-unit
+./tasks.ps1 test-unit
 
 # Test specific domains
 make test-registry
-make test-discovery
-make test-profile
-make test-api
-make test-integration
+./tasks.ps1 test-registry
 
 # Generate HTML coverage report
 make test-coverage
+./tasks.ps1 test-coverage
 
 # Validate registry definitions
 make validate
-make validate-strict
+./tasks.ps1 validate
 ```
 
 #### Level 5: Meta-MCP Lifecycle
 ```bash
 # Test the Meta-MCP primordial tools and lifecycle
 make test-meta-mcp
+./tasks.ps1 test-meta-mcp
 ```
 
 #### Combined Checks
 ```bash
 # Quick check before committing
 make pre-commit
+./tasks.ps1 pre-commit
 
-# Full CI check (runs fmt, lint, validate, test, build)
+# Full CI check
 make ci
-
-# Extended CI with coverage
-make ci-full
+./tasks.ps1 ci
 ```
 
 ---
