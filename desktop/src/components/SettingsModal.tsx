@@ -7,6 +7,7 @@ interface Profile {
 interface Settings {
   control_port: number;
   mcp_port: number;
+  enable_beta: boolean;
 }
 
 interface SettingsModalProps {
@@ -61,6 +62,18 @@ export function SettingsModal({ isOpen, onClose, profiles, settings, onUpdateSet
             />
             <span className="input-hint">Used for tools and integrations</span>
           </div>
+
+          <div className="form-field" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input 
+              type="checkbox" 
+              id="enable_beta"
+              checked={settings.enable_beta} 
+              onChange={e => onUpdateSettings({ ...settings, enable_beta: e.target.checked })}
+              style={{ width: 'auto' }}
+            />
+            <label htmlFor="enable_beta" style={{ marginBottom: 0 }}>Include Beta Releases</label>
+          </div>
+          <span className="input-hint">Early access to new features (may be unstable)</span>
           
           <div className="port-list" style={{ marginTop: '16px' }}>
             <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Active Profiles (Shared Port :{settings.mcp_port})</label>

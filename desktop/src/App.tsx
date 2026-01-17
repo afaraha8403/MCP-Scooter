@@ -16,6 +16,7 @@ interface Profile {
 interface Settings {
   control_port: number;
   mcp_port: number;
+  enable_beta: boolean;
 }
 
 interface ProcessInfo {
@@ -59,7 +60,7 @@ function App() {
     { timestamp: new Date().toLocaleTimeString(), level: "INFO", message: "MCP Scooter Command Center initialized." }
   ]);
   const [status, setStatus] = useState({ connected: true, uptime: "0h 0m", latency: "12ms" });
-  const [appSettings, setAppSettings] = useState<Settings>({ control_port: 6200, mcp_port: 6277 });
+  const [appSettings, setAppSettings] = useState<Settings>({ control_port: 6200, mcp_port: 6277, enable_beta: false });
   const [portConflicts, setPortConflicts] = useState<{ port: number; process: ProcessInfo }[]>([]);
 
   // Track logged messages to avoid duplicates in splash screen

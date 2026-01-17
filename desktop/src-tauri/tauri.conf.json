@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "MCP Scooter",
   "version": "0.1.0",
-  "identifier": "com.alifa.scooter",
+  "identifier": "dev.afaraha8403.mcp-scooter",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
