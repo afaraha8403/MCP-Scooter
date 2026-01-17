@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,31 +13,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProfileServerSSE(t *testing.T) {
-	p := profile.Profile{ID: "test", Port: 9999}
-	ps := NewProfileServer(p, ".")
-	req := httptest.NewRequest("GET", "/sse", nil)
+func TestMcpGatewaySSE(t *testing.T) {
+	pm := NewProfileManager(nil, ".", ".", ".")
+	p := profile.Profile{ID: "test"}
+	pm.AddProfile(p)
+	settings := profile.DefaultSettings()
+	gw := NewMcpGateway(pm, settings)
+	
+	req := httptest.NewRequest("GET", "/profiles/test/sse", nil)
 	w := httptest.NewRecorder()
 
 	// Use a context with timeout to stop the SSE handler
-	// However, the handler uses a ticker and context.Done(), so we can't easily test it with httptest.Recorder() for ongoing stream
-	// but we can check headers and the first flush.
+	ctx, cancel := context.WithTimeout(req.Context(), 100*time.Millisecond)
+	defer cancel()
+	req = req.WithContext(ctx)
 
-	// We'll wrap ps.mux.ServeHTTP logic or just call the handler
-	go ps.mux.ServeHTTP(w, req)
+	go gw.ServeHTTP(w, req)
 
 	// Wait a bit for the first event
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
 	assert.Equal(t, "text/event-stream", w.Header().Get("Content-Type"))
 }
 
 func TestControlServerCRUD(t *testing.T) {
-	pm := NewProfileManager(nil, ".")
-	srv := NewControlServer(nil, pm, false)
+	pm := NewProfileManager(nil, ".", ".", ".")
+	settings := profile.DefaultSettings()
+	srv := NewControlServer(nil, pm, settings, false)
 
 	// 1. Create Profile
-	p := profile.Profile{ID: "work", Port: 6277}
+	p := profile.Profile{ID: "work"}
 	pJSON, _ := json.Marshal(p)
 	req := httptest.NewRequest("POST", "/api/profiles", strings.NewReader(string(pJSON)))
 	w := httptest.NewRecorder()
@@ -60,7 +66,7 @@ func TestControlServerCRUD(t *testing.T) {
 	assert.Equal(t, "work", resp.Profiles[0].ID)
 
 	// 3. Update Profile
-	p.Port = 6278
+	p.RemoteServerURL = "http://remote"
 	pJSON, _ = json.Marshal(p)
 	req = httptest.NewRequest("PUT", "/api/profiles", strings.NewReader(string(pJSON)))
 	w = httptest.NewRecorder()

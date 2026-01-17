@@ -15,7 +15,7 @@ type VSCodeIntegration struct{}
 // uses settings.json for global settings or project-level mcp.json.
 // We will follow the PRD's request for ~/.vscode/mcp.json as a convention
 // that extensions might pick up.
-func (v *VSCodeIntegration) Configure(port int, profileID string) error {
+func (v *VSCodeIntegration) Configure(port int, profileID string, apiKey string) error {
 	path, err := v.findConfig()
 	if err != nil {
 		return err
@@ -40,10 +40,18 @@ func (v *VSCodeIntegration) Configure(port int, profileID string) error {
 		url = fmt.Sprintf("http://localhost:%d/sse", port)
 	}
 
-	config.McpServers["mcp-scooter"] = map[string]interface{}{
+	serverConfig := map[string]interface{}{
 		"type": "sse",
 		"url":  url,
 	}
+
+	if apiKey != "" {
+		serverConfig["headers"] = map[string]string{
+			"Authorization": "Bearer " + apiKey,
+		}
+	}
+
+	config.McpServers["mcp-scooter"] = serverConfig
 
 	newData, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

@@ -75,7 +75,7 @@ func main() {
 	controlServer := api.NewControlServer(store, manager, settings, onboardingRequired)
 
 	// Initialize MCP Gateway (Traffic Proxy)
-	mcpGateway := api.NewMcpGateway(manager)
+	mcpGateway := api.NewMcpGateway(manager, settings)
 
 	fmt.Printf("Starting MCP Gateway on :%d...\n", settings.McpPort)
 	go func() {

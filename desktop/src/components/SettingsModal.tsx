@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface Profile {
   id: string;
@@ -8,6 +8,7 @@ interface Settings {
   control_port: number;
   mcp_port: number;
   enable_beta: boolean;
+  gateway_api_key: string;
 }
 
 interface SettingsModalProps {
@@ -104,6 +105,51 @@ export function SettingsModal({ isOpen, onClose, profiles, settings, onUpdateSet
                  </div>
               )}
             </div>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h3>Security</h3>
+          <div className="form-field">
+            <label>Gateway API Key</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input 
+                type={showApiKey ? "text" : "password"} 
+                value={settings.gateway_api_key || "No key configured"} 
+                readOnly
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: '12px' }}
+              />
+              <button className="icon-btn" onClick={() => setShowApiKey(!showApiKey)} title={showApiKey ? "Hide" : "Show"}>
+                {showApiKey ? "👁️" : "🙈"}
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button 
+                className="secondary-btn" 
+                style={{ flex: 1, padding: '6px' }}
+                onClick={() => copyToClipboard(settings.gateway_api_key)}
+                disabled={!settings.gateway_api_key}
+              >
+                Copy Key
+              </button>
+              <button 
+                className="secondary-btn" 
+                style={{ flex: 1, padding: '6px' }}
+                onClick={handleRegenerateKey}
+              >
+                {settings.gateway_api_key ? "Regenerate" : "Generate Key"}
+              </button>
+            </div>
+            {!settings.gateway_api_key && (
+              <span className="input-hint" style={{ color: '#ffcc00' }}>
+                ⚠️ Gateway is currently unsecured. Generate a key to require authentication.
+              </span>
+            )}
+            {settings.gateway_api_key && (
+              <span className="input-hint">
+                Required for IDEs to connect to the MCP Gateway.
+              </span>
+            )}
           </div>
         </div>
 

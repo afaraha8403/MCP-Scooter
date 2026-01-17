@@ -1,10 +1,10 @@
 ---
-description: General project identity and high-level rules for MCP Scout
+description: General project identity and high-level rules for MCP Scooter
 globs: **/*
 alwaysApply: true
 ---
 
-# MCP Scout - Project Rules
+# MCP Scooter - Project Rules
 
 ## Project Identity
 
@@ -16,7 +16,7 @@ MCP Scout (Scooter) is a lightweight, native desktop application that serves as 
 
 ## Critical Files
 
-When working with MCP Scout, always reference:
+When working with MCP Scooter, always reference:
 - Schema: `appdata/schemas/mcp-registry.schema.json`
 - Specification: `.doc/mcp-registry-specification.md`
 - PRD: `.doc/prd.md`

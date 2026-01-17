@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature or improvement for MCP Scout
+about: Suggest a new feature or improvement for MCP Scooter
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''
@@ -34,4 +34,4 @@ Add any other context, mockups, or screenshots about the feature request here.
 
 - [ ] I have searched existing issues to ensure this feature hasn't been requested
 - [ ] I have clearly described the problem and proposed solution
-- [ ] This feature aligns with MCP Scout's goals (native, lightweight, dynamic)
+- [ ] This feature aligns with MCP Scooter's goals (native, lightweight, dynamic)

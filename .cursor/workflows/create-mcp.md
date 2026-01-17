@@ -31,11 +31,12 @@ Based on the input provided, I need to gather the following information:
 
 **Questions to answer:**
 1. What is the unique name for this MCP? (lowercase, hyphens)
-2. What does it do? (one-line description)
+2. What does it do? (one-line description, 10-200 chars)
 3. What category does it belong to?
 4. What authentication does it require?
 5. What tools does it expose?
-6. How is it installed? (npm, pypi, docker, etc.)
+6. How is it installed? (npm, pypi, cargo, docker, wasm, binary)
+7. What transport does it use? (stdio, http, sse, streamable-http)
 </step>
 
 ### Step 2: Determine Authentication
@@ -64,7 +65,7 @@ For each tool/function the MCP exposes, create a tool definition:
 {
   "name": "tool_name_snake_case",
   "title": "Human Readable Title",
-  "description": "Clear description of what this tool does",
+  "description": "Clear description of what this tool does (min 10 chars, max 500)",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -75,17 +76,26 @@ For each tool/function the MCP exposes, create a tool definition:
   "annotations": {
     "readOnlyHint": true/false,
     "destructiveHint": true/false,
+    "idempotentHint": true/false,
     "openWorldHint": true/false,
-    "requiresApproval": true/false
+    "requiresApproval": true/false,
+    "rateLimit": "100 requests/minute",
+    "costPerCall": "$0.001"
   }
 }
 ```
 
 **Annotation Guidelines:**
-- `readOnlyHint: true` - Tool only reads data
-- `destructiveHint: true` - Tool can delete/modify data
-- `openWorldHint: true` - Tool accesses external services
-- `requiresApproval: true` - Should prompt user before executing
+
+| Annotation | When to use |
+|------------|-------------|
+| `readOnlyHint: true` | Tool only reads data |
+| `destructiveHint: true` | Tool can delete/modify data |
+| `idempotentHint: true` | Repeated calls produce same result |
+| `openWorldHint: true` | Tool accesses external services |
+| `requiresApproval: true` | Should prompt user before executing |
+| `rateLimit` | Document API rate limits (optional) |
+| `costPerCall` | Document cost per invocation (optional) |
 </step>
 
 ### Step 4: Create Registry JSON
@@ -108,6 +118,7 @@ Create the complete registry JSON file at `appdata/registry/{name}.json`:
   "about": "{Markdown documentation}",
   "homepage": "{url}",
   "repository": "{github_url}",
+  "documentation": "{api_docs_url}",
   "authorization": {
     // Auth config based on Step 2
   },
@@ -115,18 +126,54 @@ Create the complete registry JSON file at `appdata/registry/{name}.json`:
     // Tool definitions from Step 3
   ],
   "package": {
-    // Package config
+    // Package config (see below)
   },
   "runtime": {
-    "transport": "stdio",
-    "command": "{command}",
-    "args": ["{args}"]
+    // Runtime config (see below)
   },
   "metadata": {
     "author": "{author}",
     "license": "{license}"
   }
 }
+```
+
+**Package Configuration by Type:**
+
+```json
+// npm
+{ "type": "npm", "name": "@scope/package", "version": "^1.0.0" }
+
+// pypi
+{ "type": "pypi", "name": "package-name", "version": ">=1.0.0" }
+
+// cargo (Rust)
+{ "type": "cargo", "name": "crate-name" }
+
+// wasm
+{ "type": "wasm", "url": "https://...", "sha256": "..." }
+
+// docker
+{ "type": "docker", "image": "image:tag" }
+
+// binary
+{ "type": "binary", "platforms": { "darwin-arm64": { "url": "...", "sha256": "..." } } }
+```
+
+**Runtime Configuration by Transport:**
+
+```json
+// stdio (most common)
+{ "transport": "stdio", "command": "npx", "args": ["-y", "@scope/package"] }
+
+// http
+{ "transport": "http", "command": "python", "args": ["-m", "mcp_server"] }
+
+// sse (Server-Sent Events)
+{ "transport": "sse", "command": "node", "args": ["server.js"] }
+
+// streamable-http
+{ "transport": "streamable-http", "command": "...", "args": [...] }
 ```
 </step>
 
@@ -155,10 +202,20 @@ If creating a placeholder, use this template:
 Run validation to ensure the new MCP entry is correct:
 
 ```bash
-./validate-registry.exe appdata/registry/{name}.json
+# Validate the new file
+go run cmd/validate-registry/main.go appdata/registry/{name}.json
+
+# Or use make to validate all
+make validate
 ```
 
 Fix any validation errors before completing.
+
+**Common Validation Errors:**
+- `description` too short (min 10 chars) or too long (max 200 chars)
+- `name` contains uppercase or invalid characters
+- Missing required fields in `authorization` for the chosen type
+- Tool `description` too short (min 10 chars)
 </step>
 
 ## Output

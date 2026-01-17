@@ -1,46 +1,21 @@
 package api
 
 import (
-	"encoding/json"
+	"github.com/mcp-scooter/scooter/internal/domain/registry"
 )
 
-// JSONRPCRequest represents a standard MCP/JSON-RPC request.
-type JSONRPCRequest struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      interface{}     `json:"id,omitempty"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params,omitempty"`
-}
-
-// JSONRPCResponse represents a standard MCP/JSON-RPC response.
-type JSONRPCResponse struct {
-	JSONRPC string        `json:"jsonrpc"`
-	ID      interface{}   `json:"id"`
-	Result  interface{}   `json:"result,omitempty"`
-	Error   *JSONRPCError `json:"error,omitempty"`
-}
-
-// JSONRPCError represents a standard JSON-RPC error object.
-type JSONRPCError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
-// JSONRPCNotification represents a standard JSON-RPC notification (no ID).
-type JSONRPCNotification struct {
-	JSONRPC string          `json:"jsonrpc"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params,omitempty"`
-}
+// Re-export or alias if needed, but better to use registry.JSONRPCRequest directly
+type JSONRPCRequest = registry.JSONRPCRequest
+type JSONRPCResponse = registry.JSONRPCResponse
+type JSONRPCError = registry.JSONRPCError
 
 // Standard JSON-RPC error codes
 const (
-	ParseError     = -32700
-	InvalidRequest = -32600
-	MethodNotFound = -32601
-	InvalidParams  = -32602
-	InternalError  = -32603
+	ParseError     = registry.ParseError
+	InvalidRequest = registry.InvalidRequest
+	MethodNotFound = registry.MethodNotFound
+	InvalidParams  = registry.InvalidParams
+	InternalError  = registry.InternalError
 )
 
 // NewJSONRPCResponse creates a success response.

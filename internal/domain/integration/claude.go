@@ -11,7 +11,7 @@ import (
 type ClaudeIntegration struct{}
 
 // Configure adds the MCP Scooter server to Claude Desktop's config file.
-func (c *ClaudeIntegration) Configure(port int, profileID string) error {
+func (c *ClaudeIntegration) Configure(port int, profileID string, apiKey string) error {
 	path, err := c.findConfig()
 	if err != nil {
 		return err
@@ -36,10 +36,18 @@ func (c *ClaudeIntegration) Configure(port int, profileID string) error {
 		url = fmt.Sprintf("http://localhost:%d/sse", port)
 	}
 
-	config.McpServers["mcp-scooter"] = map[string]interface{}{
+	serverConfig := map[string]interface{}{
 		"type": "sse",
 		"url":  url,
 	}
+
+	if apiKey != "" {
+		serverConfig["headers"] = map[string]string{
+			"Authorization": "Bearer " + apiKey,
+		}
+	}
+
+	config.McpServers["mcp-scooter"] = serverConfig
 
 	newData, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
@@ -50,7 +58,7 @@ func (c *ClaudeIntegration) Configure(port int, profileID string) error {
 }
 
 // ConfigureCode adds the MCP Scooter server to Claude Code's settings file.
-func (c *ClaudeIntegration) ConfigureCode(port int, profileID string) error {
+func (c *ClaudeIntegration) ConfigureCode(port int, profileID string, apiKey string) error {
 	path, err := c.findCodeConfig()
 	if err != nil {
 		return err
@@ -74,10 +82,18 @@ func (c *ClaudeIntegration) ConfigureCode(port int, profileID string) error {
 		url = fmt.Sprintf("http://localhost:%d/sse", port)
 	}
 
-	config.McpServers["mcp-scooter"] = map[string]interface{}{
+	serverConfig := map[string]interface{}{
 		"type": "sse",
 		"url":  url,
 	}
+
+	if apiKey != "" {
+		serverConfig["headers"] = map[string]string{
+			"Authorization": "Bearer " + apiKey,
+		}
+	}
+
+	config.McpServers["mcp-scooter"] = serverConfig
 
 	newData, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

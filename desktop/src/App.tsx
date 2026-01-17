@@ -7,7 +7,7 @@ import "./App.css";
 
 interface Profile {
   id: string;
-  auth_mode: string;
+  remote_auth_mode: string;
   remote_server_url: string;
   env: Record<string, string>;
   allow_tools: string[];
@@ -17,6 +17,7 @@ interface Settings {
   control_port: number;
   mcp_port: number;
   enable_beta: boolean;
+  gateway_api_key: string;
 }
 
 interface ProcessInfo {
@@ -60,7 +61,12 @@ function App() {
     { timestamp: new Date().toLocaleTimeString(), level: "INFO", message: "MCP Scooter Command Center initialized." }
   ]);
   const [status, setStatus] = useState({ connected: true, uptime: "0h 0m", latency: "12ms" });
-  const [appSettings, setAppSettings] = useState<Settings>({ control_port: 6200, mcp_port: 6277, enable_beta: false });
+  const [appSettings, setAppSettings] = useState<Settings>({ 
+    control_port: 6200, 
+    mcp_port: 6277, 
+    enable_beta: false,
+    gateway_api_key: ""
+  });
   const [portConflicts, setPortConflicts] = useState<{ port: number; process: ProcessInfo }[]>([]);
 
   // Track logged messages to avoid duplicates in splash screen
@@ -349,7 +355,7 @@ function App() {
       const res = await fetch(`${CONTROL_API}/profiles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newProfile, auth_mode: "none" }),
+        body: JSON.stringify({ ...newProfile, remote_auth_mode: "none" }),
       });
       if (res.ok) {
         addLog(`Created profile: ${newProfile.id}`, "INFO");

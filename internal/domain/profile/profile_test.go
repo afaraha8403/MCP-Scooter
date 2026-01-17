@@ -12,8 +12,7 @@ import (
 func TestProfile_Unmarshal(t *testing.T) {
 	yamlData := `
 id: work-profile
-port: 6277
-auth_mode: "oauth2"
+remote_auth_mode: "oauth2"
 remote_server_url: "https://mcp.acme-corp.com"
 env:
   AWS_REGION: "us-east-1"
@@ -26,8 +25,7 @@ allow_tools:
 	require.NoError(t, err)
 
 	assert.Equal(t, "work-profile", p.ID)
-	assert.Equal(t, 6277, p.Port)
-	assert.Equal(t, "oauth2", p.AuthMode)
+	assert.Equal(t, "oauth2", p.RemoteAuthMode)
 	assert.Equal(t, "https://mcp.acme-corp.com", p.RemoteServerURL)
 	assert.Equal(t, "us-east-1", p.Env["AWS_REGION"])
 	assert.Contains(t, p.AllowTools, "jira-mcp")
@@ -42,23 +40,14 @@ func TestProfile_Validate(t *testing.T) {
 		{
 			name: "valid profile",
 			profile: profile.Profile{
-				ID:   "work",
-				Port: 6277,
+				ID: "work",
 			},
 			wantErr: false,
 		},
 		{
 			name: "missing id",
 			profile: profile.Profile{
-				Port: 6277,
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid port (too low)",
-			profile: profile.Profile{
-				ID:   "work",
-				Port: 80,
+				ID: "",
 			},
 			wantErr: true,
 		},

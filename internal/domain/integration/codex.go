@@ -12,7 +12,7 @@ import (
 type CodexIntegration struct{}
 
 // Configure adds the MCP Scooter server to Codex's config.toml.
-func (c *CodexIntegration) Configure(port int, profileID string) error {
+func (c *CodexIntegration) Configure(port int, profileID string, apiKey string) error {
 	path, err := c.findConfig()
 	if err != nil {
 		return err
@@ -41,10 +41,18 @@ func (c *CodexIntegration) Configure(port int, profileID string) error {
 		url = fmt.Sprintf("http://localhost:%d/sse", port)
 	}
 
-	mcpServers["mcp-scooter"] = map[string]interface{}{
+	serverConfig := map[string]interface{}{
 		"type": "sse",
 		"url":  url,
 	}
+
+	if apiKey != "" {
+		serverConfig["headers"] = map[string]string{
+			"Authorization": "Bearer " + apiKey,
+		}
+	}
+
+	mcpServers["mcp-scooter"] = serverConfig
 
 	newData, err := toml.Marshal(config)
 	if err != nil {

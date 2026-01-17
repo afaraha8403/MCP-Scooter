@@ -9,10 +9,10 @@
 
 ## 1. Overview
 
-This document defines the JSON schema for MCP (Model Context Protocol) server entries stored in the `appdata/registry/` folder. These JSON files serve as the metadata manifests that allow MCP Scout to:
+This document defines the JSON schema for MCP (Model Context Protocol) server entries stored in the `appdata/registry/` folder. These JSON files serve as the metadata manifests that allow MCP Scooter to:
 
 - **Discover** available MCP tools in the registry
-- **Display** tool information in the Scout Store UI
+- **Display** tool information in the Scooter Store UI
 - **Configure** authentication requirements
 - **Install** and manage MCP servers dynamically
 - **Inject** proper environment variables and credentials
@@ -227,7 +227,7 @@ This is a **markdown string** that provides comprehensive information about the 
 
 ### 4.5 Authorization Object (Critical)
 
-The `authorization` field defines how the MCP authenticates. This is critical for Scout's Profile system to properly inject credentials.
+The `authorization` field defines how the MCP authenticates. This is critical for Scooter's Profile system to properly inject credentials.
 
 #### Authorization Types:
 
@@ -264,7 +264,7 @@ Requires a static API key provided by the user.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `env_var` | string | Environment variable name Scout injects at runtime |
+| `env_var` | string | Environment variable name Scooter injects at runtime |
 | `display_name` | string | Human-friendly name shown in UI |
 | `description` | string | Help text explaining what this key is |
 | `help_url` | string | Link to get/generate the API key |
@@ -311,7 +311,7 @@ Uses OAuth 2.0/2.1 flow. Scout handles the entire flow per PRD Section 4.2.
 | `oauth.pkce_required` | boolean | If true, use PKCE flow (RFC 7636) |
 | `oauth.client_id_env` | string | Env var for OAuth client ID |
 | `oauth.client_secret_env` | string | Env var for OAuth client secret |
-| `oauth.token_env` | string | Env var Scout injects access token into |
+| `oauth.token_env` | string | Env var Scooter injects access token into |
 | `oauth.refresh_token_env` | string | Env var for refresh token |
 
 ##### Type: `bearer_token`
@@ -365,7 +365,7 @@ For non-standard authentication methods.
 ### 4.6 Tools Array (Required)
 
 The `tools` array lists all tools/functions this MCP server exposes. This enables:
-- Scout Store to display capabilities before installation
+- Scooter Store to display capabilities before installation
 - `scout_find` to search across tool descriptions
 - Profile `allow_tools` to filter specific tools
 
@@ -486,7 +486,7 @@ Defines how to install/obtain the MCP server.
 
 #### Package Type: `wasm`
 
-Per PRD Section 7.2, Scout uses wazero for WASM isolation.
+Per PRD Section 7.2, Scooter uses wazero for WASM isolation.
 
 ```json
 {
@@ -735,7 +735,7 @@ Additional metadata for attribution and maintenance.
   "icon": "/mcp-logos/google-drive.svg",
   "color": "#4285F4",
   
-  "about": "## Google Drive MCP\n\nConnect your Google Drive to search, read, and manage files directly from your AI assistant.\n\n### Features\n\n- **Search Files** - Find documents by name, content, or metadata\n- **Read Files** - Access document contents (Docs, Sheets, PDFs)\n- **List Folders** - Browse your Drive hierarchy\n- **File Metadata** - Get sharing info, last modified, etc.\n\n### Permissions\n\nThis tool requests read-only access to your Drive. It cannot modify or delete files.\n\n### Setup\n\nWhen you add this tool, Scout will open a browser window for Google sign-in. Authorize the requested permissions to connect your Drive.",
+  "about": "## Google Drive MCP\n\nConnect your Google Drive to search, read, and manage files directly from your AI assistant.\n\n### Features\n\n- **Search Files** - Find documents by name, content, or metadata\n- **Read Files** - Access document contents (Docs, Sheets, PDFs)\n- **List Folders** - Browse your Drive hierarchy\n- **File Metadata** - Get sharing info, last modified, etc.\n\n### Permissions\n\nThis tool requests read-only access to your Drive. It cannot modify or delete files.\n\n### Setup\n\nWhen you add this tool, Scooter will open a browser window for Google sign-in. Authorize the requested permissions to connect your Drive.",
   
   "homepage": "https://drive.google.com",
   "repository": "https://github.com/anthropics/google-drive-mcp",

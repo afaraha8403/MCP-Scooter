@@ -1,8 +1,8 @@
-# Contributing to MCP Scout
+# Contributing to MCP Scooter
 
-First off, thank you for considering contributing to MCP Scout! 🎉
+First off, thank you for considering contributing to MCP Scooter! 🎉
 
-MCP Scout is built by [Balacode.io](https://balacode.io) and we welcome contributions from the community. This document will help you get started.
+MCP Scooter is built by [Balacode.io](https://balacode.io) and we welcome contributions from the community. This document will help you get started.
 
 ## Table of Contents
 
@@ -251,4 +251,4 @@ See the [full registry specification](.doc/mcp-registry-specification.md) for al
 
 Feel free to open an issue or start a discussion. We're here to help!
 
-Thank you for contributing to MCP Scout! 🚀
+Thank you for contributing to MCP Scooter! 🚀

@@ -11,7 +11,7 @@ import (
 type ZedIntegration struct{}
 
 // Configure adds the MCP Scooter server to Zed's settings.json.
-func (z *ZedIntegration) Configure(port int, profileID string) error {
+func (z *ZedIntegration) Configure(port int, profileID string, apiKey string) error {
 	path, err := z.findConfig()
 	if err != nil {
 		return err
@@ -41,9 +41,17 @@ func (z *ZedIntegration) Configure(port int, profileID string) error {
 		url = fmt.Sprintf("http://localhost:%d/sse", port)
 	}
 
-	contextServers["mcp-scooter"] = map[string]interface{}{
+	serverConfig := map[string]interface{}{
 		"url": url,
 	}
+
+	if apiKey != "" {
+		serverConfig["headers"] = map[string]string{
+			"Authorization": "Bearer " + apiKey,
+		}
+	}
+
+	contextServers["mcp-scooter"] = serverConfig
 
 	newData, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

@@ -1,48 +1,71 @@
 package discovery
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/mcp-scooter/scooter/internal/domain/registry"
 )
+
+// ToolWorker defines the interface for executing MCP tools.
+type ToolWorker interface {
+	Execute(stdin io.Reader, stdout io.Writer, env map[string]string) error
+	Close() error
+}
 
 // ToolDefinition represents a metadata for an MCP tool.
 type ToolDefinition struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Category    string `json:"category"`
-	Source      string `json:"source"` // "local", "community"
-	Installed   bool   `json:"installed"`
-	Icon        string `json:"icon,omitempty"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Category    string            `json:"category"`
+	Source      string            `json:"source"` // "local", "community"
+	Installed   bool              `json:"installed"`
+	Icon        string            `json:"icon,omitempty"`
+	Runtime     *registry.Runtime `json:"runtime,omitempty"`
+	Tools       []registry.Tool   `json:"tools,omitempty"`
 }
 
 // DiscoveryEngine manages tools for an MCP session.
 type DiscoveryEngine struct {
-	mu          sync.RWMutex
-	activeTools map[string]*WASMWorker
-	lastUsed    map[string]time.Time
-	registry    []ToolDefinition
-	wasmDir     string
-	registryDir string
-	ctx         context.Context
+	mu            sync.RWMutex
+	activeServers map[string]ToolWorker // name -> worker
+	toolToServer  map[string]string     // toolName -> serverName
+	lastUsed      map[string]time.Time
+	registry      []ToolDefinition
+	wasmDir       string
+	registryDir   string
+	env           map[string]string
+	ctx           context.Context
 }
 
 func NewDiscoveryEngine(ctx context.Context, wasmDir string, registryDir string) *DiscoveryEngine {
 	e := &DiscoveryEngine{
-		activeTools: make(map[string]*WASMWorker),
-		lastUsed:    make(map[string]time.Time),
-		registry:    PrimordialTools(),
-		wasmDir:     wasmDir,
-		registryDir: registryDir,
-		ctx:         ctx,
+		activeServers: make(map[string]ToolWorker),
+		toolToServer:  make(map[string]string),
+		lastUsed:      make(map[string]time.Time),
+		registry:      PrimordialTools(),
+		wasmDir:       wasmDir,
+		registryDir:   registryDir,
+		env:           make(map[string]string),
+		ctx:           ctx,
 	}
 	e.loadRegistry()
 	go e.monitor()
 	return e
+}
+
+// SetEnv updates the environment variables for tools.
+func (e *DiscoveryEngine) SetEnv(env map[string]string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.env = env
 }
 
 func (e *DiscoveryEngine) loadRegistry() {
@@ -64,10 +87,21 @@ func (e *DiscoveryEngine) loadRegistry() {
 				continue
 			}
 
-			var td ToolDefinition
-			if err := json.Unmarshal(data, &td); err != nil {
+			// Use the full MCPEntry from registry package for thoroughness
+			var entry registry.MCPEntry
+			if err := json.Unmarshal(data, &entry); err != nil {
 				fmt.Printf("Warning: failed to parse tool definition %s: %v\n", file.Name(), err)
 				continue
+			}
+
+			td := ToolDefinition{
+				Name:        entry.Name,
+				Description: entry.Description,
+				Category:    string(entry.Category),
+				Source:      string(entry.Source),
+				Icon:        entry.Icon,
+				Runtime:     entry.Runtime,
+				Tools:       entry.Tools,
 			}
 			e.Register(td)
 		}
@@ -99,64 +133,82 @@ func (e *DiscoveryEngine) Register(td ToolDefinition) {
 }
 
 // Add installs and activates a tool.
-func (e *DiscoveryEngine) Add(toolName string) error {
+func (e *DiscoveryEngine) Add(serverName string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.lastUsed[toolName] = time.Now()
-	if _, ok := e.activeTools[toolName]; ok {
+	e.lastUsed[serverName] = time.Now()
+	if _, ok := e.activeServers[serverName]; ok {
 		return nil // Already active
 	}
 
-	// Check if tool exists in registry
-	var found bool
+	// Check if server exists in registry
+	var targetDef *ToolDefinition
 	for _, t := range e.registry {
-		if t.Name == toolName {
-			found = true
+		if t.Name == serverName {
+			targetDef = &t
 			break
 		}
 	}
-	if !found {
-		return fmt.Errorf("tool not found in registry: %s", toolName)
+	if targetDef == nil {
+		return fmt.Errorf("server not found in registry: %s", serverName)
 	}
 
-	worker := NewWASMWorker(e.ctx)
-	wasmPath := filepath.Join(e.wasmDir, fmt.Sprintf("%s.wasm", toolName))
-	if err := worker.Load(wasmPath); err != nil {
-		return fmt.Errorf("failed to load wasm tool %s: %w", toolName, err)
+	var worker ToolWorker
+	// Handle Stdio transport (e.g., npx, python, etc.)
+	if targetDef.Runtime != nil && targetDef.Runtime.Transport == registry.TransportStdio {
+		worker = NewStdioWorker(e.ctx, targetDef.Runtime.Command, targetDef.Runtime.Args)
+	} else {
+		// Default to WASM
+		wasmWorker := NewWASMWorker(e.ctx)
+		wasmPath := filepath.Join(e.wasmDir, fmt.Sprintf("%s.wasm", serverName))
+		if err := wasmWorker.Load(wasmPath); err != nil {
+			return fmt.Errorf("failed to load wasm tool %s: %w", serverName, err)
+		}
+		worker = wasmWorker
 	}
 
-	e.activeTools[toolName] = worker
+	e.activeServers[serverName] = worker
+	for _, tool := range targetDef.Tools {
+		e.toolToServer[tool.Name] = serverName
+	}
 	return nil
 }
 
 // Remove unloads a tool.
-func (e *DiscoveryEngine) Remove(toolName string) error {
+func (e *DiscoveryEngine) Remove(serverName string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	if worker, ok := e.activeTools[toolName]; ok {
+	if worker, ok := e.activeServers[serverName]; ok {
 		worker.Close()
-		delete(e.activeTools, toolName)
-		delete(e.lastUsed, toolName)
+		delete(e.activeServers, serverName)
+		delete(e.lastUsed, serverName)
+
+		// Remove tool mappings
+		for toolName, sName := range e.toolToServer {
+			if sName == serverName {
+				delete(e.toolToServer, toolName)
+			}
+		}
 		return nil
 	}
-	return fmt.Errorf("tool not found: %s", toolName)
+	return fmt.Errorf("server not found: %s", serverName)
 }
 
-// ListActive returns names of currently loaded tools.
+// ListActive returns names of currently loaded servers.
 func (e *DiscoveryEngine) ListActive() []string {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	active := make([]string, 0, len(e.activeTools))
-	for name := range e.activeTools {
+	active := make([]string, 0, len(e.activeServers))
+	for name := range e.activeServers {
 		active = append(active, name)
 	}
 	return active
 }
 
-// CallTool executes a tool (builtin or WASM) and returns the result.
+// CallTool executes a tool (builtin or WASM/Stdio) and returns the result.
 func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (interface{}, error) {
 	// 1. Try built-in tools
 	result, err := e.HandleBuiltinTool(name, params)
@@ -164,27 +216,68 @@ func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (
 		return result, nil
 	}
 
-	// 2. Try active WASM tools
+	// 2. Try active servers
 	e.mu.RLock()
-	_, ok := e.activeTools[name]
+	serverName := e.toolToServer[name]
+	worker, active := e.activeServers[serverName]
 	e.mu.RUnlock()
 
-	if ok {
-		e.MarkUsed(name)
-		// For now, we return a mock result for WASM tools since Execute is blocking
-		// with instantiation. In a real persistent world, we'd pipe the JSON-RPC.
-		// However, for verification, we'll just proxy the call.
-		return fmt.Sprintf("WASM Tool %s activated and proxy-called with %v", name, params), nil
+	if active {
+		e.MarkUsed(serverName)
+
+		// Prepare JSON-RPC request for MCP 'tools/call'
+		req := registry.JSONRPCRequest{
+			JSONRPC: "2.0",
+			ID:      time.Now().UnixNano(),
+			Method:  "tools/call",
+		}
+		callParams := struct {
+			Name      string                 `json:"name"`
+			Arguments map[string]interface{} `json:"arguments"`
+		}{
+			Name:      name,
+			Arguments: params,
+		}
+		req.Params, _ = json.Marshal(callParams)
+
+		input, _ := json.Marshal(req)
+		stdin := io.MultiReader(
+			io.LimitReader(os.Stdin, 0), // empty
+			io.NopCloser(bytes.NewReader(input)),
+			io.NopCloser(bytes.NewReader([]byte("\n"))),
+		)
+
+		var stdout bytes.Buffer
+		e.mu.RLock()
+		currentEnv := e.env
+		e.mu.RUnlock()
+
+		if err := worker.Execute(stdin, &stdout, currentEnv); err != nil {
+			return nil, fmt.Errorf("tool execution failed: %w", err)
+		}
+
+		var resp registry.JSONRPCResponse
+		if err := json.Unmarshal(stdout.Bytes(), &resp); err != nil {
+			// Some servers might output extra logs before the JSON, 
+			// but for this simple implementation we expect clean JSON.
+			return stdout.String(), nil
+		}
+
+		if resp.Error != nil {
+			return nil, fmt.Errorf("tool error: %s (code: %d)", resp.Error.Message, resp.Error.Code)
+		}
+
+		return resp.Result, nil
 	}
 
 	return nil, fmt.Errorf("tool not found: %s", name)
 }
 
 // MarkUsed updates the last used timestamp for a tool.
-func (e *DiscoveryEngine) MarkUsed(toolName string) {
+func (e *DiscoveryEngine) MarkUsed(serverName string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.lastUsed[toolName] = time.Now()
+	e.lastUsed[serverName] = time.Now()
 }
 
 // monitor background cleanup for inactive tools.
@@ -211,11 +304,18 @@ func (e *DiscoveryEngine) cleanup() {
 
 	for name, lastUsed := range e.lastUsed {
 		if now.Sub(lastUsed) > threshold {
-			if worker, ok := e.activeTools[name]; ok {
+			if worker, ok := e.activeServers[name]; ok {
 				fmt.Printf("Auto-unloading inactive tool: %s\n", name)
 				worker.Close()
-				delete(e.activeTools, name)
+				delete(e.activeServers, name)
 				delete(e.lastUsed, name)
+
+				// Remove tool mappings
+				for toolName, sName := range e.toolToServer {
+					if sName == name {
+						delete(e.toolToServer, toolName)
+					}
+				}
 			}
 		}
 	}

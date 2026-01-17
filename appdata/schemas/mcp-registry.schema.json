@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://mcp-scooter.com/schemas/registry/v1.json",
   "title": "MCP Registry Entry",
-  "description": "Schema for MCP server definitions in the MCP Scout registry",
+  "description": "Schema for MCP server definitions in the MCP Scooter registry",
   "type": "object",
   "required": ["name", "version", "title", "description", "category", "source", "authorization", "tools", "package"],
   "properties": {
@@ -537,7 +537,7 @@
         "transport": {
           "type": "string",
           "enum": ["stdio", "http", "sse", "streamable-http"],
-          "description": "How Scout communicates with the MCP server"
+          "description": "How Scooter communicates with the MCP server"
         },
         "command": {
           "type": "string",

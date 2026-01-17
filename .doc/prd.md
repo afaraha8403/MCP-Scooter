@@ -41,11 +41,11 @@ To become the **standard local runtime** for MCP. If MCP is the "USB port" for A
   * She selects the **"Work @ Corp"** profile.  
   * She opens Cursor. Cursor is configured to talk to localhost:6277.  
   * She asks Cursor: *"Check the Prod DB health."*  
-  * **Scout Action:** Scout authenticates via the Work Profile, dynamically spawns the Postgres-Prod tool (in a secure sandbox), and pipes the result to Cursor. The LLM *never saw* the definitions for her personal Spotify tool.  
+  * **Scooter Action:** Scooter authenticates via the Work Profile, dynamically spawns the Postgres-Prod tool (in a secure sandbox), and pipes the result to Cursor. The LLM *never saw* the definitions for her personal Spotify tool.  
 * **06:00 PM (Personal Mode):**  
   * Alex doesn't close Cursor. She just opens **Claude Desktop** (configured to localhost:6278).  
   * She asks Claude: *"Analyze my Spotify listening history."*  
-  * **Scout Action:** Scout detects the request on the Personal Port (:6278). It spawns the Spotify-MCP tool using her personal API key.  
+  * **Scooter Action:** Scooter detects the request on the Personal Port (:6278). It spawns the Spotify-MCP tool using her personal API key.  
   * *Crucial:* Her work credentials never leaked to the personal session, and her personal tools never cluttered her work context.
 
 ## **4\. Detailed Feature Specifications**
@@ -67,56 +67,64 @@ To become the **standard local runtime** for MCP. If MCP is the "USB port" for A
   * **macOS:** Lives in the **Menu Bar**. Can operate in "Headless Mode" (no Dock icon) or Standard Mode. The Dashboard toggles via the Menu Bar icon.  
   * **Linux:** Uses libappindicator to reside in the System Tray (Top Right on GNOME/Ubuntu, Bottom Right on KDE).  
   * **Persistence:** The server daemon remains active to handle MCP requests even when the GUI dashboard is closed.  
-* **Networking Strategy:**  
-  * **Default Ports:** Scout defaults to uncommon high ports to avoid conflicts with standard web development tools (like 3000, 8000, 8080).  
-    * **Primary Profile:** 6277 (M-C-P-S on keypad).  
-    * **Secondary Profile:** 6278\.  
-  * **Conflict Detection:** If 6277 is in use by another app, Scout must detect this at startup and prompt the user to choose an alternative or auto-select 6279\.
+* **Networking Strategy:**
+  * **Default Ports:** Scooter defaults to uncommon high ports to avoid conflicts with standard web development tools (like 3000, 8000, 8080).
+    * **Primary Profile:** 6277 (M-C-P-S on keypad).
+    * **Secondary Profile:** 6278\.
+  * **Conflict Detection:** If 6277 is in use by another app, Scooter must detect this at startup and prompt the user to choose an alternative or auto-select 6279\.
 
-### **4.2 "Scout Profiles" (Identity Management)**
+### **4.2 "Scooter Profiles" & Security**
 
-The killer feature. Users create isolated environments that define *which* tools are visible and *which* secrets are injected.
+The killer feature. Users create isolated environments (Profiles) and secure their gateway with API keys.
+
+*   **Gateway Security:** 
+    *   The MCP Gateway (:6277) is secured via an API Key (`sk-scooter-...`).
+    *   AI Clients must provide this key in the `Authorization: Bearer` or `X-Scooter-API-Key` header.
+    *   Scooter automatically configures this key during the one-click integration flow for supported clients.
 
 * **Profile Configuration (profiles.yaml):**  
+  ```yaml
+  settings:
+    gateway_api_key: "sk-scooter-..." # Secures IDE connections
   profiles:  
-    \- id: work-profile  
-      port: 6277 \# User-configurable. Defaults to 6277 if omitted.  
-      auth\_mode: "oauth2" \# For connecting to a protected Remote MCP Server  
-      remote\_server\_url: "\[https://mcp.acme-corp.com\](https://mcp.acme-corp.com)"  
+    - id: work-profile  
+      remote_auth_mode: "oauth2" # For connecting to a protected Remote MCP Server (renamed from auth_mode)
+      remote_server_url: "https://mcp.acme-corp.com"  
       env:  
-        AWS\_REGION: "us-east-1"  
-      allow\_tools:  
-        \- "jira-mcp"
+        AWS_REGION: "us-east-1"  
+      allow_tools:  
+        - "jira-mcp"
+  ```
 
-* **Authentication Engine (OAuth 2.0 & 2.1):**  
-  * **Remote Server Auth (OAuth 2.1):**  
-    * Scout implements **RFC 8414 (Authorization Server Metadata)**. When connecting to a protected remote MCP server (e.g., Enterprise Data Gateway), Scout automatically handles the 401 Unauthorized challenge.  
-    * **Flow:** Scout detects the challenge \-\> Initiates PKCE Flow \-\> Opens System Browser for SSO Login \-\> Captures Callback \-\> Stores Token in Keychain \-\> Retries Request.  
-    * **Benefit:** The AI Client (e.g., Cursor) does *not* need to implement OAuth. It just talks to Scout, and Scout handles the auth.  
-  * **Local Tool Auth (3rd Party Tokens):**  
-    * For local tools that need user context (e.g., google-drive-mcp), Scout acts as a **Token Manager**.  
-    * Scout maintains a refresh loop for Google/Slack/GitHub tokens and injects them into the local tool process as environment variables (e.g., GOOGLE\_ACCESS\_TOKEN) at runtime.  
-* **Secure Credential Storage:** Scout integrates with **macOS Keychain**, **Windows Credential Manager**, and **Linux Secret Service**. Tokens are never stored in plain text.
+* **Authentication Engine (OAuth 2.0 & 2.1):**
+  * **Remote Server Auth (OAuth 2.1):**
+    * Scooter implements **RFC 8414 (Authorization Server Metadata)**. When connecting to a protected remote MCP server (e.g., Enterprise Data Gateway), Scooter automatically handles the 401 Unauthorized challenge.
+    * **Flow:** Scooter detects the challenge \-\> Initiates PKCE Flow \-\> Opens System Browser for SSO Login \-\> Captures Callback \-\> Stores Token in Keychain \-\> Retries Request.
+    * **Benefit:** The AI Client (e.g., Cursor) does *not* need to implement OAuth. It just talks to Scooter, and Scooter handles the auth.
+  * **Local Tool Auth (3rd Party Tokens):**
+    * For local tools that need user context (e.g., google-drive-mcp), Scooter acts as a **Token Manager**.
+    * Scooter maintains a refresh loop for Google/Slack/GitHub tokens and injects them into the local tool process as environment variables (e.g., GOOGLE\_ACCESS\_TOKEN) at runtime.
+* **Secure Credential Storage:** Scooter integrates with **macOS Keychain**, **Windows Credential Manager**, and **Linux Secret Service**. Tokens are never stored in plain text.
 
-### **4.3 The "Scout Gateway" (Dynamic Discovery Engine)**
+### **4.3 The "Scooter Gateway" (Dynamic Discovery Engine)**
 
-This mimics the "Docker Dynamic Mode" but runs natively. Instead of hard-coding tools, **Scout exposes a Discovery Protocol** to the agent.
+This mimics the "Docker Dynamic Mode" but runs natively. Instead of hard-coding tools, **Scooter exposes a Discovery Protocol** to the agent.
 
-* **The "Zero-Config" Experience:**  
-  * When a user installs Scout, they don't need to manually "install" 50 tools.  
-  * Scout simply connects to the AI Client and exposes **3 Primordial Tools**: scout\_find, scout\_add, scout\_remove.  
+* **The "Zero-Config" Experience:**
+  * When a user installs Scooter, they don't need to manually "install" 50 tools.
+  * Scooter simply connects to the AI Client and exposes **3 Primordial Tools**: scout\_find, scout\_add, scout\_remove.  
 * **Autonomous Tool Loading (The "Anthropic Tool Search" Pattern):**  
   1. **Trigger:** User asks *"Check my linear issues"*.  
   2. **Search:** The Agent (Claude/Cursor) calls scout\_find(query="linear").  
-  3. **Discovery:** Scout searches the local registry and the "Scout Store" (Community Catalog). It returns: *"Found 'linear-mcp'. Capabilities: Manage issues, view cycles."*  
+  3. **Discovery:** Scooter searches the local registry and the "Scooter Store" (Community Catalog). It returns: *"Found 'linear-mcp'. Capabilities: Manage issues, view cycles."*  
   4. **Installation:** The Agent calls scout\_add("linear-mcp").  
-  5. **Execution:** Scout authenticates (via OAuth), spins up the WASM module, and **hot-swaps** the Linear tool definitions into the active session.  
-  6. **Usage:** The Agent can now call linear\_list\_issues().  
-* **Resource Hygiene:** Scout monitors usage. If linear-mcp hasn't been used in 10 turns, Scout automatically unloads it to save RAM and Context Window space.
+  5. **Execution:** Scooter authenticates (via OAuth), spins up the WASM module, and **hot-swaps** the Linear tool definitions into the active session.
+  6. **Usage:** The Agent can now call linear\_list\_issues().
+* **Resource Hygiene:** Scooter monitors usage. If linear-mcp hasn't been used in 10 turns, Scooter automatically unloads it to save RAM and Context Window space.
 
 ### **4.4 One-Click Setup (The "Integrations" Tab)**
 
-Scout automates the configuration of 3rd party clients. The "Integrations" tab allows users to click "Install" for:
+Scooter automates the configuration of 3rd party clients. The "Integrations" tab allows users to click "Install" for:
 
 | Client | Configuration Strategy | Target File |
 | :---- | :---- | :---- |
@@ -129,15 +137,15 @@ Scout automates the configuration of 3rd party clients. The "Integrations" tab a
 | **Codex** | Edits TOML config | \~/.codex/config.toml |
 | **Zed** | Edits Settings | \~/.config/zed/settings.json |
 
-* **Implementation:** Scout acts as a local proxy. It writes a config that points the client to http://localhost:6277/sse (Server-Sent Events), effectively routing all traffic through Scout.
+* **Implementation:** Scooter acts as a local proxy. It writes a configuration that points the client to `http://localhost:6277/sse` (Server-Sent Events) and includes the **Gateway API Key** in the request headers, effectively routing all traffic through Scooter securely.
 
 ### **4.5 Custom MCP & Export/Import**
 
 * **Custom MCP Wizard:**  
   * UI to add local tools (e.g., "Run Python Script").  
   * Inputs: Command (python/node), Args, Env Vars.  
-  * **Auth Wrapper:** Checkbox for *"Manage OAuth for this tool"*. If checked, Scout handles the Google/Slack login flow and passes the token to the script.  
-  * **Validation:** Scout dry-runs the tool to verify it speaks MCP protocol.  
+  * **Auth Wrapper:** Checkbox for *"Manage OAuth for this tool"*. If checked, Scooter handles the Google/Slack login flow and passes the token to the script.
+  * **Validation:** Scooter dry-runs the tool to verify it speaks MCP protocol.  
 * **Export/Import:**  
   * **Format:** scout-bundle.json.  
   * **Scope:** Exports Profiles, Tool Lists, and non-sensitive Configs.  
@@ -148,27 +156,28 @@ Scout automates the configuration of 3rd party clients. The "Integrations" tab a
 * **Log Inspector:** A "Network Tab" for AI. View raw JSON-RPC requests and responses.  
 * **Tool Playground:** A "Try it now" interface. Users can manually invoke jira-mcp with sample JSON input to verify connectivity *before* using it in an agent. This solves the "Silent Failure" problem.  
 * **Human-in-the-Loop Security:**  
+  * **Gateway API Key Management:** UI for viewing, copying, and regenerating the gateway security key. Regeneration automatically prompts to re-sync all integration clients.
   * **Permission Modes:** Per-tool settings: "Always Allow," "Allow Read-Only," or "Ask for Approval."  
-  * **Approval UI:** If an agent tries to use a "Sensitive" tool (e.g., delete\_database), Scout pops a native OS notification asking the user to Approve/Deny.
+  * **Approval UI:** If an agent tries to use a "Sensitive" tool (e.g., delete_database), Scooter pops a native OS notification asking the user to Approve/Deny.
 
 ### **4.7 "Code Mode" Lite (Sandboxed Composition)**
 
-Just like Docker's "Code Mode," Scout allows agents to write scripts to chain tools together, but faster.
+Just like Docker's "Code Mode," Scooter allows agents to write scripts to chain tools together, but faster.
 
 * **The Efficiency Problem:** Standard agents return massive JSON blobs (e.g., 50 GitHub repos) to the LLM, wasting tokens.  
 * **The Solution:**  
   1. The Agent writes a JavaScript function to: search\_github("query") \-\> filter(repo \=\> repo.stars \> 1000\) \-\> format\_output().  
-  2. Scout executes this script in a secure **V8 Isolate**.  
-  3. Scout returns *only* the filtered, formatted result to the LLM.  
+  2. Scooter executes this script in a secure **V8 Isolate**.
+  3. Scooter returns *only* the filtered, formatted result to the LLM.  
 * **State Persistence:** Includes a "Volume" API so agents can download a dataset to a temp folder, process it, and delete it, without the data ever touching the Context Window.
 
 ## **5\. Exposed Tools & Capabilities Registry**
 
-Unlike standard MCP servers that expose a static list, Scout exposes a dynamic hierarchy. The following **Primordial Tools** are intrinsic to the platform and always available.
+Unlike standard MCP servers that expose a static list, Scooter exposes a dynamic hierarchy. The following **Primordial Tools** are intrinsic to the platform and always available.
 
 ### **5.1 The "Meta-Layer" (Discovery Tools)**
 
-Every AI client connected to Scout sees these tools by default.
+Every AI client connected to Scooter sees these tools by default.
 
 * **scout\_find(query: string)**  
   * *Description:* Searches the Local Registry and Community Catalog for tools.  
@@ -183,7 +192,7 @@ Every AI client connected to Scout sees these tools by default.
 
 ### **5.2 The "Core Suite" (Native Implementations)**
 
-Scout includes high-performance, native Go implementations of these standard utilities.
+Scooter includes high-performance, native Go implementations of these standard utilities.
 
 * **scout\_filesystem**: Safe read/write with strict path scoping.  
 * **scout\_fetch**: Headless browser/HTTP client for web retrieval.  
@@ -191,7 +200,7 @@ Scout includes high-performance, native Go implementations of these standard uti
 
 ## **6\. Competitive Landscape**
 
-| Feature | Docker MCP | MetaMCP | Manual Config | MCP Scout |
+| Feature | Docker MCP | MetaMCP | Manual Config | MCP Scooter |
 | :---- | :---- | :---- | :---- | :---- |
 | **Primary Use Case** | Enterprise Infra | Server-side Proxy | Hobbyist | **Pro Developer** |
 | **Architecture** | Linux Containers | Docker Container | Local Process | **Native Binary \+ WASM** |
@@ -224,18 +233,19 @@ Scout includes high-performance, native Go implementations of these standard uti
 
 ## **8\. Roadmap & Phasing**
 
-* **Phase 1 (MVP \- Foundation & Gateway):**  
+* **Phase 1 (MVP - Foundation & Gateway):**  
   * Release of Native App (Win/Mac/Linux).  
   * Implementation of Profile Management System with Keychain integration.  
+  * **Secure Gateway:** API Key authentication for IDE-to-Scooter communication.
   * **OAuth 2.0 Handler** implementation for key providers (Google, GitHub, Slack).  
   * One-Click Setup integrations for Cursor & Claude.  
-  * Deployment of "Scout Gateway" protocol (scout\_find, scout\_add) for dynamic lazy-loading.  
+  * Deployment of "Scooter Gateway" protocol (scout_find, scout_add) for dynamic lazy-loading.  
   * **Tool Playground** for manual testing.  
 * **Phase 2 (Skills & Ecosystem):**  
   * **"Scooter Skills Library":** A "One-Click" Marketplace for AI Agent Skills.  
     * *Concept:* Instead of installing 5 separate tools, users install a "Skill" (e.g., "Full Stack Dev Skill" or "Data Analyst Skill").  
     * *Action:* Scout automatically downloads and configures the necessary WASM bundles (e.g., postgres-mcp, python-mcp, browser-mcp) and sets up the System Prompt for that specific role.  
-  * "Scout Store" (Community registry of WASM tools).  
+  * "Scooter Store" (Community registry of WASM tools).  
   * One-Click Setup for remaining clients (Zed, Antigravity, etc.).  
 * **Phase 3 (Enterprise):**  
   * Team Sync (Share profiles via encrypted cloud config).  
@@ -260,7 +270,7 @@ The project includes a front-facing website hosted on **GitHub Pages** to serve 
 * **Documentation Hub:**  
   * **Installation:** brew, winget, and curl scripts.  
   * **Configuration Guide:** Detailed syntax for profiles.yaml.  
-  * **Tool Authoring:** Guide on how to compile existing Python tools to WASM for Scout.  
+  * **Tool Authoring:** Guide on how to compile existing Python tools to WASM for Scooter.  
 * **Releases Page (Dynamic):**  
   * **Integration:** Fetches data directly from **GitHub Releases API**.  
   * **Content:** Displays the latest Version (e.g., v1.0.0), Release Date, and Changelog notes (parsed from Markdown).  
@@ -277,9 +287,9 @@ To ensure a high-quality source-available ecosystem, the repository must adhere 
   * High-level Architecture Diagram (Text-based Mermaid.js).  
 * **LICENSE:**  
   * **PolyForm Shield 1.0.0** — Allows free use and modification, but prohibits competing products/services.  
-  * Users can build products *with* MCP Scout, but cannot fork it to create a competing MCP gateway.  
+  * Users can build products *with* MCP Scooter, but cannot fork it to create a competing MCP gateway.  
 * **CONTRIBUTING.md:**  
   * Instructions for setting up the Go/Rust dev environment.  
-  * Guidelines for submitting new tools to the "Scout Store."  
+  * Guidelines for submitting new tools to the "Scooter Store."  
 * **CHANGELOG.md:**  
   * Maintained automatically via Semantic Release, but reflected on the website.

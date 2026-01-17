@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve MCP Scout
+about: Report a bug to help us improve MCP Scooter
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -36,7 +36,7 @@ Paste any relevant logs here
 ## Environment
 
 - **OS:** [e.g., Windows 11, macOS 14.0, Ubuntu 22.04]
-- **MCP Scout Version:** [e.g., 0.1.0]
+- **MCP Scooter Version:** [e.g., 0.1.0]
 - **Go Version:** [e.g., 1.24.0]
 - **Node Version:** [e.g., 20.0.0]
 - **AI Client:** [e.g., Cursor, Claude Desktop]

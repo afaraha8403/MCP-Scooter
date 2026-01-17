@@ -11,7 +11,7 @@ import (
 type CursorIntegration struct{}
 
 // Configure adds the MCP Scooter server to Cursor's mcp.json.
-func (c *CursorIntegration) Configure(port int, profileID string) error {
+func (c *CursorIntegration) Configure(port int, profileID string, apiKey string) error {
 	path, err := c.findConfig()
 	if err != nil {
 		return err
@@ -36,10 +36,18 @@ func (c *CursorIntegration) Configure(port int, profileID string) error {
 		url = fmt.Sprintf("http://localhost:%d/sse", port)
 	}
 
-	config.McpServers["mcp-scooter"] = map[string]interface{}{
+	serverConfig := map[string]interface{}{
 		"type": "sse",
 		"url":  url,
 	}
+
+	if apiKey != "" {
+		serverConfig["headers"] = map[string]string{
+			"Authorization": "Bearer " + apiKey,
+		}
+	}
+
+	config.McpServers["mcp-scooter"] = serverConfig
 
 	newData, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

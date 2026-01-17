@@ -1,4 +1,4 @@
-# MCP Scout Makefile
+# MCP Scooter Makefile
 # ====================
 
 .PHONY: all build test validate clean dev \

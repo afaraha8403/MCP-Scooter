@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="desktop/public/logo/logo-dark.svg" alt="MCP Scout Logo" width="280" />
+  <img src="desktop/public/logo/logo-dark.svg" alt="MCP Scooter Logo" width="280" />
 </p>
 
-<h1 align="center">MCP Scout (Scooter)</h1>
+<h1 align="center">MCP Scooter</h1>
 
 <p align="center">
   <strong>The Universal Operating System for Model Context Protocol</strong>
 </p>
 
 <p align="center">
-  <a href="#-why-mcp-scout">Why?</a> •
+  <a href="#-why-mcp-scooter">Why?</a> •
   <a href="#-features">Features</a> •
   <a href="#-how-its-different">How It's Different</a> •
   <a href="#-getting-started">Getting Started</a> •
@@ -27,17 +27,17 @@
 ---
 
 > ⚠️ **Active Development Notice**  
-> MCP Scout is under active development. APIs, features, and documentation may change. We're building in public and welcome early adopters and contributors!
+> MCP Scooter is under active development. APIs, features, and documentation may change. We're building in public and welcome early adopters and contributors!
 
 ---
 
-## 🎯 Why MCP Scout?
+## 🎯 Why MCP Scooter?
 
 As AI agents become more powerful, developers face a growing crisis:
 
 ### The Problems We're Solving
 
-| Problem | What Happens Today | MCP Scout Solution |
+| Problem | What Happens Today | MCP Scooter Solution |
 |---------|-------------------|-------------------|
 | **Context Bloat** | Connecting 50 tools floods your LLM with 50 unused definitions, **consuming your context window**, degrading performance and burning tokens | **Dynamic Discovery** — Tools load on-demand. Your LLM only sees what it needs for the task at hand. |
 | **Configuration Chaos** | Using Cursor for work + Claude for personal? Switching between personal and work accounts (like Postman or Slack) requires manually swapping API keys and JSON configs across 8 different files | **One Hub, All Clients** — Use **Profiles** to isolate accounts. Switch context once, and all your tools follow. |
@@ -46,11 +46,11 @@ As AI agents become more powerful, developers face a growing crisis:
 
 ### The Vision
 
-If MCP is the "USB port" for AI, **MCP Scout is the Universal Hub**.
+If MCP is the "USB port" for AI, **MCP Scooter is the Universal Hub**.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         MCP Scout                                │
+│                         MCP Scooter                              │
 │                    (System Tray / Menu Bar)                      │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
@@ -70,36 +70,39 @@ If MCP is the "USB port" for AI, **MCP Scout is the Universal Hub**.
 ## ✨ Features
 
 ### 🔍 Dynamic Tool Discovery
-No more hard-coding tool definitions. Scout exposes three "primordial tools" to any AI client, enabling **"auto-choosing"** of tools based on the context of your question:
+No more hard-coding tool definitions. Scooter exposes three "primordial tools" to any AI client, enabling **"auto-choosing"** of tools based on the context of your question:
 
 - **`scout_find`** — Search for tools by capability
 - **`scout_add`** — Install and enable tools on-demand  
 - **`scout_remove`** — Unload tools to free context space
 
-**How it works:** Your LLM taps into the Scout discovery tool → It gets a list of available capabilities → It auto-chooses the right tool for your specific question → Scout loads only what's needed. This avoids loading the entire toolset and keeps your context window clean.
+**How it works:** Your LLM taps into the Scooter discovery tool → It gets a list of available capabilities → It auto-chooses the right tool for your specific question → Scooter loads only what's needed. This avoids loading the entire toolset and keeps your context window clean.
 
-Your agent asks for "database tools" → Scout finds them → Agent installs what it needs → Done.
+Your agent asks for "database tools" → Scooter finds them → Agent installs what it needs → Done.
 
 ### 👤 Profile-Based Identity Management
 Create isolated environments for different contexts:
 
 ```yaml
+settings:
+  gateway_api_key: "sk-scooter-..." # Secures connections from your IDE
+
 profiles:
   - id: work-corp
-    port: 6277
+    remote_auth_mode: oauth2        # For remote MCP proxy
+    remote_server_url: "https://mcp.company.com"
     allow_tools: ["jira-mcp", "postgres-prod"]
     env:
       AWS_REGION: "us-east-1"
       
   - id: personal
-    port: 6278
     allow_tools: ["spotify-mcp", "notion-mcp"]
 ```
 
 Work credentials never leak to personal sessions. Personal tools never clutter work context.
 
 ### 🔌 One-Click Client Integration
-Scout auto-configures your AI clients:
+Scooter auto-configures your AI clients:
 
 | Client | Status |
 |--------|--------|
@@ -112,8 +115,9 @@ Scout auto-configures your AI clients:
 | Google Antigravity | 🔜 Coming Soon |
 
 ### 🔐 Secure by Design
+- **Gateway API Key** — Secure your local hub with a secret key required for any IDE connection
 - **Native Keychain Integration** — macOS Keychain, Windows Credential Manager, Linux Secret Service
-- **OAuth 2.0/2.1 Handler** — Scout handles auth flows so your AI clients don't have to
+- **OAuth 2.0/2.1 Handler** — Scooter handles auth flows so your AI clients don't have to
 - **Human-in-the-Loop** — Approve sensitive operations before they execute
 
 ### ⚡ Native Performance
@@ -128,7 +132,7 @@ Scout auto-configures your AI clients:
 
 ### vs. Docker MCP Toolkit
 
-| Aspect | Docker MCP | MCP Scout |
+| Aspect | Docker MCP | MCP Scooter |
 |--------|-----------|-----------|
 | **Architecture** | Linux containers on VM | Native binary + WASM |
 | **RAM Usage** | 2-4GB | <50MB |
@@ -137,19 +141,19 @@ Scout auto-configures your AI clients:
 | **Profile Support** | Environment variables only | First-class UI |
 | **One-Click Setup** | ❌ | ✅ 8+ clients |
 
-Docker MCP is excellent for enterprise infrastructure and server deployments. **MCP Scout is for your laptop** — the developer who wants AI tools that feel instant and native.
+Docker MCP is excellent for enterprise infrastructure and server deployments. **MCP Scooter is for your laptop** — the developer who wants AI tools that feel instant and native.
 
 ### vs. MetaMCP
 
 MetaMCP is a server-side proxy that aggregates MCP servers. It's great for teams running centralized infrastructure.
 
-**MCP Scout is local-first.** It runs in your system tray, manages your personal credentials, and gives you instant tool access without network round-trips.
+**MCP Scooter is local-first.** It runs in your system tray, manages your personal credentials, and gives you instant tool access without network round-trips.
 
 ### vs. Manual Configuration
 
 You *could* manually edit `~/.cursor/mcp.json`, `~/Library/.../claude_desktop_config.json`, `.vscode/mcp.json`...
 
-Or you could click one button in Scout and have all your clients configured in seconds.
+Or you could click one button in Scooter and have all your clients configured in seconds.
 
 ---
 
@@ -158,7 +162,7 @@ Or you could click one button in Scout and have all your clients configured in s
 ### 📦 Download (Recommended)
 
 > **🚧 Releases Coming Soon!**  
-> Pre-built installers for Windows, macOS, and Linux are on the way. You'll be able to download and run MCP Scout with a single click — no build tools required.
+> Pre-built installers for Windows, macOS, and Linux are on the way. You'll be able to download and run MCP Scooter with a single click — no build tools required.
 >
 > ⭐ **Star this repo** to get notified when the first release drops!
 
@@ -166,7 +170,7 @@ Or you could click one button in Scout and have all your clients configured in s
 
 ### 🛠️ Build from Source (For Contributors)
 
-Want to contribute or hack on MCP Scout? Here's how to build it yourself.
+Want to contribute or hack on MCP Scooter? Here's how to build it yourself.
 
 > **Note:** Building from source is intended for development purposes. For regular use, wait for the official releases above.
 
@@ -207,7 +211,7 @@ make validate-strict
 
 #### Releasing
 
-MCP Scout uses GitHub Actions for automated releases. To trigger a release:
+MCP Scooter uses GitHub Actions for automated releases. To trigger a release:
 
 ```bash
 # Release a stable version (e.g., 1.0.0)
@@ -226,7 +230,7 @@ This will automatically tag the current commit and push it to GitHub, triggering
 ## 📁 Project Structure
 
 ```
-MCP Scout/
+MCP Scooter/
 ├── appdata/
 │   ├── clients/        # AI client configurations
 │   ├── registry/       # MCP server definitions (JSON)
@@ -289,7 +293,7 @@ We're building the foundation. Here's what's done and what's next:
 
 | Feature | Description |
 |---------|-------------|
-| **Scout Store** | Community registry of WASM tools |
+| **Scooter Store** | Community registry of WASM tools |
 | **Skills Library** | Pre-configured tool bundles ("Full Stack Dev", "Data Analyst") |
 | **Remote MCP Support** | Connect to enterprise MCP gateways with OAuth 2.1 |
 | **Antigravity Integration** | Google's AI client support |
@@ -306,7 +310,7 @@ We're building the foundation. Here's what's done and what's next:
 
 ## 🤝 Contributing
 
-**We're building MCP Scout in public and we'd love your help!**
+**We're building MCP Scooter in public and we'd love your help!**
 
 ### Ways to Contribute
 
@@ -388,7 +392,7 @@ make ci
 ---
 
 <p align="center">
-  <strong>MCP Scout</strong> — Native. Lightweight. Dynamic.
+  <strong>MCP Scooter</strong> — Native. Lightweight. Dynamic.
 </p>
 
 <p align="center">

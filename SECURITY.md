@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-MCP Scout is currently in active development. Security updates will be applied to the latest version.
+MCP Scooter is currently in active development. Security updates will be applied to the latest version.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -11,7 +11,7 @@ MCP Scout is currently in active development. Security updates will be applied t
 
 ## Reporting a Vulnerability
 
-We take security seriously at MCP Scout. If you discover a security vulnerability, please report it responsibly.
+We take security seriously at MCP Scooter. If you discover a security vulnerability, please report it responsibly.
 
 ### How to Report
 
@@ -81,7 +81,7 @@ MCP Scout stores credentials using native OS keychains:
 
 ### Local Network Access
 
-MCP Scout runs a local HTTP server (default port 6277). This server:
+MCP Scooter runs a local HTTP server (default port 6277). This server:
 - Only binds to localhost by default
 - Does not expose services to the network
 - Uses CORS headers to restrict access
@@ -95,4 +95,4 @@ When using third-party MCP servers:
 
 ---
 
-*MCP Scout is maintained by [Balacode.io](https://balacode.io)*
+*MCP Scooter is maintained by [Balacode.io](https://balacode.io)*

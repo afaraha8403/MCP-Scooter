@@ -19,25 +19,29 @@ func TestStore_SaveAndLoad(t *testing.T) {
 	store := profile.NewStore(path)
 
 	profiles := []profile.Profile{
-		{ID: "test1", Port: 6277},
-		{ID: "test2", Port: 6278},
+		{ID: "test1"},
+		{ID: "test2"},
 	}
 
+	settings := profile.DefaultSettings()
+	settings.GatewayAPIKey = "test-key"
+
 	// Test Save
-	err = store.Save(profiles)
+	err = store.Save(profiles, settings)
 	assert.NoError(t, err)
 
 	// Test Load
-	loaded, err := store.Load()
+	loadedProfiles, loadedSettings, err := store.Load()
 	assert.NoError(t, err)
-	assert.Len(t, loaded, 2)
-	assert.Equal(t, "test1", loaded[0].ID)
-	assert.Equal(t, "test2", loaded[1].ID)
+	assert.Len(t, loadedProfiles, 2)
+	assert.Equal(t, "test1", loadedProfiles[0].ID)
+	assert.Equal(t, "test2", loadedProfiles[1].ID)
+	assert.Equal(t, "test-key", loadedSettings.GatewayAPIKey)
 }
 
 func TestStore_LoadNonExistent(t *testing.T) {
 	store := profile.NewStore("non-existent.yaml")
-	loaded, err := store.Load()
+	loadedProfiles, _, err := store.Load()
 	assert.NoError(t, err)
-	assert.Empty(t, loaded)
+	assert.Empty(t, loadedProfiles)
 }

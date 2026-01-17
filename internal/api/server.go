@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,6 +52,22 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("GET /api/clients", s.handleGetClients)
 	s.mux.HandleFunc("GET /api/settings", s.handleGetSettings)
 	s.mux.HandleFunc("PUT /api/settings", s.handleUpdateSettings)
+	s.mux.HandleFunc("POST /api/settings/regenerate-key", s.handleRegenerateKey)
+}
+
+func (s *ControlServer) handleRegenerateKey(w http.ResponseWriter, r *http.Request) {
+	newKey := profile.GenerateAPIKey()
+	s.settings.GatewayAPIKey = newKey
+
+	if s.store != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"gateway_api_key": newKey})
 }
 
 func (s *ControlServer) handleGetSettings(w http.ResponseWriter, r *http.Request) {
@@ -126,8 +143,8 @@ func (s *ControlServer) handleGetProfiles(w http.ResponseWriter, r *http.Request
 
 func (s *ControlServer) handleOnboardingStartFresh(w http.ResponseWriter, r *http.Request) {
 	defaultProfile := profile.Profile{
-		ID:       "work",
-		AuthMode: "none",
+		ID:             "work",
+		RemoteAuthMode: "none",
 	}
 
 	if err := s.manager.AddProfile(defaultProfile); err != nil {
@@ -374,30 +391,31 @@ func (s *ControlServer) handleInstallIntegration(w http.ResponseWriter, r *http.
 
 	// Use configured McpPort from settings
 	mcpPort := s.settings.McpPort
+	apiKey := s.settings.GatewayAPIKey
 
 	var err error
 	switch req.Target {
 	case "cursor":
 		c := &integration.CursorIntegration{}
-		err = c.Configure(mcpPort, req.Profile)
+		err = c.Configure(mcpPort, req.Profile, apiKey)
 	case "claude-desktop":
 		c := &integration.ClaudeIntegration{}
-		err = c.Configure(mcpPort, req.Profile)
+		err = c.Configure(mcpPort, req.Profile, apiKey)
 	case "claude-code":
 		c := &integration.ClaudeIntegration{}
-		err = c.ConfigureCode(mcpPort, req.Profile)
+		err = c.ConfigureCode(mcpPort, req.Profile, apiKey)
 	case "vscode":
 		v := &integration.VSCodeIntegration{}
-		err = v.Configure(mcpPort, req.Profile)
+		err = v.Configure(mcpPort, req.Profile, apiKey)
 	case "antigravity", "gemini-cli":
 		g := &integration.GeminiIntegration{}
-		err = g.Configure(mcpPort, req.Profile)
+		err = g.Configure(mcpPort, req.Profile, apiKey)
 	case "codex":
 		c := &integration.CodexIntegration{}
-		err = c.Configure(mcpPort, req.Profile)
+		err = c.Configure(mcpPort, req.Profile, apiKey)
 	case "zed":
 		z := &integration.ZedIntegration{}
-		err = z.Configure(mcpPort, req.Profile)
+		err = z.Configure(mcpPort, req.Profile, apiKey)
 	default:
 		err = fmt.Errorf("unknown integration target")
 	}
@@ -413,14 +431,16 @@ func (s *ControlServer) handleInstallIntegration(w http.ResponseWriter, r *http.
 
 // McpGateway handles MCP traffic for all profiles on a single port.
 type McpGateway struct {
-	manager *ProfileManager
-	mux     *http.ServeMux
+	manager  *ProfileManager
+	mux      *http.ServeMux
+	settings profile.Settings
 }
 
-func NewMcpGateway(manager *ProfileManager) *McpGateway {
+func NewMcpGateway(manager *ProfileManager, settings profile.Settings) *McpGateway {
 	g := &McpGateway{
-		manager: manager,
-		mux:     http.NewServeMux(),
+		manager:  manager,
+		mux:      http.NewServeMux(),
+		settings: settings,
 	}
 	g.routes()
 	return g
@@ -446,11 +466,30 @@ func (g *McpGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Global CORS headers for MCP clients
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Scooter-API-Key")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
+	}
+
+	// Check authentication if a key is configured
+	if g.settings.GatewayAPIKey != "" {
+		authHeader := r.Header.Get("Authorization")
+		apiKey := r.Header.Get("X-Scooter-API-Key")
+
+		if authHeader != "" {
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				apiKey = strings.TrimPrefix(authHeader, "Bearer ")
+			} else {
+				apiKey = authHeader
+			}
+		}
+
+		if apiKey != g.settings.GatewayAPIKey {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 	}
 
 	g.mux.ServeHTTP(w, r)

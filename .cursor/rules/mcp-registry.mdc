@@ -1,5 +1,5 @@
 ---
-description: Rules for working with MCP Scout registry and creating new MCP definitions
+description: Rules for working with MCP Scooter registry and creating new MCP definitions
 globs:
   - "appdata/registry/**/*.json"
   - "internal/domain/registry/**/*.go"
@@ -7,7 +7,7 @@ globs:
 alwaysApply: false
 ---
 
-# MCP Scout Registry Rules
+# MCP Scooter Registry Rules
 
 ## Project Overview
 
@@ -114,7 +114,7 @@ All MCP registry entries in `appdata/registry/` MUST follow this schema:
 {
   "name": "snake_case_name",
   "title": "Human Title",
-  "description": "Clear description of what this tool does (min 10 chars)",
+  "description": "Clear description of what this tool does (min 10 chars, max 500)",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -128,19 +128,61 @@ All MCP registry entries in `appdata/registry/` MUST follow this schema:
   "annotations": {
     "readOnlyHint": true,
     "destructiveHint": false,
+    "idempotentHint": true,
     "openWorldHint": true,
-    "requiresApproval": false
+    "requiresApproval": false,
+    "rateLimit": "100 requests/minute",
+    "costPerCall": "$0.001"
   }
 }
 ```
+
+**Annotation Reference:**
+
+| Annotation | Type | Description |
+|------------|------|-------------|
+| `readOnlyHint` | boolean | True if tool only reads data |
+| `destructiveHint` | boolean | True if tool can delete/modify data |
+| `idempotentHint` | boolean | True if repeated calls produce same result |
+| `openWorldHint` | boolean | True if tool accesses external services |
+| `requiresApproval` | boolean | True if Scooter should prompt for Human-in-the-Loop approval |
+| `rateLimit` | string | Human-readable rate limit info (e.g., "100 requests/minute") |
+| `costPerCall` | string | Estimated cost per invocation (e.g., "$0.001") |
 
 ### Package Types
 
 - `npm`: Requires `name` field (e.g., `@scope/package`)
 - `pypi`: Requires `name` field
+- `cargo`: Requires `name` field (Rust crate)
 - `wasm`: Requires `url` or `local_path`
 - `docker`: Requires `image` field
 - `binary`: Requires `platforms` object with platform-specific URLs
+
+### Runtime Configuration
+
+The `runtime` object defines how Scooter communicates with the MCP server:
+
+```json
+{
+  "runtime": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@scope/package"],
+    "env": { "EXTRA_VAR": "value" },
+    "cwd": null,
+    "timeout": 30000
+  }
+}
+```
+
+**Transport Types:**
+
+| Transport | Description |
+|-----------|-------------|
+| `stdio` | Communicate via stdin/stdout (most common) |
+| `http` | HTTP-based JSON-RPC |
+| `sse` | Server-Sent Events |
+| `streamable-http` | HTTP with streaming support |
 
 ### Icon Requirements
 
@@ -153,9 +195,14 @@ All MCP registry entries in `appdata/registry/` MUST follow this schema:
 
 Run validation before committing:
 ```bash
+# Validate all registry files
 make validate
-# or
-./validate-registry.exe appdata/registry
+
+# Validate a single file
+go run cmd/validate-registry/main.go appdata/registry/{name}.json
+
+# Validate entire directory
+go run cmd/validate-registry/main.go appdata/registry/
 ```
 
 ## File Naming
