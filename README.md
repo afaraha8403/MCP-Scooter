@@ -203,6 +203,20 @@ make validate
 make validate-strict
 ```
 
+#### Releasing
+
+MCP Scout uses GitHub Actions for automated releases. To trigger a release:
+
+```bash
+# Release a stable version (e.g., 1.0.0)
+make release
+
+# Release a beta version (e.g., 1.0.0-beta.1)
+make release-beta
+```
+
+This will automatically tag the current commit and push it to GitHub, triggering the build and release workflow.
+
 ---
 
 ## 📁 Project Structure
@@ -309,15 +323,47 @@ See `.doc/mcp-registry-specification.md` for the full specification.
 
 ### Development Setup
 
+The project uses a tiered testing strategy to ensure reliability.
+
+#### Level 1-2: Unit Tests & Validation
 ```bash
-# Run tests
+# Run all tests
 make test
 
-# Format code
-make fmt
+# Run all unit tests (verbose)
+make test-unit
 
-# Full CI check
+# Test specific domains
+make test-registry
+make test-discovery
+make test-profile
+make test-api
+make test-integration
+
+# Generate HTML coverage report
+make test-coverage
+
+# Validate registry definitions
+make validate
+make validate-strict
+```
+
+#### Level 5: Meta-MCP Lifecycle
+```bash
+# Test the Meta-MCP primordial tools and lifecycle
+make test-meta-mcp
+```
+
+#### Combined Checks
+```bash
+# Quick check before committing
+make pre-commit
+
+# Full CI check (runs fmt, lint, validate, test, build)
 make ci
+
+# Extended CI with coverage
+make ci-full
 ```
 
 ---
