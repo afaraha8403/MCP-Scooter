@@ -182,7 +182,7 @@ type PlatformBinary struct {
 	SHA256 string `json:"sha256,omitempty"`
 }
 
-// TransportType defines how Scout communicates with the MCP.
+// TransportType defines how Scooter communicates with the MCP.
 type TransportType string
 
 const (
@@ -218,5 +218,5 @@ type Metadata struct {
 	Updated            string   `json:"updated,omitempty"`
 	Deprecated         bool     `json:"deprecated,omitempty"`
 	DeprecationMessage *string  `json:"deprecation_message,omitempty"`
-	MinScoutVersion    string   `json:"minimum_scout_version,omitempty"`
+	MinScooterVersion  string   `json:"minimum_scooter_version,omitempty"`
 }

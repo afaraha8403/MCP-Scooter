@@ -389,7 +389,7 @@
             },
             "requiresApproval": {
               "type": "boolean",
-              "description": "True if Scout should prompt for Human-in-the-Loop approval"
+              "description": "True if Scooter should prompt for Human-in-the-Loop approval"
             },
             "rateLimit": {
               "type": "string",
@@ -606,7 +606,7 @@
         "deprecation_message": {
           "type": ["string", "null"]
         },
-        "minimum_scout_version": {
+        "minimum_scooter_version": {
           "type": "string"
         }
       }

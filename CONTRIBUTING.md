@@ -91,7 +91,7 @@ make ci
 ## Project Structure
 
 ```
-MCP Scout/
+MCP Scooter/
 ├── appdata/
 │   ├── clients/        # AI client configurations
 │   ├── registry/       # MCP server definitions (JSON)

@@ -11,7 +11,7 @@ alwaysApply: false
 
 ## Project Overview
 
-MCP Scout (Scooter) is a lightweight desktop application that acts as the universal "Operating System" for the Model Context Protocol (MCP). It manages MCP tools through a registry system with strict JSON schema validation.
+MCP Scooter is a lightweight desktop application that acts as the universal "Operating System" for the Model Context Protocol (MCP). It manages MCP tools through a registry system with strict JSON schema validation.
 
 ## Registry JSON Schema
 

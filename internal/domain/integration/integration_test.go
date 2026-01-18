@@ -37,7 +37,7 @@ func TestCursorIntegration(t *testing.T) {
 	defer cleanup()
 
 	c := &integration.CursorIntegration{}
-	err := c.Configure(6277)
+	err := c.Configure(6277, "work", "")
 	assert.NoError(t, err)
 
 	path := filepath.Join(home, ".cursor", "mcp.json")
@@ -60,7 +60,7 @@ func TestVSCodeIntegration(t *testing.T) {
 	defer cleanup()
 
 	v := &integration.VSCodeIntegration{}
-	err := v.Configure(6277)
+	err := v.Configure(6277, "work", "")
 	assert.NoError(t, err)
 
 	path := filepath.Join(home, ".vscode", "mcp.json")
@@ -83,7 +83,7 @@ func TestGeminiIntegration(t *testing.T) {
 	defer cleanup()
 
 	g := &integration.GeminiIntegration{}
-	err := g.Configure(6277)
+	err := g.Configure(6277, "work", "")
 	assert.NoError(t, err)
 
 	path := filepath.Join(home, ".gemini", "settings.json")
@@ -106,7 +106,7 @@ func TestCodexIntegration(t *testing.T) {
 	defer cleanup()
 
 	c := &integration.CodexIntegration{}
-	err := c.Configure(6277)
+	err := c.Configure(6277, "work", "")
 	assert.NoError(t, err)
 
 	path := filepath.Join(home, ".codex", "config.toml")
@@ -128,7 +128,7 @@ func TestZedIntegration(t *testing.T) {
 	defer cleanup()
 
 	z := &integration.ZedIntegration{}
-	err := z.Configure(6277)
+	err := z.Configure(6277, "work", "")
 	assert.NoError(t, err)
 
 	// Zed uses .config/zed/settings.json as default fallback in implementation
@@ -143,4 +143,29 @@ func TestZedIntegration(t *testing.T) {
 	contextServers := config["context_servers"].(map[string]interface{})
 	scooter := contextServers["mcp-scooter"].(map[string]interface{})
 	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
+}
+
+func TestProfileIntegration(t *testing.T) {
+	home, cleanup := setupTestHome(t)
+	defer cleanup()
+
+	c := &integration.CursorIntegration{}
+	err := c.Configure(6277, "personal", "test-api-key")
+	assert.NoError(t, err)
+
+	path := filepath.Join(home, ".cursor", "mcp.json")
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	var config struct {
+		McpServers map[string]interface{} `json:"mcpServers"`
+	}
+	err = json.Unmarshal(data, &config)
+	require.NoError(t, err)
+
+	scooter := config.McpServers["mcp-scooter"].(map[string]interface{})
+	assert.Equal(t, "sse", scooter["type"])
+	assert.Equal(t, "http://localhost:6277/profiles/personal/sse", scooter["url"])
+	headers := scooter["headers"].(map[string]interface{})
+	assert.Equal(t, "Bearer test-api-key", headers["Authorization"])
 }

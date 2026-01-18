@@ -134,7 +134,7 @@ release-beta:
 
 # Help
 help:
-	@echo "MCP Scout Build & Test Commands"
+	@echo "MCP Scooter Build & Test Commands"
 	@echo "==============================="
 	@echo ""
 	@echo "Build & Run:"

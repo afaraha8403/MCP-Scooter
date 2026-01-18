@@ -27,7 +27,7 @@ Based on the PRD's core promise of "zero latency and <50MB RAM usage," the regis
 2. **Extensible** — Optional fields for rich functionality
 3. **Human-Readable** — Clear markdown descriptions
 4. **Machine-Parseable** — Valid JSON Schema for validation
-5. **Profile-Aware** — Support Scout's Identity Management system
+5. **Profile-Aware** — Support Scooter's Identity Management system
 
 ---
 
@@ -272,7 +272,7 @@ Requires a static API key provided by the user.
 | `validation.test_endpoint` | string | URL to verify key works (optional) |
 
 ##### Type: `oauth2`
-Uses OAuth 2.0/2.1 flow. Scout handles the entire flow per PRD Section 4.2.
+Uses OAuth 2.0/2.1 flow. Scooter handles the entire flow per PRD Section 4.2.
 
 ```json
 {
@@ -448,7 +448,7 @@ The `tools` array lists all tools/functions this MCP server exposes. This enable
 | `destructiveHint` | boolean | True if tool can delete/modify data |
 | `idempotentHint` | boolean | True if repeated calls produce same result |
 | `openWorldHint` | boolean | True if tool accesses external services |
-| `requiresApproval` | boolean | True if Scout should prompt for Human-in-the-Loop approval |
+| `requiresApproval` | boolean | True if Scooter should prompt for Human-in-the-Loop approval |
 | `rateLimit` | string | Human-readable rate limit info |
 | `costPerCall` | string | Estimated cost per invocation |
 
@@ -541,7 +541,7 @@ For pre-compiled native binaries.
 
 ### 4.8 Runtime Object (Optional)
 
-Defines how Scout should execute the MCP server.
+Defines how Scooter should execute the MCP server.
 
 ```json
 {
@@ -1008,7 +1008,7 @@ Additional metadata for attribution and maintenance.
   "source": "local",
   "tags": ["testing", "development"],
   
-  "about": "A minimal test tool to verify WASM execution in Scout. Used for development and testing purposes.",
+  "about": "A minimal test tool to verify WASM execution in Scooter. Used for development and testing purposes.",
   
   "authorization": {
     "type": "none"
@@ -1088,7 +1088,7 @@ Every registry JSON must have:
 Always include annotations for:
 - `readOnlyHint` — Does this only read data?
 - `destructiveHint` — Can this delete or modify data?
-- `requiresApproval` — Should Scout ask for Human-in-the-Loop approval?
+- `requiresApproval` — Should Scooter ask for Human-in-the-Loop approval?
 
 ---
 
@@ -1130,4 +1130,4 @@ A formal JSON Schema file should be created at `schemas/registry-v1.schema.json`
 - [JSON Schema](https://json-schema.org/)
 - [OAuth 2.0 RFC 6749](https://tools.ietf.org/html/rfc6749)
 - [PKCE RFC 7636](https://tools.ietf.org/html/rfc7636)
-- MCP Scout PRD v2.9
+- MCP Scooter PRD v2.9

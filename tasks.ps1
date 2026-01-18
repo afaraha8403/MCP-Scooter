@@ -9,6 +9,9 @@ param (
     [string]$TestName = ""
 )
 
+# Ensure UTF-8 output for better visibility of icons
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 $RootDir = Get-Location
 
 function Show-Help {
@@ -73,11 +76,18 @@ switch ($Command) {
     }
 
     "test" {
+        Write-Host "--- Running All Tests ---" -ForegroundColor Cyan
         go test ./...
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "`n✓ SUCCESS: All test suites passed." -ForegroundColor Green
+        } else {
+            Write-Host "`n✗ FAILURE: Some tests failed. Run './tasks.ps1 test-unit' for details." -ForegroundColor Red
+        }
     }
 
     "test-unit" {
-        go test ./internal/... -v
+        Write-Host "--- Running Unit Tests (Verbose) ---" -ForegroundColor Cyan
+        go test ./... -v
     }
 
     "test-registry" {
@@ -120,8 +130,14 @@ switch ($Command) {
     }
 
     "validate" {
+        Write-Host "--- Validating MCP Registry ---" -ForegroundColor Cyan
         & ./tasks.ps1 build-validator
         ./validate-registry.exe appdata/registry
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ Registry is valid." -ForegroundColor Green
+        } else {
+            Write-Host "✗ Registry validation failed." -ForegroundColor Red
+        }
     }
 
     "validate-strict" {

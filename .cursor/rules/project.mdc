@@ -8,7 +8,7 @@ alwaysApply: true
 
 ## Project Identity
 
-MCP Scout (Scooter) is a lightweight, native desktop application that serves as the universal "Operating System" for the Model Context Protocol (MCP). It manages AI tool integrations through a registry system.
+MCP Scooter is a lightweight, native desktop application that serves as the universal "Operating System" for the Model Context Protocol (MCP). It manages AI tool integrations through a registry system.
 
 **License:** PolyForm Shield 1.0.0 (source-available, non-compete)
 

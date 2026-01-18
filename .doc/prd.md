@@ -244,7 +244,7 @@ Scooter includes high-performance, native Go implementations of these standard u
 * **Phase 2 (Skills & Ecosystem):**  
   * **"Scooter Skills Library":** A "One-Click" Marketplace for AI Agent Skills.  
     * *Concept:* Instead of installing 5 separate tools, users install a "Skill" (e.g., "Full Stack Dev Skill" or "Data Analyst Skill").  
-    * *Action:* Scout automatically downloads and configures the necessary WASM bundles (e.g., postgres-mcp, python-mcp, browser-mcp) and sets up the System Prompt for that specific role.  
+    * *Action:* Scooter automatically downloads and configures the necessary WASM bundles (e.g., postgres-mcp, python-mcp, browser-mcp) and sets up the System Prompt for that specific role.  
   * "Scooter Store" (Community registry of WASM tools).  
   * One-Click Setup for remaining clients (Zed, Antigravity, etc.).  
 * **Phase 3 (Enterprise):**  

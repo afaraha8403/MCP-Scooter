@@ -59,7 +59,7 @@ We will not pursue civil action or initiate a complaint to law enforcement for a
 
 ### Credential Storage
 
-MCP Scout stores credentials using native OS keychains:
+MCP Scooter stores credentials using native OS keychains:
 - **Windows:** Windows Credential Manager
 - **macOS:** Keychain
 - **Linux:** Secret Service (libsecret)

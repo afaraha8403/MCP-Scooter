@@ -387,7 +387,7 @@ make ci
 
 **PolyForm Shield 1.0.0** — See [LICENSE](LICENSE) for details.
 
-**TL;DR:** You can use MCP Scout freely, build products with it, and modify it for your needs. You **cannot** offer it (or a fork) as a competing product or hosted service without permission.
+**TL;DR:** You can use MCP Scooter freely, build products with it, and modify it for your needs. You **cannot** offer it (or a fork) as a competing product or hosted service without permission.
 
 ---
 
