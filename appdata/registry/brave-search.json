@@ -18,8 +18,8 @@
     "required": true,
     "env_var": "BRAVE_API_KEY",
     "display_name": "Brave Search API Key",
-    "description": "Your Brave Search API key from brave.com/search/api",
-    "help_url": "https://brave.com/search/api/register",
+    "description": "Your Brave Search API key from api-dashboard.search.brave.com",
+    "help_url": "https://api-dashboard.search.brave.com/register",
     "validation": {
       "pattern": "^BSA[a-zA-Z0-9]{29,}$"
     }
@@ -51,6 +51,10 @@
         },
         "required": ["query"]
       },
+      "sampleInput": {
+        "query": "latest AI news",
+        "count": 5
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -76,6 +80,10 @@
           }
         },
         "required": ["query"]
+      },
+      "sampleInput": {
+        "query": "coffee shops near me",
+        "count": 5
       },
       "annotations": {
         "readOnlyHint": true,

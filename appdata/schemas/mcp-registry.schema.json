@@ -134,6 +134,23 @@
           "type": "boolean",
           "default": true,
           "description": "Whether authentication is required to use this MCP"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Default display name for the primary auth field"
+        },
+        "description": {
+          "type": "string",
+          "description": "Default help text for the primary auth field"
+        },
+        "env_var": {
+          "type": "string",
+          "description": "Default environment variable name for the primary auth field"
+        },
+        "help_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Default URL for authentication help"
         }
       },
       "allOf": [
@@ -367,6 +384,10 @@
         "outputSchema": {
           "type": "object",
           "description": "JSON Schema defining output structure"
+        },
+        "sampleInput": {
+          "type": "object",
+          "description": "Example JSON payload for LLM to understand tool usage"
         },
         "annotations": {
           "type": "object",

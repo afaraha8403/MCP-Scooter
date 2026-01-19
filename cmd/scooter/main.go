@@ -43,36 +43,48 @@ func run(serve bool) error {
 	clientsDir := filepath.Join(appDir, "clients")
 	os.MkdirAll(clientsDir, 0755)
 
-	// If registry is empty, copy from local appdata/registry if it exists
-	// This is for development convenience and initial setup
-	files, _ := os.ReadDir(registryDir)
-	if len(files) == 0 {
-		localRegistry := "appdata/registry"
-		if localFiles, err := os.ReadDir(localRegistry); err == nil {
-			for _, f := range localFiles {
-				if !f.IsDir() {
-					input, _ := os.ReadFile(filepath.Join(localRegistry, f.Name()))
-					os.WriteFile(filepath.Join(registryDir, f.Name()), input, 0644)
+	// Copy registry and client files from appdata if they are different or missing
+	localRegistry := "appdata/registry"
+	if localFiles, err := os.ReadDir(localRegistry); err == nil {
+		for _, f := range localFiles {
+			if !f.IsDir() {
+				sourcePath := filepath.Join(localRegistry, f.Name())
+				targetPath := filepath.Join(registryDir, f.Name())
+				
+				sourceData, _ := os.ReadFile(sourcePath)
+				targetData, _ := os.ReadFile(targetPath)
+				
+				// Overwrite if different or missing to ensure user has latest tool definitions
+				if string(sourceData) != string(targetData) {
+					fmt.Printf("Updating tool definition: %s\n", f.Name())
+					os.WriteFile(targetPath, sourceData, 0644)
 				}
 			}
 		}
 	}
 
-	// Copy clients from appdata/clients to the user's clients dir if empty
-	clientFiles, _ := os.ReadDir(clientsDir)
-	if len(clientFiles) == 0 {
-		localClients := "appdata/clients"
-		if localFiles, err := os.ReadDir(localClients); err == nil {
-			for _, f := range localFiles {
-				if !f.IsDir() {
-					input, _ := os.ReadFile(filepath.Join(localClients, f.Name()))
-					os.WriteFile(filepath.Join(clientsDir, f.Name()), input, 0644)
+	localClients := "appdata/clients"
+	if localFiles, err := os.ReadDir(localClients); err == nil {
+		for _, f := range localFiles {
+			if !f.IsDir() {
+				sourcePath := filepath.Join(localClients, f.Name())
+				targetPath := filepath.Join(clientsDir, f.Name())
+				
+				sourceData, _ := os.ReadFile(sourcePath)
+				targetData, _ := os.ReadFile(targetPath)
+				
+				if string(sourceData) != string(targetData) {
+					fmt.Printf("Updating client definition: %s\n", f.Name())
+					os.WriteFile(targetPath, sourceData, 0644)
 				}
 			}
 		}
 	}
 
-	store := profile.NewStore(filepath.Join(appDir, "profiles.yaml"))
+	store := profile.NewStore(
+		filepath.Join(appDir, "profiles.yaml"),
+		filepath.Join(appDir, "settings.yaml"),
+	)
 	profiles, settings, err := store.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)

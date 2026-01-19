@@ -9,6 +9,7 @@ func PrimordialTools() []ToolDefinition {
 	return []ToolDefinition{
 		{
 			Name:        "scooter_find",
+			Title:       "Search Registry",
 			Description: "Searches the Local Registry and Community Catalog for MCP tools.",
 			Category:    "system",
 			Source:      "builtin",
@@ -16,6 +17,7 @@ func PrimordialTools() []ToolDefinition {
 		},
 		{
 			Name:        "scooter_add",
+			Title:       "Enable Tool",
 			Description: "Installs and enables an MCP tool for the current session.",
 			Category:    "system",
 			Source:      "builtin",
@@ -23,6 +25,7 @@ func PrimordialTools() []ToolDefinition {
 		},
 		{
 			Name:        "scooter_remove",
+			Title:       "Disable Tool",
 			Description: "Unloads an MCP tool to free up context window space.",
 			Category:    "system",
 			Source:      "builtin",
@@ -30,6 +33,7 @@ func PrimordialTools() []ToolDefinition {
 		},
 		{
 			Name:        "scooter_list_active",
+			Title:       "List Active",
 			Description: "Returns a list of currently loaded tools in this session.",
 			Category:    "system",
 			Source:      "builtin",
@@ -37,6 +41,7 @@ func PrimordialTools() []ToolDefinition {
 		},
 		{
 			Name:        "scooter_code_interpreter",
+			Title:       "Code Interpreter",
 			Description: "Executes sandboxed JavaScript. Use 'callTool(name, args)' to chain other tools.",
 			Category:    "system",
 			Source:      "builtin",

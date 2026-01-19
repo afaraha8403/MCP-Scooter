@@ -1,10 +1,12 @@
 package discovery
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
 	"os/exec"
+	"fmt"
 )
 
 // StdioWorker handles execution of an MCP tool over stdio.
@@ -29,7 +31,9 @@ func (w *StdioWorker) Execute(stdin io.Reader, stdout io.Writer, env map[string]
 	w.cmd = exec.CommandContext(w.ctx, w.command, w.args...)
 	w.cmd.Stdin = stdin
 	w.cmd.Stdout = stdout
-	w.cmd.Stderr = os.Stderr
+	
+	var stderr bytes.Buffer
+	w.cmd.Stderr = &stderr
 
 	// Merge provided env with current process env
 	w.cmd.Env = os.Environ()
@@ -37,7 +41,14 @@ func (w *StdioWorker) Execute(stdin io.Reader, stdout io.Writer, env map[string]
 		w.cmd.Env = append(w.cmd.Env, k+"="+v)
 	}
 
-	return w.cmd.Run()
+	err := w.cmd.Run()
+	if err != nil {
+		if stderr.Len() > 0 {
+			return fmt.Errorf("%w: %s", err, stderr.String())
+		}
+		return err
+	}
+	return nil
 }
 
 func (w *StdioWorker) Close() error {

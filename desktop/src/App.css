@@ -354,34 +354,53 @@ body {
 .compact-card {
   background: var(--background-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 10px 12px;
+  border-radius: 8px;
+  padding: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 84px;
+}
+
+.compact-card.clickable {
+  cursor: pointer;
 }
 
 .compact-card:hover {
   background: var(--card-hover);
   border-color: var(--accent-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.compact-card img, .compact-card .tool-icon-placeholder {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 6px;
 }
 
 .card-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  margin-left: 4px;
 }
 
 .card-title {
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: 14px;
   color: var(--text-primary);
 }
 
 .card-subtitle {
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-actions {
@@ -501,6 +520,11 @@ body {
 
 .profile-card.active {
   background: var(--card-hover);
+}
+
+.delete-profile-btn:hover {
+  color: #ff4d4d !important;
+  opacity: 1 !important;
 }
 
 /* Form styles */
@@ -840,7 +864,30 @@ button.primary:hover {
   background-color: var(--background-base);
 }
 
-/* Settings Modal Styles */
+.detail-view {
+  animation: slideInBottom 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes slideInBottom {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-content {
+  background: var(--background-base);
+}
+
+.detail-section {
+  margin-top: 32px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+/* Ensure the scroll position is preserved conceptually by not unmounting the grid, 
+   but for now we just show/hide. */
+
 .settings-modal {
   border-left: 4px solid var(--border-subtle);
 }
@@ -908,4 +955,67 @@ button.primary:hover {
 .danger-btn:hover {
   background: #ff4d4d;
   color: white;
+}
+
+/* Markdown Content Styles */
+.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+  margin-top: 20px;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.markdown-content h1 { font-size: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; }
+.markdown-content h2 { font-size: 17px; }
+.markdown-content h3 { font-size: 15px; }
+
+.markdown-content p {
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.markdown-content ul, .markdown-content ol {
+  margin-bottom: 16px;
+  padding-left: 20px;
+}
+
+.markdown-content li {
+  margin-bottom: 8px;
+}
+
+.markdown-content code {
+  background: var(--log-bg);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: "Google Sans Code", monospace;
+  font-size: 90%;
+}
+
+.markdown-content pre {
+  background: var(--log-bg);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.markdown-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.markdown-content a {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid var(--border-subtle);
+  padding-left: 16px;
+  margin-left: 0;
+  color: var(--text-secondary);
+  font-style: italic;
 }

@@ -53,6 +53,8 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("GET /api/settings", s.handleGetSettings)
 	s.mux.HandleFunc("PUT /api/settings", s.handleUpdateSettings)
 	s.mux.HandleFunc("POST /api/settings/regenerate-key", s.handleRegenerateKey)
+	s.mux.HandleFunc("GET /api/tool-params", s.handleGetToolParams)
+	s.mux.HandleFunc("PUT /api/tool-params", s.handleSaveToolParams)
 }
 
 func (s *ControlServer) handleRegenerateKey(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +62,7 @@ func (s *ControlServer) handleRegenerateKey(w http.ResponseWriter, r *http.Reque
 	s.settings.GatewayAPIKey = newKey
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+		if err := s.store.SaveSettings(s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -68,6 +70,59 @@ func (s *ControlServer) handleRegenerateKey(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"gateway_api_key": newKey})
+}
+
+func (s *ControlServer) handleGetToolParams(w http.ResponseWriter, r *http.Request) {
+	if s.store == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{})
+		return
+	}
+
+	params, err := s.store.LoadToolParams()
+	if err != nil {
+		// Return empty object if file doesn't exist
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(params)
+}
+
+func (s *ControlServer) handleSaveToolParams(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ToolName   string                 `json:"tool_name"`
+		Parameters map[string]interface{} `json:"parameters"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if s.store == nil {
+		http.Error(w, "store not initialized", http.StatusInternalServerError)
+		return
+	}
+
+	// Load existing params
+	params, _ := s.store.LoadToolParams()
+	if params == nil {
+		params = make(map[string]map[string]interface{})
+	}
+
+	// Update params for this tool
+	params[req.ToolName] = req.Parameters
+
+	// Save
+	if err := s.store.SaveToolParams(params); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
 }
 
 func (s *ControlServer) handleGetSettings(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +139,7 @@ func (s *ControlServer) handleUpdateSettings(w http.ResponseWriter, r *http.Requ
 
 	s.settings = settings
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+		if err := s.store.SaveSettings(s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -127,14 +182,25 @@ func (s *ControlServer) handleGetProfiles(w http.ResponseWriter, r *http.Request
 	}
 	s.manager.mu.RUnlock()
 
+	configPath := ""
+	settingsPath := ""
+	if s.store != nil {
+		configPath = s.store.GetProfilesPath()
+		settingsPath = s.store.GetSettingsPath()
+	}
+
 	response := struct {
 		Profiles           []ProfileInfo    `json:"profiles"`
 		Settings           profile.Settings `json:"settings"`
 		OnboardingRequired bool             `json:"onboarding_required"`
+		ConfigPath         string           `json:"config_path"`
+		SettingsPath       string           `json:"settings_path"`
 	}{
 		Profiles:           info,
 		Settings:           s.settings,
 		OnboardingRequired: s.onboardingRequired,
+		ConfigPath:         configPath,
+		SettingsPath:       settingsPath,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -153,7 +219,7 @@ func (s *ControlServer) handleOnboardingStartFresh(w http.ResponseWriter, r *htt
 	}
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+		if err := s.store.SaveProfiles(s.manager.GetProfiles()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -187,7 +253,7 @@ func (s *ControlServer) handleOnboardingImport(w http.ResponseWriter, r *http.Re
 	}
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+		if err := s.store.SaveProfiles(s.manager.GetProfiles()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -200,9 +266,10 @@ func (s *ControlServer) handleOnboardingImport(w http.ResponseWriter, r *http.Re
 func (s *ControlServer) handleReset(w http.ResponseWriter, r *http.Request) {
 	s.manager.ClearProfiles()
 	s.onboardingRequired = true
+	s.settings = profile.DefaultSettings()
 
 	if s.store != nil {
-		if err := s.store.Save([]profile.Profile{}, s.settings); err != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -319,7 +386,7 @@ func (s *ControlServer) handleCreateProfile(w http.ResponseWriter, r *http.Reque
 	s.onboardingRequired = false
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+		if err := s.store.SaveProfiles(s.manager.GetProfiles()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -342,7 +409,7 @@ func (s *ControlServer) handleUpdateProfile(w http.ResponseWriter, r *http.Reque
 	}
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+		if err := s.store.SaveProfiles(s.manager.GetProfiles()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -370,7 +437,7 @@ func (s *ControlServer) handleDeleteProfile(w http.ResponseWriter, r *http.Reque
 	}
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+		if err := s.store.SaveProfiles(s.manager.GetProfiles()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -466,15 +533,18 @@ func (g *McpGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Global CORS headers for MCP clients
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Scooter-API-Key")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Scooter-API-Key, X-Scooter-Internal")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	// Check authentication if a key is configured
-	if g.settings.GatewayAPIKey != "" {
+	// Internal requests from Scooter Desktop bypass authentication
+	isInternal := r.Header.Get("X-Scooter-Internal") == "true"
+
+	// Check authentication if a key is configured (skip for internal requests)
+	if g.settings.GatewayAPIKey != "" && !isInternal {
 		authHeader := r.Header.Get("Authorization")
 		apiKey := r.Header.Get("X-Scooter-API-Key")
 
@@ -577,6 +647,48 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
+		// Auto-load tool if allowed but not active
+		serverName, found := engine.GetServerForTool(params.Name)
+		if found {
+			// Check if this server is allowed for this profile
+			// Internal requests (from Scooter Desktop) bypass the AllowTools check for testing
+			isInternal := r.Header.Get("X-Scooter-Internal") == "true"
+			isAllowed := isInternal
+			
+			p, ok := g.manager.GetProfile(id)
+			if ok {
+				// Sync engine environment with profile environment
+				engine.SetEnv(p.Env)
+
+				if !isAllowed {
+					for _, allowed := range p.AllowTools {
+						if allowed == serverName {
+							isAllowed = true
+							break
+						}
+					}
+				}
+			}
+
+			if isAllowed {
+				// Ensure it's added to the engine
+				active := false
+				for _, a := range engine.ListActive() {
+					if a == serverName {
+						active = true
+						break
+					}
+				}
+				if !active {
+					addLog(fmt.Sprintf("Auto-loading tool '%s' for profile '%s'", serverName, id))
+					if err := engine.Add(serverName); err != nil {
+						resp = NewJSONRPCErrorResponse(req.ID, InternalError, fmt.Sprintf("Failed to auto-load tool: %v", err))
+						break
+					}
+				}
+			}
+		}
+
 		// Call unified tool executor
 		result, err := engine.CallTool(params.Name, params.Arguments)
 		if err != nil {
@@ -627,6 +739,17 @@ func (pm *ProfileManager) GetProfiles() []profile.Profile {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 	return pm.profiles
+}
+
+func (pm *ProfileManager) GetProfile(id string) (profile.Profile, bool) {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	for _, p := range pm.profiles {
+		if p.ID == id {
+			return p, true
+		}
+	}
+	return profile.Profile{}, false
 }
 
 func (pm *ProfileManager) GetEngine(id string) (*discovery.DiscoveryEngine, bool) {

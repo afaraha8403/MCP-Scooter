@@ -15,8 +15,9 @@ func TestStore_SaveAndLoad(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	path := filepath.Join(tmpDir, "profiles.yaml")
-	store := profile.NewStore(path)
+	pPath := filepath.Join(tmpDir, "profiles.yaml")
+	sPath := filepath.Join(tmpDir, "settings.yaml")
+	store := profile.NewStore(pPath, sPath)
 
 	profiles := []profile.Profile{
 		{ID: "test1"},
@@ -40,7 +41,7 @@ func TestStore_SaveAndLoad(t *testing.T) {
 }
 
 func TestStore_LoadNonExistent(t *testing.T) {
-	store := profile.NewStore("non-existent.yaml")
+	store := profile.NewStore("non-existent-profiles.yaml", "non-existent-settings.yaml")
 	loadedProfiles, _, err := store.Load()
 	assert.NoError(t, err)
 	assert.Empty(t, loadedProfiles)

@@ -1,4 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { 
+  DismissRegular, 
+  SearchRegular, 
+  SettingsRegular, 
+  AddRegular,
+  DeleteRegular
+} from "@fluentui/react-icons";
 
 interface Profile {
   id: string;
@@ -10,7 +18,9 @@ interface ProfileSelectionModalProps {
   profiles: Profile[];
   selectedProfileId: string;
   onSelectProfile: (id: string) => void;
+  onDeleteProfile: (id: string) => void;
   onCreateProfile: () => void;
+  configPath?: string;
 }
 
 export function ProfileSelectionModal({
@@ -19,11 +29,23 @@ export function ProfileSelectionModal({
   profiles,
   selectedProfileId,
   onSelectProfile,
-  onCreateProfile
+  onDeleteProfile,
+  onCreateProfile,
+  configPath
 }: ProfileSelectionModalProps) {
   const [search, setSearch] = useState('');
 
   if (!isOpen) return null;
+
+  const handleOpenConfig = async () => {
+    if (configPath) {
+      try {
+        await revealItemInDir(configPath);
+      } catch (err) {
+        console.error("Failed to open config file location:", err);
+      }
+    }
+  };
 
   const filteredProfiles = profiles.filter(p => 
     p.id.toLowerCase().includes(search.toLowerCase())
@@ -34,11 +56,11 @@ export function ProfileSelectionModal({
       <div className="drawer-content profile-selection-modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
         <div className="drawer-header">
           <span className="drawer-title">Switch Profile</span>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <button className="icon-btn" onClick={onClose}><DismissRegular /></button>
         </div>
 
         <div className="search-container" style={{ marginTop: '16px' }}>
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><SearchRegular /></span>
           <input 
             type="text" 
             className="search-input" 
@@ -67,9 +89,24 @@ export function ProfileSelectionModal({
                     <span className="card-title">{p.id}</span>
                   </div>
                 </div>
-                {selectedProfileId === p.id && (
-                  <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 600 }}>ACTIVE</span>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {selectedProfileId === p.id && (
+                    <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 600 }}>SELECTED</span>
+                  )}
+                  <button 
+                    className="icon-btn delete-profile-btn" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Delete profile "${p.id}"?`)) {
+                        onDeleteProfile(p.id);
+                      }
+                    }}
+                    title="Delete Profile"
+                    style={{ opacity: 0.5 }}
+                  >
+                    <DeleteRegular />
+                  </button>
+                </div>
               </div>
             ))}
             
@@ -82,12 +119,36 @@ export function ProfileSelectionModal({
         </div>
 
         <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
-          <button className="primary" style={{ width: '100%', padding: '12px' }} onClick={() => {
+          <button className="primary" style={{ width: '100%', padding: '12px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => {
             onClose();
             onCreateProfile();
           }}>
-            + Create New Profile
+            <AddRegular /> Create New Profile
           </button>
+          
+          {configPath && (
+            <div style={{ textAlign: 'center' }}>
+              <a 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleOpenConfig();
+                }}
+                style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--accent-primary)', 
+                  textDecoration: 'none',
+                  opacity: 0.8,
+                  display: 'inline-block',
+                  padding: '4px 8px'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}
+              >
+                <SettingsRegular style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Manually configure profiles.yaml
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

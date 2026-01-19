@@ -11,6 +11,7 @@ type Settings struct {
 	McpPort       int    `yaml:"mcp_port" json:"mcp_port"`
 	EnableBeta    bool   `yaml:"enable_beta" json:"enable_beta"`
 	GatewayAPIKey string `yaml:"gateway_api_key" json:"gateway_api_key"`
+	LastProfileID string `yaml:"last_profile_id,omitempty" json:"last_profile_id,omitempty"`
 }
 
 // DefaultSettings returns the standard port configuration.

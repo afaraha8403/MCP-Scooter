@@ -22,14 +22,24 @@ type ToolWorker interface {
 
 // ToolDefinition represents a metadata for an MCP tool.
 type ToolDefinition struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Category    string            `json:"category"`
-	Source      string            `json:"source"` // "local", "community"
-	Installed   bool              `json:"installed"`
-	Icon        string            `json:"icon,omitempty"`
-	Runtime     *registry.Runtime `json:"runtime,omitempty"`
-	Tools       []registry.Tool   `json:"tools,omitempty"`
+	Name          string                 `json:"name"`
+	Title         string                 `json:"title,omitempty"`
+	Version       string                 `json:"version,omitempty"`
+	Description   string                 `json:"description"`
+	Category      string                 `json:"category"`
+	Source        string                 `json:"source"` // "local", "community"
+	Installed     bool                   `json:"installed"`
+	Icon          string                 `json:"icon,omitempty"`
+	About         string                 `json:"about,omitempty"`
+	Tags          []string               `json:"tags,omitempty"`
+	Homepage      string                 `json:"homepage,omitempty"`
+	Repository    string                 `json:"repository,omitempty"`
+	Documentation string                 `json:"documentation,omitempty"`
+	Authorization *registry.Authorization `json:"authorization,omitempty"`
+	Runtime       *registry.Runtime      `json:"runtime,omitempty"`
+	Tools         []registry.Tool        `json:"tools,omitempty"`
+	Package       *registry.Package      `json:"package,omitempty"`
+	Metadata      *registry.Metadata     `json:"metadata,omitempty"`
 }
 
 // DiscoveryEngine manages tools for an MCP session.
@@ -95,13 +105,23 @@ func (e *DiscoveryEngine) loadRegistry() {
 			}
 
 			td := ToolDefinition{
-				Name:        entry.Name,
-				Description: entry.Description,
-				Category:    string(entry.Category),
-				Source:      string(entry.Source),
-				Icon:        entry.Icon,
-				Runtime:     entry.Runtime,
-				Tools:       entry.Tools,
+				Name:          entry.Name,
+				Title:         entry.Title,
+				Version:       entry.Version,
+				Description:   entry.Description,
+				Category:      string(entry.Category),
+				Source:        string(entry.Source),
+				Icon:          entry.Icon,
+				About:         entry.About,
+				Tags:          entry.Tags,
+				Homepage:      entry.Homepage,
+				Repository:    entry.Repository,
+				Documentation: entry.Docs,
+				Authorization: entry.Auth,
+				Runtime:       entry.Runtime,
+				Tools:         entry.Tools,
+				Package:       entry.Package,
+				Metadata:      entry.Metadata,
 			}
 			e.Register(td)
 		}
@@ -130,6 +150,32 @@ func (e *DiscoveryEngine) Register(td ToolDefinition) {
 		}
 	}
 	e.registry = append(e.registry, td)
+}
+
+// GetServerForTool finds which server provides the given tool name.
+func (e *DiscoveryEngine) GetServerForTool(toolName string) (string, bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	// 1. Check if it's already active
+	if serverName, ok := e.toolToServer[toolName]; ok {
+		return serverName, true
+	}
+
+	// 2. Check registry for the tool name
+	for _, td := range e.registry {
+		for _, t := range td.Tools {
+			if t.Name == toolName {
+				return td.Name, true
+			}
+		}
+		// Also check if the server name itself is what's being called
+		if td.Name == toolName {
+			return td.Name, true
+		}
+	}
+
+	return "", false
 }
 
 // Add installs and activates a tool.

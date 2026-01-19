@@ -109,12 +109,13 @@ type EnvVarDef struct {
 
 // Tool represents a single tool/function exposed by the MCP.
 type Tool struct {
-	Name         string            `json:"name"`
-	Title        string            `json:"title,omitempty"`
-	Description  string            `json:"description"`
-	InputSchema  *JSONSchema       `json:"inputSchema"`
-	OutputSchema *JSONSchema       `json:"outputSchema,omitempty"`
-	Annotations  *ToolAnnotations  `json:"annotations,omitempty"`
+	Name         string                 `json:"name"`
+	Title        string                 `json:"title,omitempty"`
+	Description  string                 `json:"description"`
+	InputSchema  *JSONSchema            `json:"inputSchema"`
+	OutputSchema *JSONSchema            `json:"outputSchema,omitempty"`
+	SampleInput  map[string]interface{} `json:"sampleInput,omitempty"`
+	Annotations  *ToolAnnotations       `json:"annotations,omitempty"`
 }
 
 // JSONSchema represents a JSON Schema for tool input/output.
