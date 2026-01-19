@@ -26,7 +26,7 @@ All MCP registry entries in `appdata/registry/` MUST follow this schema:
 | `title` | string | Human-friendly display name. Max 64 chars. |
 | `description` | string | One-line summary. 10-200 chars. |
 | `category` | enum | One of: `development`, `database`, `productivity`, `communication`, `search`, `cloud`, `analytics`, `ai`, `utility`, `custom` |
-| `source` | enum | One of: `official`, `community`, `enterprise`, `local` |
+| `source` | enum | One of: `official`, `community`, `enterprise`, `local`, `custom` |
 | `authorization` | object | Auth configuration (see below) |
 | `tools` | array | At least one tool definition |
 | `package` | object | Installation configuration |
@@ -186,10 +186,10 @@ The `runtime` object defines how Scooter communicates with the MCP server:
 
 ### Icon Requirements
 
-- Icons MUST be stored in `desktop/public/mcp-logos/`
+- Icons MUST be stored in `desktop/public/registry-logos/`
 - Format: SVG preferred
 - Naming: Match the MCP `name` field (e.g., `brave-search.svg`)
-- Reference in JSON as: `/mcp-logos/{name}.svg`
+- Reference in JSON as: `/registry-logos/{name}.svg`
 
 ## Validation
 

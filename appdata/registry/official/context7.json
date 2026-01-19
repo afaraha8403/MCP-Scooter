@@ -1,0 +1,99 @@
+{
+  "$schema": "../../schemas/mcp-registry.schema.json",
+  "name": "context7",
+  "version": "1.0.0",
+  "title": "Context7",
+  "description": "Up-to-date documentation for any library directly in your prompts",
+  "category": "development",
+  "source": "official",
+  "tags": ["documentation", "libraries", "code", "reference"],
+  "icon": "/registry-logos/context7.svg",
+  "icon_background": {
+    "light": "#efeae7",
+    "dark": "#6a6a89"
+  },
+  "color": "#6366F1",
+  "about": "## Context7 MCP\n\nContext7 pulls up-to-date, version-specific documentation and code examples straight from the source — and places them directly in your prompt.\n\n### Why Context7?\n\n- **Always Current** - Documentation is fetched in real-time\n- **Version Specific** - Get docs for the exact version you're using\n- **Code Examples** - Includes working code snippets\n\n### Supported Libraries\n\nContext7 supports thousands of libraries across multiple ecosystems including npm, PyPI, and more.\n\n### Usage\n\nSimply ask about any library and Context7 will fetch the relevant documentation.\n\n### Manual Configuration\n\nIf you prefer to configure this MCP server manually in your client without using the Scooter 'Install' button, use the settings below:\n\n#### Claude Desktop / Cursor\n\nAdd this to your `claude_desktop_config.json` or `mcp.json`:\n\n```json\n{\n  \"mcpServers\": {\n    \"context7\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@upstash/context7-mcp\"],\n      \"env\": {\n        \"CONTEXT7_API_KEY\": \"YOUR_API_KEY_HERE\"\n      }\n    }\n  }\n}\n```\n\n#### Zed\n\nAdd this to your `settings.json`:\n\n```json\n{\n  \"mcp_servers\": {\n    \"context7\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@upstash/context7-mcp\"],\n      \"env\": {\n        \"CONTEXT7_API_KEY\": \"YOUR_API_KEY_HERE\"\n      }\n    }\n  }\n}\n```\n\n#### Gemini CLI\n\nAdd this to your `settings.json`:\n\n```toml\n[mcp.servers.context7]\ncommand = \"npx\"\nargs = [\"-y\", \"@upstash/context7-mcp\"]\n[mcp.servers.context7.env]\nCONTEXT7_API_KEY = \"YOUR_API_KEY_HERE\"\n```",
+  "homepage": "https://context7.com",
+  "repository": "https://github.com/upstash/context7",
+  "authorization": {
+    "type": "api_key",
+    "required": false,
+    "recommended": true,
+    "env_var": "CONTEXT7_API_KEY",
+    "display_name": "Context7 API Key",
+    "description": "Optional API key for higher rate limits and priority access. Works without a key but may be rate-limited.",
+    "help_url": "https://context7.com/api-keys"
+  },
+  "tools": [
+    {
+      "name": "resolve_library_id",
+      "title": "Resolve Library",
+      "description": "Resolves a library name to a Context7-compatible library ID. Always call this first before fetching documentation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "libraryName": {
+            "type": "string",
+            "description": "The name of the library to search for (e.g., 'react', 'nextjs', 'postgres')"
+          }
+        },
+        "required": ["libraryName"]
+      },
+      "sampleInput": {
+        "libraryName": "react"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_library_docs",
+      "title": "Get Documentation",
+      "description": "Fetches up-to-date documentation for a library. Use the library ID from resolve_library_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "context7CompatibleLibraryID": {
+            "type": "string",
+            "description": "The Context7 library ID (from resolve_library_id)"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Optional: Focus the documentation on a specific topic"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination",
+            "default": 1
+          }
+        },
+        "required": ["context7CompatibleLibraryID"]
+      },
+      "sampleInput": {
+        "context7CompatibleLibraryID": "/facebook/react",
+        "topic": "hooks",
+        "page": 1
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    }
+  ],
+  "package": {
+    "type": "npm",
+    "name": "@upstash/context7-mcp",
+    "version": "^1.0.0"
+  },
+  "runtime": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@upstash/context7-mcp"]
+  },
+  "metadata": {
+    "author": "Upstash",
+    "license": "MIT"
+  }
+}

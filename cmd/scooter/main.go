@@ -38,25 +38,26 @@ func run(serve bool) error {
 	os.MkdirAll(wasmDir, 0755)
 
 	registryDir := filepath.Join(appDir, "registry")
-	os.MkdirAll(registryDir, 0755)
+	os.MkdirAll(filepath.Join(registryDir, "official"), 0755)
+	os.MkdirAll(filepath.Join(registryDir, "custom"), 0755)
 
 	clientsDir := filepath.Join(appDir, "clients")
 	os.MkdirAll(clientsDir, 0755)
 
-	// Copy registry and client files from appdata if they are different or missing
-	localRegistry := "appdata/registry"
-	if localFiles, err := os.ReadDir(localRegistry); err == nil {
+	// Copy official registry files from appdata if they are different or missing
+	officialRegistry := "appdata/registry/official"
+	if localFiles, err := os.ReadDir(officialRegistry); err == nil {
 		for _, f := range localFiles {
 			if !f.IsDir() {
-				sourcePath := filepath.Join(localRegistry, f.Name())
-				targetPath := filepath.Join(registryDir, f.Name())
+				sourcePath := filepath.Join(officialRegistry, f.Name())
+				targetPath := filepath.Join(registryDir, "official", f.Name())
 				
 				sourceData, _ := os.ReadFile(sourcePath)
 				targetData, _ := os.ReadFile(targetPath)
 				
-				// Overwrite if different or missing to ensure user has latest tool definitions
+				// Overwrite if different or missing to ensure user has latest official tool definitions
 				if string(sourceData) != string(targetData) {
-					fmt.Printf("Updating tool definition: %s\n", f.Name())
+					fmt.Printf("Updating official tool definition: %s\n", f.Name())
 					os.WriteFile(targetPath, sourceData, 0644)
 				}
 			}

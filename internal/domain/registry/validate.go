@@ -194,6 +194,16 @@ func validateFormats(entry *MCPEntry, result *ValidationResult) {
 		result.Errors = append(result.Errors, ValidationError{"color", "must be a valid hex color (e.g., #FF0000)"})
 	}
 
+	// Icon background colors
+	if entry.IconBackground != nil {
+		if entry.IconBackground.Light != "" && !colorPattern.MatchString(entry.IconBackground.Light) {
+			result.Errors = append(result.Errors, ValidationError{"icon_background.light", "must be a valid hex color (e.g., #FF0000)"})
+		}
+		if entry.IconBackground.Dark != "" && !colorPattern.MatchString(entry.IconBackground.Dark) {
+			result.Errors = append(result.Errors, ValidationError{"icon_background.dark", "must be a valid hex color (e.g., #FF0000)"})
+		}
+	}
+
 	// Tags validation
 	if len(entry.Tags) > 10 {
 		result.Errors = append(result.Errors, ValidationError{"tags", "maximum 10 tags allowed"})

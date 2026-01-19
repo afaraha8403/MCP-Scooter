@@ -9,7 +9,9 @@
 
 ## 1. Overview
 
-This document defines the JSON schema for MCP (Model Context Protocol) server entries stored in the `appdata/registry/` folder. These JSON files serve as the metadata manifests that allow MCP Scooter to:
+This document defines the JSON schema for MCP (Model Context Protocol) server entries stored in the `appdata/registry/official/` folder. These JSON files serve as the metadata manifests that allow MCP Scooter to:
+
+All MCPs in this folder are considered **Official MCPs**.
 
 - **Discover** available MCP tools in the registry
 - **Display** tool information in the Scooter Store UI
@@ -180,14 +182,14 @@ Based on the PRD's core promise of "zero latency and <50MB RAM usage," the regis
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `icon` | string | ⬜ | Path to SVG icon. Relative: `/mcp-logos/name.svg`. Or absolute URL. |
+| `icon` | string | ⬜ | Path to SVG icon. Relative: `/registry-logos/name.svg`. Or absolute URL. |
 | `banner` | string | ⬜ | Path to banner image for detail view. |
 | `color` | string | ⬜ | Brand color in hex (e.g., `#FB542B` for Brave). Used for UI accents. |
 
 **Example:**
 ```json
 {
-  "icon": "/mcp-logos/brave-search.svg",
+  "icon": "/registry-logos/brave-search.svg",
   "color": "#FB542B"
 }
 ```
@@ -614,7 +616,7 @@ Additional metadata for attribution and maintenance.
   "source": "community",
   "tags": ["web-search", "privacy", "brave"],
   
-  "icon": "/mcp-logos/brave-search.svg",
+  "icon": "/registry-logos/brave-search.svg",
   "color": "#FB542B",
   
   "about": "## Brave Search MCP\n\nSearch the web privately using the Brave Search API. Unlike other search engines, Brave doesn't track your searches or build a profile on you.\n\n### Features\n\n- **Web Search** - Full web search with snippets and metadata\n- **News Search** - Filter for recent news articles\n- **Freshness Filters** - Limit results by time period\n\n### Getting Started\n\n1. Get an API key at [brave.com/search/api](https://brave.com/search/api)\n2. Add this tool: `scout_add(\"brave-search\")`\n3. Enter your API key when prompted\n\n### Pricing\n\nBrave Search API offers 2,000 free queries/month. See [pricing](https://brave.com/search/api/#pricing) for details.",
@@ -732,7 +734,7 @@ Additional metadata for attribution and maintenance.
   "source": "official",
   "tags": ["google", "drive", "files", "cloud-storage"],
   
-  "icon": "/mcp-logos/google-drive.svg",
+  "icon": "/registry-logos/google-drive.svg",
   "color": "#4285F4",
   
   "about": "## Google Drive MCP\n\nConnect your Google Drive to search, read, and manage files directly from your AI assistant.\n\n### Features\n\n- **Search Files** - Find documents by name, content, or metadata\n- **Read Files** - Access document contents (Docs, Sheets, PDFs)\n- **List Folders** - Browse your Drive hierarchy\n- **File Metadata** - Get sharing info, last modified, etc.\n\n### Permissions\n\nThis tool requests read-only access to your Drive. It cannot modify or delete files.\n\n### Setup\n\nWhen you add this tool, Scooter will open a browser window for Google sign-in. Authorize the requested permissions to connect your Drive.",
@@ -868,7 +870,7 @@ Additional metadata for attribution and maintenance.
   "source": "community",
   "tags": ["postgresql", "database", "sql", "data"],
   
-  "icon": "/mcp-logos/postgresql.svg",
+  "icon": "/registry-logos/postgresql.svg",
   "color": "#336791",
   
   "about": "## PostgreSQL MCP\n\nConnect to PostgreSQL databases to explore schemas, run queries, and analyze data.\n\n### Features\n\n- **Schema Exploration** - List tables, columns, and relationships\n- **Query Execution** - Run SELECT queries safely\n- **Data Analysis** - Get row counts, sample data, statistics\n\n### Security\n\n⚠️ **Read-Only Mode**: By default, only SELECT queries are allowed.\n\n⚠️ **Connection Strings**: Your database credentials are stored securely in your system keychain.\n\n### Supported Versions\n\nPostgreSQL 12, 13, 14, 15, 16",
@@ -1102,7 +1104,7 @@ Current registry files use a minimal format:
   "description": "Search the web with Brave Search API",
   "category": "search",
   "source": "community",
-  "icon": "/mcp-logos/brave-search.svg"
+  "icon": "/registry-logos/brave-search.svg"
 }
 ```
 

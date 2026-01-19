@@ -94,7 +94,8 @@ make ci
 MCP Scooter/
 ├── appdata/
 │   ├── clients/        # AI client configurations
-│   ├── registry/       # MCP server definitions (JSON)
+│   ├── registry/       # MCP server definitions (organized by source)
+│   │   └── official/   # Official MCP definitions (JSON)
 │   └── schemas/        # JSON Schema for validation
 ├── cmd/
 │   ├── scooter/        # Main application entry point
@@ -166,17 +167,17 @@ This is one of the most valuable contributions! Here's how:
 
 ### 1. Create the JSON file
 
-Create `appdata/registry/{name}.json`:
+Create `appdata/registry/official/{name}.json`:
 
 ```json
 {
-  "$schema": "../schemas/mcp-registry.schema.json",
+  "$schema": "../../schemas/mcp-registry.schema.json",
   "name": "your-tool-name",
   "version": "1.0.0",
   "title": "Your Tool Name",
   "description": "A brief description of what this tool does",
   "category": "development",
-  "source": "community",
+  "source": "official",
   "authorization": {
     "type": "api_key",
     "required": true,
@@ -211,8 +212,8 @@ Create `appdata/registry/{name}.json`:
 
 ### 2. Add an icon (optional but recommended)
 
-- Place SVG icon in `desktop/public/mcp-logos/{name}.svg`
-- Reference it in JSON as `"icon": "/mcp-logos/{name}.svg"`
+- Place SVG icon in `desktop/public/registry-logos/{name}.svg`
+- Reference it in JSON as `"icon": "/registry-logos/{name}.svg"`
 
 ### 3. Validate
 

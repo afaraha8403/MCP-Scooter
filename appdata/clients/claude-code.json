@@ -1,7 +1,7 @@
 {
   "id": "claude-code",
   "name": "Claude Code",
-  "icon": "/client-logos/claude.svg",
+  "icon": "/client-logos/claude_code.svg",
   "description": "Anthropic's CLI-based agent for terminal usage",
-  "manual_instructions": "To manually configure Claude Code:\nRun the following command in your terminal:\nclaude mcp add mcp-scooter http://localhost:6277/profiles/{profile}/sse"
+  "manual_instructions": "### Manual Configuration for Claude Code\n\nTo manually connect Claude Code to MCP Scooter, run the following command in your terminal:\n\n```bash\nclaude mcp add mcp-scooter http://localhost:6277/profiles/{profile}/sse\n```"
 }

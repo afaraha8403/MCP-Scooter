@@ -1,7 +1,7 @@
 {
   "id": "claude-desktop",
   "name": "Claude Desktop",
-  "icon": "/client-logos/claude.svg",
+  "icon": "/client-logos/claude_desktop.svg",
   "description": "Anthropic's official desktop client for Claude",
-  "manual_instructions": "To manually configure Claude Desktop:\n1. Open your Claude Desktop config file (claude_desktop_config.json)\n2. Add the following to 'mcpServers':\n   \"mcp-scooter\": {\n     \"type\": \"sse\",\n     \"url\": \"http://localhost:6277/profiles/{profile}/sse\"\n   }"
+  "manual_instructions": "### Manual Configuration for Claude Desktop\n\nTo manually connect Claude Desktop to MCP Scooter:\n\n1. Open your Claude Desktop configuration file:\n   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`\n   - **Windows:** `%APPDATA%\\Claude\\claude_desktop_config.json`\n2. Add the following to the `mcpServers` object:\n\n```json\n{\n  \"mcpServers\": {\n    \"mcp-scooter\": {\n      \"type\": \"sse\",\n      \"url\": \"http://localhost:6277/profiles/{profile}/sse\"\n    }\n  }\n}\n```"
 }

@@ -12,6 +12,7 @@ type MCPEntry struct {
 	Source      Source         `json:"source"`
 	Tags        []string       `json:"tags,omitempty"`
 	Icon        string         `json:"icon,omitempty"`
+	IconBackground *IconBackground `json:"icon_background,omitempty"`
 	Banner      string         `json:"banner,omitempty"`
 	Color       string         `json:"color,omitempty"`
 	About       string         `json:"about,omitempty"`
@@ -49,6 +50,7 @@ const (
 	SourceCommunity  Source = "community"
 	SourceEnterprise Source = "enterprise"
 	SourceLocal      Source = "local"
+	SourceCustom     Source = "custom"
 )
 
 // AuthType defines the authentication method.
@@ -64,17 +66,18 @@ const (
 
 // Authorization defines how the MCP authenticates.
 type Authorization struct {
-	Type        AuthType     `json:"type"`
-	Required    bool         `json:"required,omitempty"`
-	EnvVar      string       `json:"env_var,omitempty"`
-	DisplayName string       `json:"display_name,omitempty"`
-	Description string       `json:"description,omitempty"`
-	HelpURL     string       `json:"help_url,omitempty"`
+	Type        AuthType       `json:"type"`
+	Required    bool           `json:"required,omitempty"`
+	Recommended bool           `json:"recommended,omitempty"`
+	EnvVar      string         `json:"env_var,omitempty"`
+	DisplayName string         `json:"display_name,omitempty"`
+	Description string         `json:"description,omitempty"`
+	HelpURL     string         `json:"help_url,omitempty"`
 	Validation  *KeyValidation `json:"validation,omitempty"`
-	Provider    string       `json:"provider,omitempty"`
-	OAuth       *OAuthConfig `json:"oauth,omitempty"`
-	Scopes      []string     `json:"scopes,omitempty"`
-	EnvVars     []EnvVarDef  `json:"env_vars,omitempty"`
+	Provider    string         `json:"provider,omitempty"`
+	OAuth       *OAuthConfig   `json:"oauth,omitempty"`
+	Scopes      []string       `json:"scopes,omitempty"`
+	EnvVars     []EnvVarDef    `json:"env_vars,omitempty"`
 }
 
 // KeyValidation defines validation rules for API keys.
@@ -149,6 +152,12 @@ type ToolAnnotations struct {
 	RequiresApproval bool   `json:"requiresApproval,omitempty"`
 	RateLimit        string `json:"rateLimit,omitempty"`
 	CostPerCall      string `json:"costPerCall,omitempty"`
+}
+
+// IconBackground defines custom background colors for the icon.
+type IconBackground struct {
+	Light string `json:"light,omitempty"`
+	Dark  string `json:"dark,omitempty"`
 }
 
 // PackageType defines how the MCP is distributed.

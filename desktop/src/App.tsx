@@ -18,13 +18,14 @@ import {
   RocketRegular,
   ArrowDownloadRegular,
   KeyRegular,
-  WrenchRegular,
   WeatherMoonRegular,
   WeatherSunnyRegular,
   ArrowLeftRegular,
   ChevronDownRegular,
   PhoneLaptopRegular,
-  AddRegular
+  AddRegular,
+  BuildingRegular,
+  PeopleRegular
 } from "@fluentui/react-icons";
 import ReactMarkdown from "react-markdown";
 import { SettingsModal } from "./components/SettingsModal";
@@ -69,6 +70,10 @@ interface ToolDefinition {
   source: string;
   installed: boolean;
   icon?: string;
+  icon_background?: {
+    light?: string;
+    dark?: string;
+  };
   about?: string;
   tags?: string[];
   homepage?: string;
@@ -77,6 +82,7 @@ interface ToolDefinition {
   authorization?: {
     type: string;
     required?: boolean;
+    recommended?: boolean;
     env_var?: string;
     display_name?: string;
     description?: string;
@@ -128,6 +134,7 @@ function App() {
   const [configPath, setConfigPath] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [selectedTool, setSelectedTool] = useState<ToolDefinition | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientDefinition | null>(null);
   const [drawer, setDrawer] = useState<{ type: string; data?: any } | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([
     { timestamp: new Date().toLocaleTimeString(), level: "INFO", message: "MCP Scooter Command Center initialized." }
@@ -146,10 +153,10 @@ function App() {
   const lastConnectionState = useRef<boolean | null>(null);
 
   // Interactive UI State
-  const [activeTab, setActiveTab] = useState<"active" | "catalog" | "clients">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "catalog" | "clients" | "logs">("active");
   const [searchQuery, setSearchQuery] = useState("");
+  const [toolFilter, setToolFilter] = useState<"all" | "official" | "community" | "custom">("all");
   const [newProfile, setNewProfile] = useState({ id: "" });
-  const [newTool, setNewTool] = useState({ name: "", description: "", category: "utility", source: "community" });
   const [toolInput, setToolInput] = useState("{}");
   const [selectedFunctionName, setSelectedFunctionName] = useState<string>("");
   const [testResult, setTestResult] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', data: any } | null>(null);
@@ -160,6 +167,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [savedToolParams, setSavedToolParams] = useState<Record<string, Record<string, any>>>({});
+  const [optionalAuthExpanded, setOptionalAuthExpanded] = useState(false);
 
   // Load saved tool params on mount
   useEffect(() => {
@@ -176,6 +184,11 @@ function App() {
     };
     loadSavedParams();
   }, [appSettings.control_port]);
+
+  // Reset optional auth accordion when tool changes
+  useEffect(() => {
+    setOptionalAuthExpanded(false);
+  }, [selectedTool?.name]);
 
   // Get the best input for a tool function: saved > sampleInput > generated
   const getToolInput = (tool: ToolDefinition | undefined, functionName: string) => {
@@ -198,6 +211,21 @@ function App() {
     }
     
     return "{}";
+  };
+
+  const getThemedIcon = (iconPath: string | undefined) => {
+    if (!iconPath) return iconPath;
+    
+    // Check for _light or _dark suffix before the extension
+    const match = iconPath.match(/(.*)_(light|dark)\.([a-zA-Z0-9]+)$/);
+    if (!match) return iconPath;
+    
+    const [_, base, currentTheme, ext] = match;
+    const targetTheme = theme === 'dark' ? 'dark' : 'light';
+    
+    if (currentTheme === targetTheme) return iconPath;
+    
+    return `${base}_${targetTheme}.${ext}`;
   };
 
   // Save tool params when modified
@@ -346,12 +374,7 @@ function App() {
       setConfigPath(data.config_path || "");
       
       if (data.settings) {
-        setAppSettings(current => {
-          if (data.settings.control_port !== current.control_port || data.settings.mcp_port !== current.mcp_port) {
-            return data.settings;
-          }
-          return current;
-        });
+        setAppSettings(data.settings);
       }
       
       setOnboardingRequired(data.onboarding_required);
@@ -489,18 +512,29 @@ function App() {
   };
 
   const filteredTools = allTools
-    .filter(t => 
-      (t.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (t.description || "").toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    .filter(t => {
+      const matchesSearch = 
+        (t.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (t.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.title || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesFilter = 
+        toolFilter === "all" || 
+        (toolFilter === "official" && t.source === "official") ||
+        (toolFilter === "community" && t.source === "community") ||
+        (toolFilter === "custom" && (t.source !== "official" && t.source !== "community"));
+
+      return matchesSearch && matchesFilter;
+    })
     .sort((a, b) => {
-      const aName = a.name || "";
-      const bName = b.name || "";
-      const aNameMatch = aName.toLowerCase().includes(searchQuery.toLowerCase());
-      const bNameMatch = bName.toLowerCase().includes(searchQuery.toLowerCase());
-      if (aNameMatch && !bNameMatch) return -1;
-      if (!aNameMatch && bNameMatch) return 1;
-      return 0;
+      const aName = a.title || a.name || "";
+      const bName = b.title || b.name || "";
+      
+      // Official tools first
+      if (a.source === 'official' && b.source !== 'official') return -1;
+      if (a.source !== 'official' && b.source === 'official') return 1;
+      
+      return aName.localeCompare(bName);
     });
 
   const toolsByCategory = filteredTools.reduce((acc, tool) => {
@@ -527,6 +561,21 @@ function App() {
       }
     } catch (err) {
       addLog(`Error deleting profile: ${err}`, "ERROR");
+    }
+  };
+
+  const deleteTool = async (name: string) => {
+    if (!confirm(`Are you sure you want to delete custom tool "${name}"?`)) return;
+    try {
+      const res = await fetch(`${CONTROL_API}/tools?name=${name}`, { method: "DELETE" });
+      if (res.ok) {
+        addLog(`Deleted custom tool: ${name}`, "INFO");
+        fetchAllTools(); // Refresh tool list
+      } else {
+        addLog(`Failed to delete custom tool: ${name}`, "ERROR");
+      }
+    } catch (err) {
+      addLog(`Error deleting custom tool: ${err}`, "ERROR");
     }
   };
 
@@ -591,28 +640,6 @@ function App() {
       }
     } catch (err) {
       addLog(`Error creating profile: ${err}`, "ERROR");
-    }
-  };
-
-  const registerTool = async () => {
-    if (!newTool.name) return;
-    try {
-      const res = await fetch(`${CONTROL_API}/tools`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newTool, installed: true }),
-      });
-      if (res.ok) {
-        addLog(`Registered tool: ${newTool.name}`, "INFO");
-        fetchAllTools();
-        setDrawer(null);
-        setNewTool({ name: "", description: "", category: "utility", source: "community" });
-      } else {
-        const text = await res.text();
-        addLog(`Failed to register tool: ${text}`, "ERROR");
-      }
-    } catch (err) {
-      addLog(`Error registering tool: ${err}`, "ERROR");
     }
   };
 
@@ -862,30 +889,34 @@ function App() {
         <div className="profile-strip">
           <div className="app-logo-mini">
             <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} alt="S" />
+            <span className="app-name">MCP Scooter</span>
           </div>
           
-          <div className="profile-selector-container" onClick={() => setShowProfileModal(true)} style={{ cursor: 'pointer' }}>
-            <span className="profile-label">Profile</span>
-            <div className="profile-select-display" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '8px' }}>
-              <span style={{ fontWeight: 700, fontSize: '14px' }}>{selectedProfileId || 'Select Profile'}</span>
-              <ChevronDownRegular style={{ fontSize: '12px', opacity: 0.5 }} />
+          <div className="profile-controls-group">
+            <div className="profile-selector-container" onClick={() => setShowProfileModal(true)}>
+              <div className="profile-label-group">
+                <span className="profile-label">Profile</span>
+                <span className="profile-id-text">{selectedProfileId || 'Select Profile'}</span>
+              </div>
+              <ChevronDownRegular className="profile-chevron" />
             </div>
-          </div>
 
-          <button className="add-profile-btn" onClick={() => setDrawer({ type: "add-profile" })} title="Add Profile">
-            <AddRegular />
-          </button>
+            <button className="add-profile-btn" onClick={() => setDrawer({ type: "add-profile" })} title="Add New Profile">
+              <AddRegular />
+            </button>
+          </div>
         </div>
 
         {/* Main Grid */}
-        <div className={`main-grid ${activeTab !== 'active' ? 'catalog-full' : ''}`}>
+        <div className="main-grid catalog-full">
           {/* Detail View */}
           {selectedTool && (
             <section className="section-container detail-view">
               <header className="section-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button className="icon-btn" onClick={() => setSelectedTool(null)} title="Back">
+                  <button className="back-button" onClick={() => setSelectedTool(null)} title="Back to Catalog">
                     <ArrowLeftRegular />
+                    <span>Back</span>
                   </button>
                   <span style={{ fontSize: '18px', fontWeight: 700, textTransform: 'none', color: 'var(--text-primary)' }}>
                     {selectedTool.title || selectedTool.name}
@@ -898,14 +929,41 @@ function App() {
                 </div>
                 <div className="card-actions">
                   {selectedTool.authorization && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setDrawer({ type: "auth-config", data: selectedTool.name }); }}
-                      title="Manage Authentication"
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <KeyRegular style={{ fontSize: '16px' }} />
-                      <span>Auth</span>
-                    </button>
+                    selectedTool.authorization.type === 'none' ? (
+                      <div 
+                        title="No Authentication Required"
+                        className="auth-status-badge"
+                      >
+                        <CheckmarkRegular className="status-icon" />
+                        <span>Auth Not Required</span>
+                      </div>
+                    ) : selectedTool.authorization.recommended ? (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setDrawer({ type: "auth-config", data: selectedTool.name }); }}
+                        title="Authentication is optional but recommended"
+                        className="auth-btn recommended"
+                      >
+                        <KeyRegular className="auth-btn-icon" />
+                        <span>Auth (Optional)</span>
+                      </button>
+                    ) : selectedTool.authorization.required === false ? (
+                      <div 
+                        title="No Authentication Required"
+                        className="auth-status-badge"
+                      >
+                        <CheckmarkRegular className="status-icon" />
+                        <span>Auth Not Required</span>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setDrawer({ type: "auth-config", data: selectedTool.name }); }}
+                        title="Manage Authentication"
+                        className="auth-btn"
+                      >
+                        <KeyRegular className="auth-btn-icon" />
+                        <span>Auth</span>
+                      </button>
+                    )
                   )}
                   {selectedProfile?.allow_tools?.includes(selectedTool.name) ? (
                     <button 
@@ -938,16 +996,59 @@ function App() {
               <div className="scroll-section detail-content" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', gap: '32px', marginBottom: '32px' }}>
                   {selectedTool.icon ? (
-                    <img src={selectedTool.icon} alt={selectedTool.name} style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                    <img 
+                      src={getThemedIcon(selectedTool.icon)} 
+                      alt={selectedTool.name} 
+                      style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        objectFit: 'contain',
+                        backgroundColor: selectedTool.icon_background ? (theme === 'light' ? selectedTool.icon_background.light : selectedTool.icon_background.dark) : 'transparent',
+                        borderRadius: '16px',
+                        padding: '8px',
+                        boxSizing: 'border-box'
+                      }} 
+                    />
                   ) : (
-                    <div style={{ width: '80px', height: '80px', background: 'var(--border-subtle)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <WrenchRegular style={{ fontSize: '40px', opacity: 0.5 }} />
-                    </div>
+                    <img 
+                      src={getThemedIcon("/registry-logos/mcp_fallback_light.svg")} 
+                      alt={selectedTool.name} 
+                      style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        objectFit: 'contain',
+                        borderRadius: '16px',
+                        padding: '8px',
+                        boxSizing: 'border-box',
+                        background: 'var(--background-card)',
+                        border: '1px solid var(--border-subtle)'
+                      }} 
+                    />
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <span className="badge">{selectedTool.category || 'Utility'}</span>
-                      <span className="badge" style={{ background: 'var(--accent-primary)', color: 'white' }}>{selectedTool.source}</span>
+                      {selectedTool.source === 'official' && (
+                        <span className="badge" style={{ background: 'var(--accent-primary)', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <BuildingRegular style={{ fontSize: '11px' }} />
+                          Official
+                        </span>
+                      )}
+                      {selectedTool.source === 'community' && (
+                        <span className="badge" style={{ background: 'var(--text-secondary)', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <PeopleRegular style={{ fontSize: '11px' }} />
+                          Community
+                        </span>
+                      )}
+                      {selectedTool.source === 'enterprise' && (
+                        <span className="badge" style={{ background: 'var(--text-secondary)', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <BoxRegular style={{ fontSize: '11px' }} />
+                          Enterprise
+                        </span>
+                      )}
+                      {selectedTool.source !== 'official' && selectedTool.source !== 'community' && selectedTool.source !== 'enterprise' && (
+                        <span className="badge" style={{ background: 'var(--text-secondary)', color: 'white' }}>{selectedTool.source === 'local' ? 'Local' : 'Custom'}</span>
+                      )}
                       {selectedTool.version && <span style={{ fontSize: '12px', opacity: 0.5 }}>v{selectedTool.version}</span>}
                     </div>
                     <p style={{ fontSize: '16px', lineHeight: '1.5', margin: 0, color: 'var(--text-primary)', fontWeight: 500 }}>
@@ -965,92 +1066,225 @@ function App() {
                   </div>
                 </div>
 
-                  {selectedTool.authorization && selectedProfile && (
+                  {selectedTool.authorization && selectedTool.authorization.type !== 'none' && (selectedTool.authorization.required !== false || selectedTool.authorization.recommended === true) && selectedProfile && (
                     (() => {
                       const auth = selectedTool.authorization;
-                      const envVars = auth.type === 'custom' ? (auth.env_vars || []) : (auth.env_var ? [{ name: auth.env_var, display_name: auth.display_name || auth.env_var, description: auth.description, required: true }] : []);
-                      const missingVars = envVars.filter(v => v.required && !selectedProfile.env?.[v.name]);
+                      const isRecommended = auth.recommended === true;
+                      const envVars = auth.type === 'custom' ? (auth.env_vars || []) : (auth.env_var ? [{ name: auth.env_var, display_name: auth.display_name || auth.env_var, description: auth.description, required: !isRecommended }] : []);
+                      const missingVars = isRecommended 
+                        ? envVars.filter(v => !selectedProfile.env?.[v.name])
+                        : envVars.filter(v => v.required && !selectedProfile.env?.[v.name]);
                       const configuredVars = envVars.filter(v => selectedProfile.env?.[v.name]);
 
                       return (
                         <div style={{ marginBottom: '32px' }}>
                           {missingVars.length > 0 && (
-                            <div style={{ fontSize: '12px', background: 'rgba(255, 204, 0, 0.1)', border: '1px solid rgba(255, 204, 0, 0.3)', padding: '24px', borderRadius: '8px', color: '#b38600', display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: configuredVars.length > 0 ? '12px' : '0' }}>
-                              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                                <span><WarningRegular style={{ verticalAlign: 'middle', marginRight: '4px', color: '#ffcc00' }} /> Configuration Required</span>
-                              </div>
-                              <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
-                                This tool requires additional setup to function in the <strong>{selectedProfile.id}</strong> profile.
-                              </div>
-                              
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {missingVars.map(v => (
-                                  <div key={v.name} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.8 }}>
-                                        {v.display_name}
-                                      </label>
-                                      <code style={{ fontSize: '10px', opacity: 0.6 }}>{v.name}</code>
+                            isRecommended ? (
+                              // Collapsible accordion for optional/recommended auth
+                              <div style={{ 
+                                fontSize: '12px', 
+                                background: 'var(--background-card)', 
+                                border: '1px solid var(--border-subtle)', 
+                                borderRadius: '8px', 
+                                color: 'var(--text-secondary)', 
+                                marginBottom: configuredVars.length > 0 ? '12px' : '0',
+                                overflow: 'hidden'
+                              }}>
+                                <button
+                                  onClick={() => setOptionalAuthExpanded(!optionalAuthExpanded)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '16px 24px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    color: 'var(--text-primary)',
+                                    fontSize: '14px',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <KeyRegular style={{ opacity: 0.6 }} />
+                                    Optional Configuration
+                                  </span>
+                                  <ChevronDownRegular style={{ 
+                                    transition: 'transform 0.2s ease',
+                                    transform: optionalAuthExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    opacity: 0.6
+                                  }} />
+                                </button>
+                                
+                                {optionalAuthExpanded && (
+                                  <div style={{ padding: '0 24px 24px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ fontSize: '13px', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
+                                      This tool works without authentication, but adding credentials can unlock better rate limits and features.
                                     </div>
-                                    {v.description && <p style={{ margin: '0', fontSize: '12px', opacity: 0.8 }}>{v.description}</p>}
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                      <input 
-                                        type={v.secret !== false ? "password" : "text"}
-                                        placeholder={`Enter ${v.display_name}...`}
-                                        value={authInput[v.name] || ''}
-                                        onChange={(e) => setAuthInput({ ...authInput, [v.name]: e.target.value })}
-                                        style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid rgba(179, 134, 0, 0.3)', background: 'var(--background-card)', color: 'var(--text-primary)' }}
-                                      />
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                      {missingVars.map(v => (
+                                        <div key={v.name} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.8 }}>
+                                              {v.display_name}
+                                            </label>
+                                            <code style={{ fontSize: '10px', opacity: 0.6 }}>{v.name}</code>
+                                          </div>
+                                          {v.description && <p style={{ margin: '0', fontSize: '12px', opacity: 0.8 }}>{v.description}</p>}
+                                          <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input 
+                                              type={v.secret !== false ? "password" : "text"}
+                                              placeholder={`Enter ${v.display_name}...`}
+                                              value={authInput[v.name] || ''}
+                                              onChange={(e) => setAuthInput({ ...authInput, [v.name]: e.target.value })}
+                                              style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'var(--log-bg)', color: 'var(--text-primary)' }}
+                                            />
+                                            <button 
+                                              className="primary"
+                                              onClick={() => {
+                                                if (authInput[v.name]) {
+                                                  updateProfileEnv(selectedProfile.id, { [v.name]: authInput[v.name] });
+                                                  const newAuthInput = { ...authInput };
+                                                  delete newAuthInput[v.name];
+                                                  setAuthInput(newAuthInput);
+                                                }
+                                              }}
+                                              disabled={!authInput[v.name]}
+                                              style={{ whiteSpace: 'nowrap' }}
+                                            >
+                                              Save Key
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
+                                      {auth.help_url ? (
+                                        <a 
+                                          href={auth.help_url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '12px', fontWeight: 500 }}
+                                        >
+                                          Need help getting started? ↗
+                                        </a>
+                                      ) : <div></div>}
                                       <button 
-                                        className="primary"
-                                        onClick={() => {
-                                          if (authInput[v.name]) {
-                                            updateProfileEnv(selectedProfile.id, { [v.name]: authInput[v.name] });
-                                            const newAuthInput = { ...authInput };
-                                            delete newAuthInput[v.name];
-                                            setAuthInput(newAuthInput);
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}
+                                        onClick={async () => {
+                                          if (configPath) {
+                                            try {
+                                              await revealItemInDir(configPath);
+                                            } catch (err) {
+                                              console.error("Failed to open config file location:", err);
+                                              setShowProfileModal(true);
+                                            }
+                                          } else {
+                                            setShowProfileModal(true);
                                           }
                                         }}
-                                        disabled={!authInput[v.name]}
-                                        style={{ whiteSpace: 'nowrap' }}
                                       >
-                                        Save Key
+                                        Manage all variables in profile
                                       </button>
                                     </div>
                                   </div>
-                                ))}
+                                )}
                               </div>
+                            ) : (
+                              // Non-collapsible required auth (original behavior)
+                              <div style={{ 
+                                fontSize: '12px', 
+                                background: 'rgba(255, 204, 0, 0.1)', 
+                                border: '1px solid rgba(255, 204, 0, 0.3)', 
+                                padding: '24px', 
+                                borderRadius: '8px', 
+                                color: '#b38600', 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '16px', 
+                                marginBottom: configuredVars.length > 0 ? '12px' : '0' 
+                              }}>
+                                <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+                                  <span>
+                                    <WarningRegular style={{ verticalAlign: 'middle', marginRight: '4px', color: '#ffcc00' }} /> Configuration Required
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
+                                  This tool requires additional setup to function in the <strong>{selectedProfile.id}</strong> profile.
+                                </div>
+                                
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                  {missingVars.map(v => (
+                                    <div key={v.name} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.8 }}>
+                                          {v.display_name}
+                                        </label>
+                                        <code style={{ fontSize: '10px', opacity: 0.6 }}>{v.name}</code>
+                                      </div>
+                                      {v.description && <p style={{ margin: '0', fontSize: '12px', opacity: 0.8 }}>{v.description}</p>}
+                                      <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input 
+                                          type={v.secret !== false ? "password" : "text"}
+                                          placeholder={`Enter ${v.display_name}...`}
+                                          value={authInput[v.name] || ''}
+                                          onChange={(e) => setAuthInput({ ...authInput, [v.name]: e.target.value })}
+                                          style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid rgba(179, 134, 0, 0.3)', background: 'var(--background-card)', color: 'var(--text-primary)' }}
+                                        />
+                                        <button 
+                                          className="primary"
+                                          onClick={() => {
+                                            if (authInput[v.name]) {
+                                              updateProfileEnv(selectedProfile.id, { [v.name]: authInput[v.name] });
+                                              const newAuthInput = { ...authInput };
+                                              delete newAuthInput[v.name];
+                                              setAuthInput(newAuthInput);
+                                            }
+                                          }}
+                                          disabled={!authInput[v.name]}
+                                          style={{ whiteSpace: 'nowrap' }}
+                                        >
+                                          Save Key
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
 
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', borderTop: '1px solid rgba(179, 134, 0, 0.1)', paddingTop: '12px' }}>
-                                {auth.help_url ? (
-                                  <a 
-                                    href={auth.help_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    style={{ color: '#b38600', textDecoration: 'none', fontSize: '12px', fontWeight: 500 }}
-                                  >
-                                    Need help getting started? ↗
-                                  </a>
-                                ) : <div></div>}
-                                <button 
-                                  style={{ background: 'transparent', border: 'none', color: '#b38600', fontSize: '12px', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}
-                                  onClick={async () => {
-                                    if (configPath) {
-                                      try {
-                                        await revealItemInDir(configPath);
-                                      } catch (err) {
-                                        console.error("Failed to open config file location:", err);
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', borderTop: '1px solid rgba(179, 134, 0, 0.1)', paddingTop: '12px' }}>
+                                  {auth.help_url ? (
+                                    <a 
+                                      href={auth.help_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#b38600', textDecoration: 'none', fontSize: '12px', fontWeight: 500 }}
+                                    >
+                                      Need help getting started? ↗
+                                    </a>
+                                  ) : <div></div>}
+                                  <button 
+                                    style={{ background: 'transparent', border: 'none', color: '#b38600', fontSize: '12px', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline' }}
+                                    onClick={async () => {
+                                      if (configPath) {
+                                        try {
+                                          await revealItemInDir(configPath);
+                                        } catch (err) {
+                                          console.error("Failed to open config file location:", err);
+                                          setShowProfileModal(true);
+                                        }
+                                      } else {
                                         setShowProfileModal(true);
                                       }
-                                    } else {
-                                      setShowProfileModal(true);
-                                    }
-                                  }}
-                                >
-                                  Manage all variables in profile
-                                </button>
+                                    }}
+                                  >
+                                    Manage all variables in profile
+                                  </button>
+                                </div>
                               </div>
-                            </div>
+                            )
                           )}
 
                           {configuredVars.length > 0 && missingVars.length > 0 && (
@@ -1166,14 +1400,45 @@ function App() {
                       <div className="detail-section">
                         <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '12px' }}>Security</h3>
                         <div style={{ background: 'var(--background-card)', border: '1px solid var(--border-subtle)', padding: '12px', borderRadius: '8px', fontSize: '13px' }}>
-                          <div style={{ fontWeight: 600, marginBottom: '4px' }}>{selectedTool.authorization.type === 'api_key' ? 'API Key Required' : selectedTool.authorization.type}</div>
-                          {selectedTool.authorization.env_var && (
-                            <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '8px' }}>
-                              Env: <code>{selectedTool.authorization.env_var}</code>
+                          {selectedTool.authorization.type === 'none' ? (
+                            <div style={{ color: 'var(--text-secondary)' }}>
+                              <CheckmarkRegular style={{ fontSize: '16px', color: 'var(--accent-primary)', verticalAlign: 'middle', marginRight: '8px' }} />
+                              No authentication required for this MCP.
                             </div>
-                          )}
-                          {selectedTool.authorization.description && (
-                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{selectedTool.authorization.description}</div>
+                          ) : selectedTool.authorization.recommended ? (
+                            <>
+                              <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--text-primary)' }}>
+                                {selectedTool.authorization.type === 'api_key' ? 'API Key (Optional)' : `${selectedTool.authorization.type} (Optional)`}
+                              </div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: '1.4' }}>
+                                Works without authentication, but adding credentials can improve rate limits.
+                              </div>
+                              {selectedTool.authorization.env_var && (
+                                <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '8px' }}>
+                                  Env: <code>{selectedTool.authorization.env_var}</code>
+                                </div>
+                              )}
+                              {selectedTool.authorization.description && (
+                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{selectedTool.authorization.description}</div>
+                              )}
+                            </>
+                          ) : selectedTool.authorization.required === false ? (
+                            <div style={{ color: 'var(--text-secondary)' }}>
+                              <CheckmarkRegular style={{ fontSize: '16px', color: 'var(--accent-primary)', verticalAlign: 'middle', marginRight: '8px' }} />
+                              No authentication required for this MCP.
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ fontWeight: 600, marginBottom: '4px' }}>{selectedTool.authorization.type === 'api_key' ? 'API Key Required' : selectedTool.authorization.type}</div>
+                              {selectedTool.authorization.env_var && (
+                                <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '8px' }}>
+                                  Env: <code>{selectedTool.authorization.env_var}</code>
+                                </div>
+                              )}
+                              {selectedTool.authorization.description && (
+                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{selectedTool.authorization.description}</div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -1184,13 +1449,113 @@ function App() {
             </section>
           )}
 
+          {selectedClient && (
+            <section className="section-container detail-view">
+              <header className="section-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button className="back-button" onClick={() => setSelectedClient(null)} title="Back to Clients">
+                    <ArrowLeftRegular />
+                    <span>Back</span>
+                  </button>
+                  <span style={{ fontSize: '18px', fontWeight: 700, textTransform: 'none', color: 'var(--text-primary)' }}>
+                    {selectedClient.name}
+                  </span>
+                </div>
+                <div className="card-actions">
+                  <button
+                    className="primary"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        const res = await fetch(`${CONTROL_API}/clients/sync`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ target: selectedClient.id, profile: selectedProfileId })
+                        });
+                        if (res.ok) {
+                          addLog(`Successfully installed ${selectedClient.name}.`, "INFO");
+                          alert(`Successfully installed ${selectedClient.name}!`);
+                        } else {
+                          const err = await res.text();
+                          addLog(`Failed to install ${selectedClient.name}: ${err}`, "ERROR");
+                          alert(`Failed to install ${selectedClient.name}: ${err}`);
+                        }
+                      } catch (err: any) {
+                        addLog(`Network error installing ${selectedClient.name}: ${err.message}`, "ERROR");
+                        alert(`Network error installing ${selectedClient.name}`);
+                      }
+                    }}
+                  >
+                    Install
+                  </button>
+                </div>
+              </header>
+
+              <div className="scroll-section detail-content" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', gap: '32px', marginBottom: '32px' }}>
+                  {selectedClient.icon ? (
+                    <img 
+                      src={getThemedIcon(selectedClient.icon)} 
+                      alt={selectedClient.name} 
+                      style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        objectFit: 'contain',
+                        borderRadius: '16px',
+                        padding: '8px',
+                        boxSizing: 'border-box'
+                      }} 
+                    />
+                  ) : (
+                    <div style={{ 
+                      width: '80px', 
+                      height: '80px', 
+                      background: 'var(--border-subtle)', 
+                      borderRadius: '16px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <PhoneLaptopRegular style={{ fontSize: '40px', opacity: 0.5 }} />
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span className="badge">Client Integration</span>
+                    </div>
+                    <p style={{ fontSize: '16px', lineHeight: '1.5', margin: 0, color: 'var(--text-primary)', fontWeight: 500 }}>
+                      {selectedClient.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', fontSize: '12px', opacity: 0.7 }}>Manual Configuration</div>
+                    <div style={{ background: 'var(--log-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'Google Sans Code, JetBrains Mono, monospace', fontSize: '13px', lineHeight: '1.6' }}>
+                        {selectedClient.manual_instructions
+                          .replace(/{profile}/g, selectedProfileId || 'work')
+                          .replace(/6277/g, appSettings.mcp_port.toString())}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Main List View */}
-          <section className="section-container" style={{ display: selectedTool ? 'none' : 'flex' }}>
+          <section className="section-container" style={{ display: (selectedTool || selectedClient) ? 'none' : 'flex' }}>
             <header className="section-header">
               <div style={{ display: 'flex', gap: '12px' }}>
                 <span 
                   className={`tab-link ${activeTab === 'active' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('active')}
+                  onClick={() => {
+                    setActiveTab('active');
+                    setSelectedTool(null);
+                    setSelectedClient(null);
+                  }}
                 >
                   Active Tools
                 </span>
@@ -1199,6 +1564,8 @@ function App() {
                   onClick={() => {
                     setActiveTab('catalog');
                     setSearchQuery(""); // Clear search when switching
+                    setSelectedTool(null);
+                    setSelectedClient(null);
                   }}
                 >
                   Catalog
@@ -1208,9 +1575,22 @@ function App() {
                   onClick={() => {
                     setActiveTab('clients');
                     setSearchQuery(""); 
+                    setSelectedTool(null);
+                    setSelectedClient(null);
                   }}
                 >
                   Clients
+                </span>
+                <span 
+                  className={`tab-link ${activeTab === 'logs' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('logs');
+                    setSearchQuery(""); 
+                    setSelectedTool(null);
+                    setSelectedClient(null);
+                  }}
+                >
+                  Logs
                 </span>
               </div>
               <span className="badge">
@@ -1218,25 +1598,63 @@ function App() {
                   ? `${selectedProfile?.allow_tools?.length || 0} Loaded` 
                   : activeTab === 'catalog'
                   ? `${(filteredTools || []).length} Available`
-                  : `${(allClients || []).length} Configurable`}
+                  : activeTab === 'clients'
+                  ? `${(allClients || []).length} Configurable`
+                  : `${(logs || []).length} Entries`}
               </span>
             </header>
 
             {activeTab === 'catalog' && (
               <div className="search-container">
-                <span className="search-icon"><SearchRegular /></span>
-                <input 
-                  type="text" 
-                  className="search-input" 
-                  placeholder="Search tools by name or description..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                <div className="search-input-wrapper">
+                  <span className="search-icon"><SearchRegular /></span>
+                  <input 
+                    type="text" 
+                    className="search-input" 
+                    placeholder="Search tools by name or description..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                
+                <div className="filter-group">
+                  <button 
+                    className={`filter-btn ${toolFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setToolFilter('all')}
+                  >
+                    All
+                  </button>
+                  <button 
+                    className={`filter-btn ${toolFilter === 'official' ? 'active' : ''}`}
+                    onClick={() => setToolFilter('official')}
+                  >
+                    <BuildingRegular style={{ fontSize: '14px' }} /> Official
+                  </button>
+                  <button 
+                    className={`filter-btn ${toolFilter === 'community' ? 'active' : ''}`}
+                    onClick={() => setToolFilter('community')}
+                  >
+                    <PeopleRegular style={{ fontSize: '14px' }} /> Community
+                  </button>
+                  <button 
+                    className={`filter-btn ${toolFilter === 'custom' ? 'active' : ''}`}
+                    onClick={() => setToolFilter('custom')}
+                  >
+                    <BoxRegular style={{ fontSize: '14px' }} /> Custom
+                  </button>
+                </div>
+
+                <button className="add-tool-btn" onClick={() => setDrawer({ type: "add-custom-tool" })}>
+                  <AddRegular style={{ fontSize: '18px' }} /> Bring Your Own Tool
+                </button>
               </div>
             )}
 
-            <div className="scroll-section">
-              <div className={activeTab !== 'active' ? "card-grid grid-layout" : "card-grid"}>
+            <div className="scroll-section" style={{ display: activeTab === 'logs' ? 'flex' : 'block', flexDirection: 'column' }}>
+              <div 
+                className={activeTab === 'logs' ? "" : (activeTab !== 'active' ? "card-grid grid-layout" : "card-grid")}
+                style={activeTab === 'logs' ? { flex: 1, display: 'flex', flexDirection: 'column' } : {}}
+              >
                 {activeTab === 'active' && (
                   <>
                     {selectedProfile?.allow_tools?.map(toolName => {
@@ -1251,11 +1669,34 @@ function App() {
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {tool?.icon ? (
-                              <img src={tool.icon} alt={toolName} style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                              <img 
+                                src={getThemedIcon(tool.icon)} 
+                                alt={toolName} 
+                                style={{ 
+                                  width: '40px', 
+                                  height: '40px', 
+                                  objectFit: 'contain',
+                                  backgroundColor: tool.icon_background ? (theme === 'light' ? tool.icon_background.light : tool.icon_background.dark) : 'transparent',
+                                  borderRadius: '8px',
+                                  padding: '4px',
+                                  boxSizing: 'border-box'
+                                }} 
+                              />
                             ) : (
-                              <div style={{ width: '40px', height: '40px', background: 'var(--border-subtle)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <WrenchRegular style={{ fontSize: '20px', opacity: 0.5 }} />
-                              </div>
+                              <img 
+                                src={getThemedIcon("/registry-logos/mcp_fallback_light.svg")} 
+                                alt={toolName} 
+                                style={{ 
+                                  width: '40px', 
+                                  height: '40px', 
+                                  objectFit: 'contain',
+                                  borderRadius: '8px',
+                                  padding: '4px',
+                                  boxSizing: 'border-box',
+                                  background: 'var(--background-card)',
+                                  border: '1px solid var(--border-subtle)'
+                                }} 
+                              />
                             )}
                             <div className="card-info">
                               <span className="card-title">{tool?.title || toolName}</span>
@@ -1302,18 +1743,139 @@ function App() {
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                   {tool.icon ? (
-                                    <img src={tool.icon} alt={tool.name} style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                                    <img 
+                                      src={getThemedIcon(tool.icon)} 
+                                      alt={tool.name} 
+                                      style={{ 
+                                        width: '40px', 
+                                        height: '40px', 
+                                        objectFit: 'contain',
+                                        backgroundColor: tool.icon_background ? (theme === 'light' ? tool.icon_background.light : tool.icon_background.dark) : 'transparent',
+                                        borderRadius: '8px',
+                                        padding: '4px',
+                                        boxSizing: 'border-box'
+                                      }} 
+                                    />
                                   ) : (
-                                    <div style={{ width: '40px', height: '40px', background: 'var(--border-subtle)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                      <WrenchRegular style={{ fontSize: '20px', opacity: 0.5 }} />
-                                    </div>
+                                    <img 
+                                      src={getThemedIcon("/registry-logos/mcp_fallback_light.svg")} 
+                                      alt={tool.name} 
+                                      style={{ 
+                                        width: '40px', 
+                                        height: '40px', 
+                                        objectFit: 'contain',
+                                        borderRadius: '8px',
+                                        padding: '4px',
+                                        boxSizing: 'border-box',
+                                        background: 'var(--background-card)',
+                                        border: '1px solid var(--border-subtle)'
+                                      }} 
+                                    />
                                   )}
                                   <div className="card-info">
-                                    <span className="card-title">{tool.title || tool.name}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span className="card-title">{tool.title || tool.name}</span>
+                                      {tool.source === 'official' && (
+                                        <span style={{ 
+                                          fontSize: '9px', 
+                                          padding: '2px 6px', 
+                                          background: 'rgba(0, 120, 212, 0.1)', 
+                                          color: 'var(--accent-primary)', 
+                                          borderRadius: '10px', 
+                                          fontWeight: 700,
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.5px',
+                                          border: '1px solid rgba(0, 120, 212, 0.2)',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}>
+                                          <BuildingRegular style={{ fontSize: '11px' }} />
+                                          Official
+                                        </span>
+                                      )}
+                                      {tool.source === 'community' && (
+                                        <span style={{ 
+                                          fontSize: '9px', 
+                                          padding: '2px 6px', 
+                                          background: 'rgba(128, 128, 128, 0.1)', 
+                                          color: 'var(--text-secondary)', 
+                                          borderRadius: '10px', 
+                                          fontWeight: 700,
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.5px',
+                                          border: '1px solid rgba(128, 128, 128, 0.2)',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}>
+                                          <PeopleRegular style={{ fontSize: '11px' }} />
+                                          Community
+                                        </span>
+                                      )}
+                                      {tool.source === 'enterprise' && (
+                                        <span style={{ 
+                                          fontSize: '9px', 
+                                          padding: '2px 6px', 
+                                          background: 'rgba(128, 128, 128, 0.1)', 
+                                          color: 'var(--text-secondary)', 
+                                          borderRadius: '10px', 
+                                          fontWeight: 700,
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.5px',
+                                          border: '1px solid rgba(128, 128, 128, 0.2)',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}>
+                                          <BoxRegular style={{ fontSize: '11px' }} />
+                                          Enterprise
+                                        </span>
+                                      )}
+                                      {tool.source !== 'official' && tool.source !== 'community' && tool.source !== 'enterprise' && (
+                                        <span style={{ 
+                                          fontSize: '9px', 
+                                          padding: '2px 6px', 
+                                          background: 'rgba(128, 128, 128, 0.1)', 
+                                          color: 'var(--text-secondary)', 
+                                          borderRadius: '10px', 
+                                          fontWeight: 700,
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.5px',
+                                          border: '1px solid rgba(128, 128, 128, 0.2)'
+                                        }}>{tool.source === 'local' ? 'Local' : 'Custom'}</span>
+                                      )}
+                                    </div>
                                     <span className="card-subtitle">{tool.description}</span>
                                   </div>
                                 </div>
                                 <div className="card-actions">
+                                  {tool.source !== 'official' && tool.source !== 'community' && (
+                                    <button 
+                                      className="secondary" 
+                                      style={{ marginRight: '4px', borderColor: '#ff4d4d', color: '#ff4d4d' }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteTool(tool.name);
+                                      }}
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                  {(tool.source === 'official' || tool.source === 'community') && (
+                                    <button 
+                                      className="secondary" 
+                                      style={{ marginRight: '4px' }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Clone official/community tool to custom
+                                        const customTool = { ...tool, source: 'custom', name: `${tool.name}-custom`, title: `${tool.title || tool.name} (Custom)` };
+                                        setDrawer({ type: "add-custom-tool", data: JSON.stringify(customTool, null, 2) });
+                                      }}
+                                    >
+                                      Customize
+                                    </button>
+                                  )}
                                   {isActive ? (
                                     <button disabled style={{ opacity: 0.5 }} onClick={(e) => e.stopPropagation()}>Active</button>
                                   ) : (
@@ -1336,20 +1898,32 @@ function App() {
                         </div>
                       </div>
                     ))}
-                    <div className="compact-card" style={{ borderStyle: 'dashed', justifyContent: 'center', cursor: 'pointer', gridColumn: '1 / -1' }} onClick={() => setDrawer({ type: "add-custom-tool" })}>
-                      <span className="card-title">+ Bring Your Own Tool</span>
-                    </div>
                   </>
                 )}
 
                 {activeTab === 'clients' && (
                   <>
                     {allClients.map(client => (
-                      <div key={client.id} className="compact-card" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: '12px' }}>
+                      <div 
+                        key={client.id} 
+                        className="compact-card clickable" 
+                        onClick={() => setSelectedClient(client)}
+                      >
                         <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {client.icon ? (
-                              <img src={client.icon} alt={client.name} style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                              <img 
+                                src={getThemedIcon(client.icon)} 
+                                alt={client.name} 
+                                style={{ 
+                                  width: '32px', 
+                                  height: '32px', 
+                                  objectFit: 'contain',
+                                  borderRadius: '4px',
+                                  padding: '2px',
+                                  boxSizing: 'border-box'
+                                }} 
+                              />
                             ) : (
                               <div style={{ width: '32px', height: '32px', background: 'var(--border-subtle)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <PhoneLaptopRegular style={{ fontSize: '20px', opacity: 0.5 }} />
@@ -1371,56 +1945,43 @@ function App() {
                                   body: JSON.stringify({ target: client.id, profile: selectedProfileId })
                                 });
                                 if (res.ok) {
-                                  addLog(`Successfully synced ${client.name}.`, "INFO");
-                                  alert(`Successfully synced ${client.name}!`);
+                                  addLog(`Successfully installed ${client.name}.`, "INFO");
+                                  alert(`Successfully installed ${client.name}!`);
                                 } else {
                                   const err = await res.text();
-                                  addLog(`Failed to sync ${client.name}: ${err}`, "ERROR");
-                                  alert(`Failed to sync ${client.name}: ${err}`);
+                                  addLog(`Failed to install ${client.name}: ${err}`, "ERROR");
+                                  alert(`Failed to install ${client.name}: ${err}`);
                                 }
                               } catch (err: any) {
-                                addLog(`Network error syncing ${client.name}: ${err.message}`, "ERROR");
-                                alert(`Network error syncing ${client.name}`);
+                                addLog(`Network error installing ${client.name}: ${err.message}`, "ERROR");
+                                alert(`Network error installing ${client.name}`);
                               }
                             }}
                           >
-                            Auto-Sync
+                            Install
                           </button>
-                        </div>
-                        
-                        <div style={{ width: '100%', padding: '12px', background: 'var(--log-bg)', borderRadius: '6px', fontSize: '11px' }}>
-                          <div style={{ fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', opacity: 0.7 }}>Manual Setup</div>
-                          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                            {client.manual_instructions
-                              .replace('{profile}', selectedProfileId || 'work')
-                              .replace('6277', appSettings.mcp_port.toString())}
-                          </pre>
                         </div>
                       </div>
                     ))}
                   </>
                 )}
+                {activeTab === 'logs' && (
+                  <div className="log-stream" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    {logs.map((log, i) => (
+                      <div key={i} style={{ fontFamily: "Google Sans Code, JetBrains Mono, monospace", fontSize: "11px", marginBottom: "4px" }}>
+                        <span style={{ opacity: 0.5 }}>[{log.timestamp}]</span>{" "}
+                        <span style={{ color: log.level === "ERROR" ? "#ff4d4d" : "inherit" }}>{log.message}</span>
+                      </div>
+                    ))}
+                    {logs.length === 0 && (
+                      <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No logs yet.</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </section>
 
-          {/* Logs Column */}
-          {activeTab === 'active' && !selectedTool && (
-            <div className="section-container" style={{ gap: "16px" }}>
-              {/* Log Stream */}
-              <section className="section-container">
-                <header className="section-header">Real-time Stream</header>
-                <div className="scroll-section log-stream">
-                  {logs.map((log, i) => (
-                    <div key={i} style={{ fontFamily: "Google Sans Code, JetBrains Mono, monospace", fontSize: "10px", marginBottom: "4px" }}>
-                      <span style={{ opacity: 0.5 }}>[{log.timestamp}]</span>{" "}
-                      <span style={{ color: log.level === "ERROR" ? "#ff4d4d" : "inherit" }}>{log.message}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </div>
-          )}
         </div>
       </div>
 
@@ -1644,18 +2205,42 @@ function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div className="form-field">
                     <label>Select Tool/Function</label>
-                    {tool?.authorization && selectedProfile && (
+                    {tool?.authorization && tool.authorization.type !== 'none' && selectedProfile && (
                       (() => {
                         const auth = tool.authorization;
-                        const envVars = auth.type === 'custom' ? (auth.env_vars || []) : (auth.env_var ? [{ name: auth.env_var, display_name: auth.display_name || auth.env_var, required: true }] : []);
-                        const missingVars = envVars.filter(v => v.required && !selectedProfile.env?.[v.name]);
+                        const isRecommended = auth.recommended === true;
+                        const isOptional = auth.required === false || auth.recommended === true;
+                        const envVars = auth.type === 'custom' ? (auth.env_vars || []) : (auth.env_var ? [{ name: auth.env_var, display_name: auth.display_name || auth.env_var, required: !isOptional }] : []);
+                        const missingVars = isOptional 
+                          ? envVars.filter(v => !selectedProfile.env?.[v.name])
+                          : envVars.filter(v => v.required && !selectedProfile.env?.[v.name]);
                         const configuredVars = envVars.filter(v => selectedProfile.env?.[v.name]);
+                        
+                        // Skip showing anything if auth is optional and not recommended
+                        if (isOptional && !isRecommended && missingVars.length > 0) return null;
                         
                         return (
                           <div style={{ marginBottom: '12px' }}>
                             {missingVars.length > 0 && (
-                              <div style={{ fontSize: '11px', color: '#b38600', marginBottom: '8px', padding: '12px', background: 'rgba(255, 204, 0, 0.05)', borderRadius: '6px', border: '1px solid rgba(255, 204, 0, 0.2)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ fontWeight: 600 }}><WarningRegular style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Missing Setup</div>
+                              <div style={{ 
+                                fontSize: '11px', 
+                                color: isRecommended ? 'var(--text-secondary)' : '#b38600', 
+                                marginBottom: '8px', 
+                                padding: '12px', 
+                                background: isRecommended ? 'var(--background-card)' : 'rgba(255, 204, 0, 0.05)', 
+                                borderRadius: '6px', 
+                                border: isRecommended ? '1px solid var(--border-subtle)' : '1px solid rgba(255, 204, 0, 0.2)', 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '8px' 
+                              }}>
+                                <div style={{ fontWeight: 600 }}>
+                                  {isRecommended ? (
+                                    <><KeyRegular style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Optional Setup</>
+                                  ) : (
+                                    <><WarningRegular style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Missing Setup</>
+                                  )}
+                                </div>
                                 {missingVars.map(v => (
                                   <div key={v.name} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1688,7 +2273,7 @@ function App() {
                                   </div>
                                 ))}
                                 <button 
-                                  style={{ background: 'transparent', border: 'none', color: '#b38600', fontSize: '11px', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline', alignSelf: 'flex-end', marginTop: '4px' }}
+                                  style={{ background: 'transparent', border: 'none', color: isRecommended ? 'var(--text-secondary)' : '#b38600', fontSize: '11px', cursor: 'pointer', opacity: 0.7, textDecoration: 'underline', alignSelf: 'flex-end', marginTop: '4px' }}
                                   onClick={async () => {
                                     if (configPath) {
                                       try {
@@ -1849,44 +2434,62 @@ function App() {
 
             {drawer.type === "add-custom-tool" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div className="form-field">
-                  <label>Tool Name</label>
-                  <input
-                    type="text"
-                    value={newTool.name}
-                    onChange={(e) => setNewTool({ ...newTool, name: e.target.value })}
-                    placeholder="e.g. my-custom-tool"
-                  />
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  Paste an MCP Tool Definition (JSON) to register it locally.
                 </div>
                 <div className="form-field">
-                  <label>Description</label>
-                  <input
-                    type="text"
-                    value={newTool.description}
-                    onChange={(e) => setNewTool({ ...newTool, description: e.target.value })}
-                    placeholder="What does this tool do?"
-                  />
+                  <label>Tool Definition (JSON)</label>
+                  <textarea
+                    rows={15}
+                    value={drawer.data || JSON.stringify({
+                      name: "my-tool",
+                      title: "My Custom Tool",
+                      description: "A description of my tool",
+                      category: "custom",
+                      source: "custom",
+                      runtime: {
+                        transport: "stdio",
+                        command: "npx",
+                        args: ["@modelcontextprotocol/server-everything"]
+                      }
+                    }, null, 2)}
+                    onChange={(e) => setDrawer({ ...drawer, data: e.target.value })}
+                    placeholder="{ ... }"
+                    style={{ 
+                      fontFamily: "Google Sans Code, monospace", 
+                      fontSize: '12px',
+                      background: 'var(--log-bg)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                  ></textarea>
                 </div>
-                <div className="form-field">
-                  <label>Category</label>
-                  <input
-                    type="text"
-                    value={newTool.category}
-                    onChange={(e) => setNewTool({ ...newTool, category: e.target.value })}
-                    placeholder="e.g. search, development, utility"
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Source Type</label>
-                  <select 
-                    value={newTool.source}
-                    onChange={(e) => setNewTool({ ...newTool, source: e.target.value })}
-                  >
-                    <option value="community">Community (Remote)</option>
-                    <option value="local">Local (WASM)</option>
-                  </select>
-                </div>
-                <button className="primary" onClick={registerTool}>Register Tool</button>
+                <button 
+                  className="primary" 
+                  onClick={async () => {
+                    try {
+                      const td = JSON.parse(drawer.data || "");
+                      const res = await fetch(`${CONTROL_API}/tools`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(td),
+                      });
+                      if (res.ok) {
+                        addLog(`Registered tool: ${td.name}`, "INFO");
+                        fetchAllTools();
+                        setDrawer(null);
+                      } else {
+                        const err = await res.text();
+                        alert(`Failed to register tool: ${err}`);
+                      }
+                    } catch (err: any) {
+                      alert(`Invalid JSON or Network Error: ${err.message}`);
+                    }
+                  }}
+                >
+                  Register Tool
+                </button>
               </div>
             )}
 

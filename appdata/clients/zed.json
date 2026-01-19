@@ -1,7 +1,7 @@
 {
   "id": "zed",
   "name": "Zed",
-  "icon": "/client-logos/zed.svg",
+  "icon": "/client-logos/zed_light.svg",
   "description": "High-performance multiplayer code editor",
-  "manual_instructions": "To manually configure Zed:\n1. Open Zed Settings\n2. Add to 'mcp_servers':\n   \"mcp-scooter\": {\n     \"url\": \"http://localhost:6277/profiles/{profile}/sse\"\n   }"
+  "manual_instructions": "### Manual Configuration for Zed\n\nTo manually connect Zed to MCP Scooter:\n\n1. Open your Zed settings (`settings.json`).\n2. Add the following to the `mcp_servers` section:\n\n```json\n{\n  \"mcp_servers\": {\n    \"mcp-scooter\": {\n      \"url\": \"http://localhost:6277/profiles/{profile}/sse\"\n    }\n  }\n}\n```"
 }

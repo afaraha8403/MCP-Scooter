@@ -26,6 +26,7 @@ func TestStore_SaveAndLoad(t *testing.T) {
 
 	settings := profile.DefaultSettings()
 	settings.GatewayAPIKey = "test-key"
+	settings.LastProfileID = "test2"
 
 	// Test Save
 	err = store.Save(profiles, settings)
@@ -38,6 +39,7 @@ func TestStore_SaveAndLoad(t *testing.T) {
 	assert.Equal(t, "test1", loadedProfiles[0].ID)
 	assert.Equal(t, "test2", loadedProfiles[1].ID)
 	assert.Equal(t, "test-key", loadedSettings.GatewayAPIKey)
+	assert.Equal(t, "test2", loadedSettings.LastProfileID)
 }
 
 func TestStore_LoadNonExistent(t *testing.T) {

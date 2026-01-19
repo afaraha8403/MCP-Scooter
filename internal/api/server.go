@@ -49,6 +49,7 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("POST /api/reset", s.handleReset)
 	s.mux.HandleFunc("GET /api/tools", s.handleGetTools)
 	s.mux.HandleFunc("POST /api/tools", s.handleRegisterTool)
+	s.mux.HandleFunc("DELETE /api/tools", s.handleDeleteTool)
 	s.mux.HandleFunc("GET /api/clients", s.handleGetClients)
 	s.mux.HandleFunc("GET /api/settings", s.handleGetSettings)
 	s.mux.HandleFunc("PUT /api/settings", s.handleUpdateSettings)
@@ -340,8 +341,26 @@ func (s *ControlServer) handleRegisterTool(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Persist to custom registry folder
+	if s.manager.registryDir != "" {
+		customDir := filepath.Join(s.manager.registryDir, "custom")
+		os.MkdirAll(customDir, 0755)
+		
+		filePath := filepath.Join(customDir, fmt.Sprintf("%s.json", td.Name))
+		data, err := json.MarshalIndent(td, "", "  ")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to serialize tool: %v", err), http.StatusInternalServerError)
+			return
+		}
+		
+		if err := os.WriteFile(filePath, data, 0644); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to save tool file: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	s.manager.mu.Lock()
-	// Check for duplicates
+	// Check for duplicates in memory
 	found := false
 	for i, existing := range s.manager.customTools {
 		if existing.Name == td.Name {
@@ -355,10 +374,41 @@ func (s *ControlServer) handleRegisterTool(w http.ResponseWriter, r *http.Reques
 	}
 	s.manager.mu.Unlock()
 
-	addLog(fmt.Sprintf("Registered tool: %s", td.Name))
+	addLog(fmt.Sprintf("Registered and persisted tool: %s", td.Name))
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(td)
+}
+
+func (s *ControlServer) handleDeleteTool(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Remove from custom registry folder
+	if s.manager.registryDir != "" {
+		filePath := filepath.Join(s.manager.registryDir, "custom", fmt.Sprintf("%s.json", name))
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			http.Error(w, fmt.Sprintf("Failed to delete tool file: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	s.manager.mu.Lock()
+	// Remove from memory
+	for i, existing := range s.manager.customTools {
+		if existing.Name == name {
+			s.manager.customTools = append(s.manager.customTools[:i], s.manager.customTools[i+1:]...)
+			break
+		}
+	}
+	s.manager.mu.Unlock()
+
+	addLog(fmt.Sprintf("Deleted tool: %s", name))
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // Simple global log helper for the server
@@ -694,11 +744,24 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, fmt.Sprintf("Tool error: %v", err))
 		} else {
-			resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
-				"content": []map[string]interface{}{
-					{"type": "text", "text": fmt.Sprintf("%v", result)},
-				},
-			})
+			// If result is already a map with "content", use it directly
+			if resMap, ok := result.(map[string]interface{}); ok {
+				if _, hasContent := resMap["content"]; hasContent {
+					resp = NewJSONRPCResponse(req.ID, resMap)
+				} else {
+					resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
+						"content": []map[string]interface{}{
+							{"type": "text", "text": fmt.Sprintf("%v", result)},
+						},
+					})
+				}
+			} else {
+				resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
+					"content": []map[string]interface{}{
+						{"type": "text", "text": fmt.Sprintf("%v", result)},
+					},
+				})
+			}
 		}
 
 	default:

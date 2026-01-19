@@ -30,6 +30,7 @@ type ToolDefinition struct {
 	Source        string                 `json:"source"` // "local", "community"
 	Installed     bool                   `json:"installed"`
 	Icon          string                 `json:"icon,omitempty"`
+	IconBackground *registry.IconBackground `json:"icon_background,omitempty"`
 	About         string                 `json:"about,omitempty"`
 	Tags          []string               `json:"tags,omitempty"`
 	Homepage      string                 `json:"homepage,omitempty"`
@@ -83,47 +84,62 @@ func (e *DiscoveryEngine) loadRegistry() {
 		return
 	}
 
-	files, err := os.ReadDir(e.registryDir)
-	if err != nil {
-		fmt.Printf("Warning: failed to read registry directory %s: %v\n", e.registryDir, err)
-		return
-	}
+	// Scan official and custom subdirectories
+	subdirs := []string{"official", "custom"}
+	for _, subdir := range subdirs {
+		dirPath := filepath.Join(e.registryDir, subdir)
+		files, err := os.ReadDir(dirPath)
+		if err != nil {
+			// Skip missing directories silently or log if not just "not found"
+			continue
+		}
 
-	for _, file := range files {
-		if filepath.Ext(file.Name()) == ".json" {
-			data, err := os.ReadFile(filepath.Join(e.registryDir, file.Name()))
-			if err != nil {
-				fmt.Printf("Warning: failed to read tool definition %s: %v\n", file.Name(), err)
-				continue
-			}
+		for _, file := range files {
+			if filepath.Ext(file.Name()) == ".json" {
+				data, err := os.ReadFile(filepath.Join(dirPath, file.Name()))
+				if err != nil {
+					fmt.Printf("Warning: failed to read tool definition %s/%s: %v\n", subdir, file.Name(), err)
+					continue
+				}
 
-			// Use the full MCPEntry from registry package for thoroughness
-			var entry registry.MCPEntry
-			if err := json.Unmarshal(data, &entry); err != nil {
-				fmt.Printf("Warning: failed to parse tool definition %s: %v\n", file.Name(), err)
-				continue
-			}
+				// Use the full MCPEntry from registry package for thoroughness
+				var entry registry.MCPEntry
+				if err := json.Unmarshal(data, &entry); err != nil {
+					fmt.Printf("Warning: failed to parse tool definition %s/%s: %v\n", subdir, file.Name(), err)
+					continue
+				}
 
-			td := ToolDefinition{
-				Name:          entry.Name,
-				Title:         entry.Title,
-				Version:       entry.Version,
-				Description:   entry.Description,
-				Category:      string(entry.Category),
-				Source:        string(entry.Source),
-				Icon:          entry.Icon,
-				About:         entry.About,
-				Tags:          entry.Tags,
-				Homepage:      entry.Homepage,
-				Repository:    entry.Repository,
-				Documentation: entry.Docs,
-				Authorization: entry.Auth,
-				Runtime:       entry.Runtime,
-				Tools:         entry.Tools,
-				Package:       entry.Package,
-				Metadata:      entry.Metadata,
+				source := string(entry.Source)
+				if source == "" {
+					if subdir == "official" {
+						source = "official"
+					} else {
+						source = "custom"
+					}
+				}
+
+				td := ToolDefinition{
+					Name:          entry.Name,
+					Title:         entry.Title,
+					Version:       entry.Version,
+					Description:   entry.Description,
+					Category:      string(entry.Category),
+					Source:        source,
+					Icon:          entry.Icon,
+					IconBackground: entry.IconBackground,
+					About:         entry.About,
+					Tags:          entry.Tags,
+					Homepage:      entry.Homepage,
+					Repository:    entry.Repository,
+					Documentation: entry.Docs,
+					Authorization: entry.Auth,
+					Runtime:       entry.Runtime,
+					Tools:         entry.Tools,
+					Package:       entry.Package,
+					Metadata:      entry.Metadata,
+				}
+				e.Register(td)
 			}
-			e.Register(td)
 		}
 	}
 }
@@ -299,8 +315,11 @@ func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (
 		e.mu.RUnlock()
 
 		if err := worker.Execute(stdin, &stdout, currentEnv); err != nil {
+			fmt.Printf("[Discovery] Tool execution failed for '%s': %v\n", name, err)
 			return nil, fmt.Errorf("tool execution failed: %w", err)
 		}
+
+		fmt.Printf("[Discovery] Tool '%s' response: %s\n", name, stdout.String())
 
 		var resp registry.JSONRPCResponse
 		if err := json.Unmarshal(stdout.Bytes(), &resp); err != nil {

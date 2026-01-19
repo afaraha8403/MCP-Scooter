@@ -16,12 +16,12 @@ Before starting, verify all prerequisites:
 
 1. **Verify registry file exists:**
    ```bash
-   ls appdata/registry/{name}.json
+   ls appdata/registry/official/{name}.json
    ```
 
 2. **Validate against schema:**
    ```bash
-   go run cmd/validate-registry/main.go appdata/registry/{name}.json
+   go run cmd/validate-registry/main.go appdata/registry/official/{name}.json
    ```
 
 3. **Check Go environment:**
@@ -42,7 +42,7 @@ Before starting, verify all prerequisites:
 ### Step 1: Registry Inspection
 
 <step>
-Read the registry file at `appdata/registry/{name}.json` and extract:
+Read the registry file at `appdata/registry/official/{name}.json` and extract:
 
 1. **Runtime configuration:**
    - Transport type: `stdio`, `wasm`, or `sse`
@@ -318,7 +318,7 @@ Response time: 1.2s
 
 | Error | Recovery Action |
 |-------|-----------------|
-| Registry file not found | Check spelling, list available MCPs in `appdata/registry/` |
+| Registry file not found | Check spelling, list available MCPs in `appdata/registry/official/` |
 | Schema validation failed | Fix registry JSON before proceeding |
 | Missing env var | Prompt user, provide `help_url` from registry |
 | Transport not implemented | Implement or report as blocker |

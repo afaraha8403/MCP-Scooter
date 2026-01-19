@@ -52,8 +52,9 @@
     },
     "source": {
       "type": "string",
-      "enum": ["official", "community", "enterprise", "local"],
-      "description": "Origin of the tool"
+      "enum": ["official", "community", "enterprise", "local", "custom"],
+      "default": "official",
+      "description": "Origin of the tool. Use 'official' for MCPs in the official Scooter registry."
     },
     "tags": {
       "type": "array",
@@ -68,7 +69,25 @@
     },
     "icon": {
       "type": "string",
-      "description": "Path to SVG icon (relative: /mcp-logos/name.svg or absolute URL)"
+      "description": "Path to SVG icon (relative: /registry-logos/name.svg or absolute URL)"
+    },
+    "icon_background": {
+      "type": "object",
+      "properties": {
+        "light": {
+          "type": "string",
+          "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+          "default": "#efeae7",
+          "description": "Background color for icon in light mode"
+        },
+        "dark": {
+          "type": "string",
+          "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
+          "default": "#6a6a89",
+          "description": "Background color for icon in dark mode"
+        }
+      },
+      "description": "Custom background colors for the icon"
     },
     "banner": {
       "type": "string",
@@ -133,7 +152,12 @@
         "required": {
           "type": "boolean",
           "default": true,
-          "description": "Whether authentication is required to use this MCP"
+          "description": "Whether authentication is required to use this MCP. When false, the MCP works without auth but may have limited functionality."
+        },
+        "recommended": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether authentication is recommended even if not required. Use with required=false to indicate optional but beneficial auth."
         },
         "display_name": {
           "type": "string",

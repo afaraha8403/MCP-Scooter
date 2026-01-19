@@ -1,7 +1,7 @@
 {
   "id": "gemini-cli",
   "name": "Gemini CLI",
-  "icon": "/client-logos/gemini.svg",
+  "icon": "/client-logos/gemini_cli.svg",
   "description": "Google's Gemini model accessed via terminal",
-  "manual_instructions": "To manually configure Gemini CLI:\nAdd the following to your config file:\n[mcp.servers.mcp-scooter]\nurl = \"http://localhost:6277/profiles/{profile}/sse\""
+  "manual_instructions": "### Manual Configuration for Gemini CLI\n\nTo manually connect Gemini CLI to MCP Scooter, add the following to your configuration file:\n\n```toml\n[mcp.servers.mcp-scooter]\nurl = \"http://localhost:6277/profiles/{profile}/sse\"\n```"
 }

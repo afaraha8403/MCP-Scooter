@@ -233,7 +233,8 @@ This will automatically tag the current commit and push it to GitHub, triggering
 MCP Scooter/
 ├── appdata/
 │   ├── clients/        # AI client configurations
-│   ├── registry/       # MCP server definitions (JSON)
+│   ├── registry/       # MCP server definitions (organized by source)
+│   │   └── official/   # Official MCP definitions (JSON)
 │   └── schemas/        # JSON Schema for validation
 ├── cmd/
 │   ├── scooter/        # Main application
@@ -322,9 +323,12 @@ We're building the foundation. Here's what's done and what's next:
 
 ### Adding New MCP Definitions
 
-1. Create a JSON file in `appdata/registry/{name}.json`
+1. Create a JSON file in `appdata/registry/official/{name}.json`
 2. Follow the schema in `appdata/schemas/mcp-registry.schema.json`
 3. Run `make validate` to verify
+
+All MCPs in the registry are considered **Official MCPs** and must be validated before merging.
+
 4. Submit a PR!
 
 See `.doc/mcp-registry-specification.md` for the full specification.

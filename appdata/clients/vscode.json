@@ -1,7 +1,7 @@
 {
   "id": "vscode",
   "name": "VS Code",
-  "icon": "/client-logos/vscode.svg",
+  "icon": "/client-logos/vs_code.svg",
   "description": "Microsoft's ubiquitous code editor with MCP extensions",
-  "manual_instructions": "To manually configure VS Code:\n1. Install an MCP client extension (e.g., 'MCP Client')\n2. Open Extension Settings\n3. Add server: http://localhost:6277/profiles/{profile}/sse"
+  "manual_instructions": "### Manual Configuration for VS Code\n\nTo manually connect VS Code to MCP Scooter:\n\n1. Install an MCP-compatible extension (e.g., [MCP Client](https://marketplace.visualstudio.com/items?itemName=mcp.client)).\n2. Open the extension settings or configuration file.\n3. Add a new server with the following URL:\n\n```\nhttp://localhost:6277/profiles/{profile}/sse\n```"
 }

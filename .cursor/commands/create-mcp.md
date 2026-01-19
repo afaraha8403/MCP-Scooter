@@ -101,19 +101,19 @@ For each tool/function the MCP exposes, create a tool definition:
 ### Step 4: Create Registry JSON
 
 <step>
-Create the complete registry JSON file at `appdata/registry/{name}.json`:
+Create the complete registry JSON file at `appdata/registry/official/{name}.json`:
 
 ```json
 {
-  "$schema": "../schemas/mcp-registry.schema.json",
+  "$schema": "../../schemas/mcp-registry.schema.json",
   "name": "{name}",
   "version": "1.0.0",
   "title": "{Title}",
   "description": "{One-line description, 10-200 chars}",
   "category": "{category}",
-  "source": "community",
+  "source": "official",
   "tags": ["{tag1}", "{tag2}"],
-  "icon": "/mcp-logos/{name}.svg",
+  "icon": "/registry-logos/{name}.svg",
   "color": "#{hexcolor}",
   "about": "{Markdown documentation}",
   "homepage": "{url}",
@@ -180,7 +180,7 @@ Create the complete registry JSON file at `appdata/registry/{name}.json`:
 ### Step 5: Create Icon Placeholder
 
 <step>
-Note that an icon is needed at `desktop/public/mcp-logos/{name}.svg`.
+Note that an icon is needed at `desktop/public/registry-logos/{name}.svg`.
 
 Options:
 1. Download from the project's repository if available
@@ -203,7 +203,7 @@ Run validation to ensure the new MCP entry is correct:
 
 ```bash
 # Validate the new file
-go run cmd/validate-registry/main.go appdata/registry/{name}.json
+go run cmd/validate-registry/main.go appdata/registry/official/{name}.json
 
 # Or use make to validate all
 make validate
@@ -232,7 +232,7 @@ After completing the workflow, provide:
 **Input:** `https://github.com/anthropics/mcp-server-brave-search`
 
 **Output:**
-- Created: `appdata/registry/brave-search.json`
+- Created: `appdata/registry/official/brave-search.json`
 - Tools: `brave_web_search`, `brave_local_search`
 - Auth: API key (`BRAVE_API_KEY`)
-- Icon: TODO - need to add `desktop/public/mcp-logos/brave-search.svg`
+- Icon: TODO - need to add `desktop/public/registry-logos/brave-search.svg`
