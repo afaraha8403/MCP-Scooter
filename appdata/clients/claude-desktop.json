@@ -2,6 +2,46 @@
   "id": "claude-desktop",
   "name": "Claude Desktop",
   "icon": "/client-logos/claude_desktop.svg",
-  "description": "Anthropic's official desktop client for Claude",
-  "manual_instructions": "### Manual Configuration for Claude Desktop\n\nTo manually connect Claude Desktop to MCP Scooter:\n\n1. Open your Claude Desktop configuration file:\n   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`\n   - **Windows:** `%APPDATA%\\Claude\\claude_desktop_config.json`\n2. Add the following to the `mcpServers` object:\n\n```json\n{\n  \"mcpServers\": {\n    \"mcp-scooter\": {\n      \"type\": \"sse\",\n      \"url\": \"http://localhost:6277/profiles/{profile}/sse\"\n    }\n  }\n}\n```"
+  "description": "Anthropic's official desktop client for conversational AI with MCP integration",
+  "version": "Latest",
+  "developer": "Anthropic",
+  "category": "Desktop App",
+  "tags": ["desktop", "chat", "mcp", "extensions", "connectors"],
+  "about": "## Claude Desktop\n\nThe official desktop application for Claude, providing a native conversational AI experience with deep MCP (Model Context Protocol) integration for extending Claude's capabilities.\n\n### Key Capabilities\n\n- **Native Desktop Experience** - Fast, responsive app for macOS and Windows\n- **MCP Integration** - Connect to local and remote MCP servers\n- **Desktop Extensions (DXT)** - One-click installation of local MCP servers\n- **Pre-built Connectors** - Ready-to-use integrations with popular services\n\n### MCP Support\n\n#### Remote MCP Servers\nFull support for remote MCP servers under Pro, Max, Team, and Enterprise plans. Add servers via Settings → Connectors.\n\n#### Local MCP Servers\nRun MCP servers locally via STDIO transport. Desktop Extensions (DXT) simplify setup by packaging local servers like browser extensions.\n\n#### Pre-built Connectors\nReady-to-use integrations available:\n- Asana, Atlassian, Cloudflare\n- Canva (design creation)\n- Microsoft 365 (SharePoint, OneDrive, Outlook, Teams)\n\n### Recent Features (2025-2026)\n\n- **Agent Capabilities API** - Code execution, file storage, extended prompt caching\n- **Canva Integration** - Create and edit designs via MCP\n- **Microsoft 365 Tools** - Access SharePoint, OneDrive, Outlook, Teams (Team/Enterprise)\n- **Connectors Directory** - Browse and manage MCP integrations in-app\n\n### Transport Support\n\n- HTTP and SSE transports for remote servers\n- STDIO for local servers\n- OAuth and authless authentication modes",
+  "homepage": "https://claude.ai/download",
+  "documentation": "https://support.anthropic.com/en/articles/10949351-getting-started-with-model-context-protocol-mcp-on-claude-for-desktop",
+  "download_url": "https://claude.ai/download",
+  "platforms": ["macOS", "Windows", "iOS", "Android"],
+  "mcp_support": {
+    "transports": ["stdio", "sse", "http"],
+    "features": ["tools", "prompts", "resources", "desktop_extensions"],
+    "status": "beta"
+  },
+  "features": [
+    {
+      "name": "Desktop Extensions",
+      "description": "Install local MCP servers like browser extensions with one click"
+    },
+    {
+      "name": "Remote Connectors",
+      "description": "Connect to cloud-hosted MCP servers with OAuth support"
+    },
+    {
+      "name": "Pre-built Integrations",
+      "description": "Ready-to-use connectors for Asana, Atlassian, Microsoft 365, Canva"
+    },
+    {
+      "name": "Mobile Sync",
+      "description": "Access configured MCP servers from iOS/Android apps"
+    },
+    {
+      "name": "Connectors Directory",
+      "description": "Browse and discover available MCP integrations"
+    }
+  ],
+  "metadata": {
+    "license": "Proprietary",
+    "pricing": "Free tier available, Pro/Team/Enterprise for advanced MCP features"
+  },
+  "manual_instructions": "### Manual Configuration for Claude Desktop\n\nTo manually connect Claude Desktop to MCP Scooter:\n\n1. Open your Claude Desktop configuration file:\n   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`\n   - **Windows:** `%APPDATA%\\Claude\\claude_desktop_config.json`\n2. Add the following to the `mcpServers` object:\n\n```json\n{\n  \"mcpServers\": {\n    \"mcp-scooter\": {\n      \"type\": \"sse\",\n      \"url\": \"http://127.0.0.1:6277/profiles/{profile}/sse\"\n    }\n  }\n}\n```"
 }

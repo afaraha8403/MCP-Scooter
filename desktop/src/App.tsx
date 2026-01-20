@@ -22,14 +22,25 @@ import {
   WeatherSunnyRegular,
   ArrowLeftRegular,
   ChevronDownRegular,
+  CopyRegular,
   PhoneLaptopRegular,
   AddRegular,
   BuildingRegular,
-  PeopleRegular
+  PeopleRegular,
+  WindowRegular,
+  LaptopRegular,
+  DesktopRegular,
+  PhoneRegular,
+  GlobeRegular,
+  DeleteRegular,
+  FolderOpenRegular
 } from "@fluentui/react-icons";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { SettingsModal } from "./components/SettingsModal";
 import { ProfileSelectionModal } from "./components/ProfileSelectionModal";
+import { JsonEditor } from "./components/JsonEditor";
+import "vanilla-jsoneditor/themes/jse-theme-dark.css";
 import { invoke } from "@tauri-apps/api/core";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import "./App.css";
@@ -40,6 +51,7 @@ interface Profile {
   remote_server_url: string;
   env: Record<string, string>;
   allow_tools: string[];
+  disabled_system_tools?: string[];
 }
 
 interface Settings {
@@ -120,9 +132,100 @@ interface ClientDefinition {
   id: string;
   name: string;
   icon: string;
+  icon_dark?: string;
   description: string;
   manual_instructions: string;
+  version?: string;
+  developer?: string;
+  category?: string;
+  tags?: string[];
+  about?: string;
+  homepage?: string;
+  repository?: string;
+  documentation?: string;
+  download_url?: string;
+  platforms?: string[];
+  installed: boolean;
+  mcp_support?: {
+    transports: string[];
+    features: string[];
+    status: "stable" | "beta" | "experimental";
+  };
+  features?: {
+    name: string;
+    description: string;
+  }[];
+  metadata?: {
+    license?: string;
+    pricing?: string;
+  };
 }
+
+const getPlatformIcon = (platform: string) => {
+  const p = platform.toLowerCase();
+  if (p.includes('windows')) return <WindowRegular />;
+  if (p.includes('macos')) return <LaptopRegular />;
+  if (p.includes('linux')) return <DesktopRegular />;
+  if (p.includes('ios')) return <PhoneRegular />;
+  if (p.includes('android')) return <PhoneRegular />;
+  if (p.includes('web')) return <GlobeRegular />;
+  return <PhoneLaptopRegular />;
+};
+
+const isCurrentPlatform = (platform: string) => {
+  const p = platform.toLowerCase();
+  const ua = navigator.userAgent.toLowerCase();
+  if (p.includes('windows') && ua.includes('win')) return true;
+  if (p.includes('macos') && ua.includes('mac')) return true;
+  if (p.includes('linux') && ua.includes('linux')) return true;
+  if (p.includes('ios') && (ua.includes('iphone') || ua.includes('ipad'))) return true;
+  if (p.includes('android') && ua.includes('android')) return true;
+  return false;
+};
+
+const CopyButton = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button 
+      className={`copy-code-btn ${copied ? 'copied' : ''}`}
+      onClick={handleCopy}
+      title="Copy to clipboard"
+    >
+      {copied ? <CheckmarkCircleRegular style={{ fontSize: '12px' }} /> : <CopyRegular style={{ fontSize: '12px' }} />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+};
+
+const markdownComponents = {
+  pre: ({ children }: any) => {
+    // Extract text content from children (which is usually a <code> element)
+    const getCodeText = (node: any): string => {
+      if (typeof node === 'string') return node;
+      if (Array.isArray(node)) return node.map(getCodeText).join('');
+      if (node?.props?.children) return getCodeText(node.props.children);
+      return '';
+    };
+    
+    const text = getCodeText(children);
+    
+    return (
+      <div className="code-block-wrapper">
+        <CopyButton text={text} />
+        <pre>{children}</pre>
+      </div>
+    );
+  }
+};
 
 function App() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -169,11 +272,14 @@ function App() {
   const [savedToolParams, setSavedToolParams] = useState<Record<string, Record<string, any>>>({});
   const [optionalAuthExpanded, setOptionalAuthExpanded] = useState(false);
 
+  const [logSearchQuery, setLogSearchQuery] = useState("");
+  const [logLevelFilter, setLogLevelFilter] = useState<"ALL" | "INFO" | "WARN" | "ERROR">("ALL");
+
   // Load saved tool params on mount
   useEffect(() => {
     const loadSavedParams = async () => {
       try {
-        const res = await fetch(`http://localhost:${appSettings.control_port}/api/tool-params`);
+        const res = await fetch(`http://127.0.0.1:${appSettings.control_port}/api/tool-params`);
         if (res.ok) {
           const data = await res.json();
           setSavedToolParams(data || {});
@@ -183,6 +289,43 @@ function App() {
       }
     };
     loadSavedParams();
+
+    // Fetch initial logs
+    const loadLogs = async () => {
+      try {
+        const res = await fetch(`http://127.0.0.1:${appSettings.control_port}/api/logs`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.logs) {
+            setLogs(data.logs);
+          }
+        }
+      } catch (err) {
+        console.log("Could not load logs:", err);
+      }
+    };
+    loadLogs();
+
+    // Subscribe to real-time logs
+    const eventSource = new EventSource(`http://127.0.0.1:${appSettings.control_port}/api/logs/stream`);
+    
+    eventSource.addEventListener('log', (event) => {
+      try {
+        const log = JSON.parse(event.data);
+        setLogs(prev => [log, ...prev].slice(0, 1000));
+      } catch (err) {
+        console.error("Failed to parse log from SSE:", err);
+      }
+    });
+
+    eventSource.onerror = (err) => {
+      console.error("SSE connection error:", err);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [appSettings.control_port]);
 
   // Reset optional auth accordion when tool changes
@@ -231,7 +374,7 @@ function App() {
   // Save tool params when modified
   const saveToolParams = async (functionName: string, params: Record<string, any>) => {
     try {
-      await fetch(`http://localhost:${appSettings.control_port}/api/tool-params`, {
+      await fetch(`http://127.0.0.1:${appSettings.control_port}/api/tool-params`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tool_name: functionName, parameters: params }),
@@ -261,7 +404,77 @@ function App() {
     }
   }, [drawer, allTools, savedToolParams]);
 
-  const CONTROL_API = `http://localhost:${appSettings.control_port}/api`;
+  const formatLogTimestamp = (ts: string) => {
+    try {
+      const date = new Date(ts);
+      if (isNaN(date.getTime())) return ts;
+      return date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch {
+      return ts;
+    }
+  };
+
+  const getLogLevelStyle = (level: string): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      padding: '1px 6px',
+      borderRadius: '4px',
+      fontSize: '10px',
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: '45px',
+      marginRight: '8px'
+    };
+
+    switch (level) {
+      case 'ERROR':
+        return { ...base, background: 'rgba(255, 77, 77, 0.15)', color: '#ff4d4d', border: '1px solid rgba(255, 77, 77, 0.2)' };
+      case 'WARN':
+      case 'WARNING':
+        return { ...base, background: 'rgba(255, 204, 0, 0.15)', color: '#ffcc00', border: '1px solid rgba(255, 204, 0, 0.2)' };
+      case 'SUCCESS':
+        return { ...base, background: 'rgba(0, 200, 83, 0.15)', color: '#00c853', border: '1px solid rgba(0, 200, 83, 0.2)' };
+      case 'DEBUG':
+        return { ...base, background: 'rgba(156, 39, 176, 0.15)', color: '#9c27b0', border: '1px solid rgba(156, 39, 176, 0.2)' };
+      default: // INFO
+        return { ...base, background: 'rgba(0, 109, 91, 0.15)', color: 'var(--accent-primary)', border: '1px solid var(--border-subtle)' };
+    }
+  };
+
+  const filteredLogs = logs
+    .filter(log => {
+      if (logLevelFilter !== "ALL" && log.level !== logLevelFilter) return false;
+      if (logSearchQuery && !log.message.toLowerCase().includes(logSearchQuery.toLowerCase())) return false;
+      return true;
+    });
+
+  const clearLogs = async () => {
+    try {
+      const res = await fetch(`http://127.0.0.1:${appSettings.control_port}/api/logs`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setLogs([]);
+        addLog("Logs cleared.", "INFO");
+      }
+    } catch (err) {
+      console.log("Could not clear logs:", err);
+    }
+  };
+
+  const revealLogs = async () => {
+    try {
+      await fetch(`http://127.0.0.1:${appSettings.control_port}/api/logs/reveal`, {
+        method: "POST"
+      });
+    } catch (err) {
+      console.log("Could not reveal logs:", err);
+    }
+  };
+
+  const CONTROL_API = `http://127.0.0.1:${appSettings.control_port}/api`;
 
   // Splash screen helper
   const splashLog = (message: string, type: string = 'normal', once: boolean = false) => {
@@ -436,6 +649,15 @@ function App() {
 
   const handleSelectProfile = async (profileId: string) => {
     setSelectedProfileId(profileId);
+    
+    // Soft reset UI state
+    setActiveTab("active");
+    setSelectedTool(null);
+    setSelectedClient(null);
+    setSearchQuery("");
+    setShowProfileModal(false);
+    addLog(`Switched to profile: ${profileId}`, "INFO");
+
     // Save the last selected profile to settings
     try {
       const newSettings = { ...appSettings, last_profile_id: profileId };
@@ -445,6 +667,11 @@ function App() {
         body: JSON.stringify(newSettings),
       });
       setAppSettings(newSettings);
+      
+      // Refresh data for the new profile
+      fetchProfiles();
+      fetchAllTools();
+      fetchClients();
     } catch (err) {
       // Silent fail - not critical if we can't save the preference
       console.log("Could not save last profile preference:", err);
@@ -508,11 +735,27 @@ function App() {
 
   const addLog = (message: string, level: string = "INFO") => {
     console.log(`[${level}] ${message}`);
-    setLogs(prev => [{ timestamp: new Date().toLocaleTimeString(), level, message }, ...prev].slice(0, 50));
+    // Only update local state if SSE is not active or for immediate feedback
+    // But since SSE will push it back, we can just send it to the backend
+    fetch(`http://127.0.0.1:${appSettings.control_port}/api/logs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level, message })
+    }).catch(err => {
+      console.error("Failed to send log to backend:", err);
+      // Fallback to local state if backend is unreachable
+      setLogs(prev => [{ timestamp: new Date().toLocaleTimeString(), level, message }, ...prev].slice(0, 1000));
+    });
   };
 
+  // Separate builtin/primordial tools from installable tools
+  const builtinTools = allTools.filter(t => t.source === "builtin");
+  
   const filteredTools = allTools
     .filter(t => {
+      // Exclude builtin tools from the catalog - they're always available
+      if (t.source === "builtin") return false;
+      
       const matchesSearch = 
         (t.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
         (t.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -587,7 +830,11 @@ function App() {
       const res = await fetch(`${CONTROL_API}/profiles`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...profile, allow_tools: tools }),
+        body: JSON.stringify({ 
+          ...profile, 
+          allow_tools: tools,
+          disabled_system_tools: profile.disabled_system_tools || []
+        }),
       });
       if (res.ok) {
         addLog(`Updated tools for profile: ${profileId}`, "INFO");
@@ -600,6 +847,34 @@ function App() {
     }
   };
 
+  const toggleSystemTool = async (toolName: string) => {
+    if (!selectedProfile) return;
+
+    const currentDisabled = selectedProfile.disabled_system_tools || [];
+    const isCurrentlyDisabled = currentDisabled.includes(toolName);
+    
+    const newDisabled = isCurrentlyDisabled 
+      ? currentDisabled.filter(t => t !== toolName)  // Enable: remove from disabled list
+      : [...currentDisabled, toolName];               // Disable: add to disabled list
+
+    try {
+      const res = await fetch(`${CONTROL_API}/profiles`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...selectedProfile, disabled_system_tools: newDisabled }),
+      });
+      if (res.ok) {
+        const action = isCurrentlyDisabled ? "enabled" : "disabled";
+        addLog(`System tool ${toolName} ${action}`, "INFO");
+        fetchProfiles();
+      } else {
+        addLog(`Failed to toggle system tool: ${toolName}`, "ERROR");
+      }
+    } catch (err) {
+      addLog(`Error toggling system tool: ${err}`, "ERROR");
+    }
+  };
+
   const updateProfileEnv = async (profileId: string, env: Record<string, string>) => {
     const profile = profiles.find(p => p.id === profileId);
     if (!profile) return;
@@ -608,7 +883,11 @@ function App() {
       const res = await fetch(`${CONTROL_API}/profiles`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...profile, env: { ...(profile.env || {}), ...env } }),
+        body: JSON.stringify({ 
+          ...profile, 
+          env: { ...(profile.env || {}), ...env },
+          disabled_system_tools: profile.disabled_system_tools || []
+        }),
       });
       if (res.ok) {
         addLog(`Updated environment for profile: ${profileId}`, "INFO");
@@ -654,7 +933,7 @@ function App() {
       addLog(`Invoking ${selectedFunctionName}...`, "INFO");
       
       // Use the unified gateway port and include profile ID in path
-      const url = `http://localhost:${appSettings.mcp_port}/profiles/${selectedProfile.id}/message`;
+      const url = `http://127.0.0.1:${appSettings.mcp_port}/profiles/${selectedProfile.id}/message`;
       
       const res = await fetch(url, {
         method: "POST",
@@ -928,6 +1207,37 @@ function App() {
                   </span>
                 </div>
                 <div className="card-actions">
+                  {(selectedTool.source === 'official' || selectedTool.source === 'community') && (
+                    <button 
+                      className="secondary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Clone official/community tool to custom
+                        const customTool = { ...selectedTool, source: 'custom', name: `${selectedTool.name}-custom`, title: `${selectedTool.title || selectedTool.name} (Custom)` };
+                        setDrawer({ type: "add-custom-tool", data: JSON.stringify(customTool, null, 2) });
+                      }}
+                    >
+                      Duplicate
+                    </button>
+                  )}
+                  {selectedTool.source === 'custom' && (
+                    <button 
+                      className="secondary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDrawer({ type: "add-custom-tool", data: JSON.stringify(selectedTool, null, 2) });
+                      }}
+                    >
+                      Customize
+                    </button>
+                  )}
+                  <button 
+                    className="secondary"
+                    onClick={(e) => { e.stopPropagation(); setDrawer({ type: "test-tool", data: selectedTool.name }); }}
+                  >
+                    Test
+                  </button>
+                  
                   {selectedTool.authorization && (
                     selectedTool.authorization.type === 'none' ? (
                       <div 
@@ -965,6 +1275,7 @@ function App() {
                       </button>
                     )
                   )}
+
                   {selectedProfile?.allow_tools?.includes(selectedTool.name) ? (
                     <button 
                       className="secondary"
@@ -989,7 +1300,6 @@ function App() {
                       Activate
                     </button>
                   )}
-                  <button onClick={(e) => { e.stopPropagation(); setDrawer({ type: "test-tool", data: selectedTool.name }); }}>Test</button>
                 </div>
               </header>
 
@@ -1308,13 +1618,20 @@ function App() {
                       <div className="detail-section">
                         <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '16px' }}>About</h3>
                         <div className="markdown-content" style={{ background: 'var(--background-card)', border: '1px solid var(--border-subtle)', padding: '24px', borderRadius: '8px', lineHeight: '1.6', fontSize: '14px' }}>
-                          <ReactMarkdown>{selectedTool.about}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{selectedTool.about}</ReactMarkdown>
                         </div>
                       </div>
                     )}
 
                     <div className="detail-section">
-                      <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '16px' }}>Capabilities</h3>
+                      <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Capabilities</span>
+                        {selectedTool.tools && selectedTool.tools.length > 0 && (
+                          <span style={{ fontSize: '11px', opacity: 0.6, background: 'var(--background-card)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                            {selectedTool.tools.length} {selectedTool.tools.length === 1 ? 'tool' : 'tools'}
+                          </span>
+                        )}
+                      </h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {selectedTool.tools && selectedTool.tools.length > 0 ? (
                           selectedTool.tools.map(t => (
@@ -1460,85 +1777,354 @@ function App() {
                   <span style={{ fontSize: '18px', fontWeight: 700, textTransform: 'none', color: 'var(--text-primary)' }}>
                     {selectedClient.name}
                   </span>
+                  {selectedClient.version && (
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 400 }}>v{selectedClient.version}</span>
+                  )}
                 </div>
-                <div className="card-actions">
-                  <button
-                    className="primary"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        const res = await fetch(`${CONTROL_API}/clients/sync`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ target: selectedClient.id, profile: selectedProfileId })
-                        });
-                        if (res.ok) {
-                          addLog(`Successfully installed ${selectedClient.name}.`, "INFO");
-                          alert(`Successfully installed ${selectedClient.name}!`);
-                        } else {
-                          const err = await res.text();
-                          addLog(`Failed to install ${selectedClient.name}: ${err}`, "ERROR");
-                          alert(`Failed to install ${selectedClient.name}: ${err}`);
+                <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
+                  {selectedClient.installed ? (
+                    <button
+                      className="primary"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const res = await fetch(`${CONTROL_API}/clients/sync`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ target: selectedClient.id, profile: selectedProfileId })
+                          });
+                          if (res.ok) {
+                            addLog(`Successfully configured ${selectedClient.name}.`, "INFO");
+                            alert(`Successfully configured ${selectedClient.name}!`);
+                          } else {
+                            const err = await res.text();
+                            addLog(`Failed to configure ${selectedClient.name}: ${err}`, "ERROR");
+                            alert(`Failed to configure ${selectedClient.name}: ${err}`);
+                          }
+                        } catch (err: any) {
+                          addLog(`Network error configuring ${selectedClient.name}: ${err.message}`, "ERROR");
+                          alert(`Network error configuring ${selectedClient.name}`);
                         }
-                      } catch (err: any) {
-                        addLog(`Network error installing ${selectedClient.name}: ${err.message}`, "ERROR");
-                        alert(`Network error installing ${selectedClient.name}`);
-                      }
-                    }}
-                  >
-                    Install
-                  </button>
+                      }}
+                    >
+                      Setup
+                    </button>
+                  ) : (
+                    selectedClient.download_url ? (
+                      <a
+                        href={selectedClient.download_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}
+                      >
+                        <ArrowDownloadRegular style={{ fontSize: '16px' }} />
+                        Download
+                      </a>
+                    ) : (
+                      <button className="primary" disabled>Not Installed</button>
+                    )
+                  )}
                 </div>
               </header>
 
               <div className="scroll-section detail-content" style={{ padding: '24px' }}>
+                {/* Hero Section */}
                 <div style={{ display: 'flex', gap: '32px', marginBottom: '32px' }}>
                   {selectedClient.icon ? (
                     <img 
-                      src={getThemedIcon(selectedClient.icon)} 
+                      src={theme === 'dark' && selectedClient.icon_dark ? selectedClient.icon_dark : getThemedIcon(selectedClient.icon)} 
                       alt={selectedClient.name} 
                       style={{ 
-                        width: '80px', 
-                        height: '80px', 
+                        width: '96px', 
+                        height: '96px', 
                         objectFit: 'contain',
-                        borderRadius: '16px',
-                        padding: '8px',
-                        boxSizing: 'border-box'
+                        borderRadius: '20px',
+                        padding: '12px',
+                        boxSizing: 'border-box',
+                        background: 'var(--background-card)',
+                        border: '1px solid var(--border-subtle)'
                       }} 
                     />
                   ) : (
                     <div style={{ 
-                      width: '80px', 
-                      height: '80px', 
+                      width: '96px', 
+                      height: '96px', 
                       background: 'var(--border-subtle)', 
-                      borderRadius: '16px', 
+                      borderRadius: '20px', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center' 
                     }}>
-                      <PhoneLaptopRegular style={{ fontSize: '40px', opacity: 0.5 }} />
+                      <PhoneLaptopRegular style={{ fontSize: '48px', opacity: 0.5 }} />
                     </div>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span className="badge">Client Integration</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {selectedClient.category && <span className="badge">{selectedClient.category}</span>}
+                      {selectedClient.mcp_support && (
+                        <span className="badge" style={{ 
+                          background: selectedClient.mcp_support.status === 'stable' ? 'rgba(0, 200, 83, 0.15)' : 
+                                     selectedClient.mcp_support.status === 'beta' ? 'rgba(255, 193, 7, 0.15)' : 'rgba(156, 39, 176, 0.15)',
+                          color: selectedClient.mcp_support.status === 'stable' ? '#00c853' : 
+                                 selectedClient.mcp_support.status === 'beta' ? '#ffc107' : '#9c27b0'
+                        }}>
+                          MCP {selectedClient.mcp_support.status}
+                        </span>
+                      )}
+                      {selectedClient.developer && (
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <BuildingRegular style={{ fontSize: '14px' }} />
+                          {selectedClient.developer}
+                        </span>
+                      )}
                     </div>
-                    <p style={{ fontSize: '16px', lineHeight: '1.5', margin: 0, color: 'var(--text-primary)', fontWeight: 500 }}>
+                    <p style={{ fontSize: '16px', lineHeight: '1.6', margin: 0, color: 'var(--text-primary)', fontWeight: 500 }}>
                       {selectedClient.description}
                     </p>
+                    {selectedClient.tags && selectedClient.tags.length > 0 && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {selectedClient.tags.map(tag => (
+                          <span key={tag} style={{ 
+                            fontSize: '11px', 
+                            padding: '2px 8px', 
+                            borderRadius: '10px', 
+                            background: 'var(--card-hover)',
+                            color: 'var(--text-secondary)'
+                          }}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', fontSize: '12px', opacity: 0.7 }}>Manual Configuration</div>
-                    <div style={{ background: 'var(--log-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'Google Sans Code, JetBrains Mono, monospace', fontSize: '13px', lineHeight: '1.6' }}>
-                        {selectedClient.manual_instructions
-                          .replace(/{profile}/g, selectedProfileId || 'work')
-                          .replace(/6277/g, appSettings.mcp_port.toString())}
-                      </pre>
+                {/* Two Column Layout */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '32px' }}>
+                  {/* Left Column - Main Content */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* About Section */}
+                    {selectedClient.about && (
+                      <div>
+                        <div style={{ fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', fontSize: '12px', opacity: 0.7, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <BookRegular style={{ fontSize: '14px' }} /> About
+                        </div>
+                        <div style={{ background: 'var(--background-card)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                          <div className="markdown-content" style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--text-primary)' }}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{selectedClient.about}</ReactMarkdown>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Features Section */}
+                    {selectedClient.features && selectedClient.features.length > 0 && (
+                      <div>
+                        <div style={{ fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', fontSize: '12px', opacity: 0.7, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <RocketRegular style={{ fontSize: '14px' }} /> Key Features
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                          {selectedClient.features.map((feature, idx) => (
+                            <div key={idx} style={{ 
+                              background: 'var(--background-card)', 
+                              padding: '16px', 
+                              borderRadius: '10px', 
+                              border: '1px solid var(--border-subtle)',
+                              transition: 'border-color 0.2s'
+                            }}>
+                              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px', color: 'var(--text-primary)' }}>
+                                {feature.name}
+                              </div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                                {feature.description}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Configuration */}
+                    <div>
+                      <div style={{ fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', fontSize: '12px', opacity: 0.7 }}>Manual Configuration</div>
+                      <div style={{ background: 'var(--log-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                        <div className="markdown-content" style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{selectedClient.manual_instructions
+                            .replace(/{profile}/g, selectedProfileId || 'work')
+                            .replace(/6277/g, appSettings.mcp_port.toString())}</ReactMarkdown>
+                        </div>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Right Column - Sidebar */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Quick Info Card */}
+                    <div style={{ background: 'var(--background-card)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontWeight: 700, marginBottom: '16px', textTransform: 'uppercase', fontSize: '12px', opacity: 0.7 }}>Details</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {selectedClient.platforms && selectedClient.platforms.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Platforms</div>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {selectedClient.platforms.map(platform => {
+                                const isCurrent = isCurrentPlatform(platform);
+                                return (
+                                  <span key={platform} style={{ 
+                                    fontSize: '12px', 
+                                    padding: '4px 10px', 
+                                    borderRadius: '6px', 
+                                    background: isCurrent ? 'var(--accent-primary)' : 'var(--card-hover)',
+                                    color: isCurrent ? 'var(--accent-text)' : 'var(--text-primary)',
+                                    fontWeight: 500,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                  }}>
+                                    {getPlatformIcon(platform)}
+                                    {platform}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {selectedClient.metadata?.pricing && (
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Pricing</div>
+                            <div style={{ fontSize: '13px', fontWeight: 500 }}>{selectedClient.metadata.pricing}</div>
+                          </div>
+                        )}
+                        {selectedClient.metadata?.license && (
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>License</div>
+                            <div style={{ fontSize: '13px', fontWeight: 500 }}>{selectedClient.metadata.license}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* MCP Support Card */}
+                    {selectedClient.mcp_support && (
+                      <div style={{ background: 'var(--background-card)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontWeight: 700, marginBottom: '16px', textTransform: 'uppercase', fontSize: '12px', opacity: 0.7 }}>MCP Support</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Transports</div>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {selectedClient.mcp_support.transports.map(transport => (
+                                <span key={transport} style={{ 
+                                  fontSize: '11px', 
+                                  padding: '3px 8px', 
+                                  borderRadius: '4px', 
+                                  background: 'var(--accent-primary)',
+                                  color: 'white',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase'
+                                }}>
+                                  {transport}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Features</div>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {selectedClient.mcp_support.features.map(feature => (
+                                <span key={feature} style={{ 
+                                  fontSize: '11px', 
+                                  padding: '3px 8px', 
+                                  borderRadius: '4px', 
+                                  background: 'var(--card-hover)',
+                                  fontWeight: 500
+                                }}>
+                                  {feature}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Links Card */}
+                    {(selectedClient.homepage || selectedClient.repository || selectedClient.documentation) && (
+                      <div style={{ background: 'var(--background-card)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontWeight: 700, marginBottom: '16px', textTransform: 'uppercase', fontSize: '12px', opacity: 0.7 }}>Links</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {selectedClient.homepage && (
+                            <a 
+                              href={selectedClient.homepage} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px', 
+                                fontSize: '13px', 
+                                color: 'var(--accent-primary)',
+                                textDecoration: 'none',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                background: 'var(--card-hover)',
+                                transition: 'background 0.2s'
+                              }}
+                            >
+                              <HomeRegular style={{ fontSize: '16px' }} />
+                              Homepage
+                              <OpenRegular style={{ fontSize: '12px', marginLeft: 'auto', opacity: 0.6 }} />
+                            </a>
+                          )}
+                          {selectedClient.repository && (
+                            <a 
+                              href={selectedClient.repository} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px', 
+                                fontSize: '13px', 
+                                color: 'var(--accent-primary)',
+                                textDecoration: 'none',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                background: 'var(--card-hover)',
+                                transition: 'background 0.2s'
+                              }}
+                            >
+                              <BoxRegular style={{ fontSize: '16px' }} />
+                              Repository
+                              <OpenRegular style={{ fontSize: '12px', marginLeft: 'auto', opacity: 0.6 }} />
+                            </a>
+                          )}
+                          {selectedClient.documentation && (
+                            <a 
+                              href={selectedClient.documentation} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px', 
+                                fontSize: '13px', 
+                                color: 'var(--accent-primary)',
+                                textDecoration: 'none',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                background: 'var(--card-hover)',
+                                transition: 'background 0.2s'
+                              }}
+                            >
+                              <BookRegular style={{ fontSize: '16px' }} />
+                              Documentation
+                              <OpenRegular style={{ fontSize: '12px', marginLeft: 'auto', opacity: 0.6 }} />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1557,7 +2143,7 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  Active Tools
+                  <CheckmarkCircleRegular /> Enabled Tools
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'catalog' ? 'active' : ''}`}
@@ -1568,7 +2154,7 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  Catalog
+                  <SearchRegular /> Tool Discovery
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'clients' ? 'active' : ''}`}
@@ -1579,7 +2165,7 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  Clients
+                  <WindowRegular /> Apps
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'logs' ? 'active' : ''}`}
@@ -1590,16 +2176,16 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  Logs
+                  <BookRegular /> Logs
                 </span>
               </div>
               <span className="badge">
                 {activeTab === 'active' 
-                  ? `${selectedProfile?.allow_tools?.length || 0} Loaded` 
+                  ? `${(selectedProfile?.allow_tools?.length || 0) + builtinTools.filter(t => !selectedProfile?.disabled_system_tools?.includes(t.name)).length} Enabled` 
                   : activeTab === 'catalog'
                   ? `${(filteredTools || []).length} Available`
                   : activeTab === 'clients'
-                  ? `${(allClients || []).length} Configurable`
+                  ? `${(allClients || []).length} Apps`
                   : `${(logs || []).length} Entries`}
               </span>
             </header>
@@ -1657,6 +2243,129 @@ function App() {
               >
                 {activeTab === 'active' && (
                   <>
+                    {/* System Tools Section - Toggleable */}
+                    {builtinTools.length > 0 && (
+                      <div className="category-section" style={{ marginBottom: '16px' }}>
+                        <div 
+                          className="category-title" 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px',
+                            color: 'var(--text-secondary)',
+                            fontSize: '11px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            marginBottom: '8px'
+                          }}
+                        >
+                          <span style={{ 
+                            width: '16px', 
+                            height: '16px', 
+                            borderRadius: '4px', 
+                            background: 'var(--accent-primary)', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            color: 'white'
+                          }}>⚙</span>
+                          System Tools
+                          <span style={{ 
+                            fontWeight: 'normal', 
+                            opacity: 0.7, 
+                            textTransform: 'none',
+                            fontSize: '10px'
+                          }}>
+                            (click to toggle)
+                          </span>
+                        </div>
+                        <div style={{ 
+                          display: 'flex', 
+                          flexWrap: 'wrap', 
+                          gap: '8px',
+                          padding: '8px 12px',
+                          background: 'var(--background-subtle)',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-subtle)'
+                        }}>
+                          {builtinTools.map(tool => {
+                            const isDisabled = selectedProfile?.disabled_system_tools?.includes(tool.name);
+                            return (
+                              <button 
+                                key={tool.name}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSystemTool(tool.name);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '4px 10px',
+                                  background: isDisabled ? 'transparent' : 'var(--background-card)',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  color: isDisabled ? 'var(--text-secondary)' : 'var(--text-primary)',
+                                  border: isDisabled ? '1px dashed var(--border-subtle)' : '1px solid var(--border-subtle)',
+                                  cursor: 'pointer',
+                                  opacity: isDisabled ? 0.5 : 1,
+                                  transition: 'all 0.15s ease',
+                                  margin: 0,
+                                  outline: 'none',
+                                  fontFamily: 'inherit'
+                                }}
+                                title={`${tool.description}\n\nClick to ${isDisabled ? 'enable' : 'disable'}`}
+                              >
+                                {isDisabled ? (
+                                  <EyeOffRegular style={{ fontSize: '12px', color: 'var(--text-secondary)' }} />
+                                ) : (
+                                  <CheckmarkRegular style={{ fontSize: '12px', color: 'var(--accent-primary)' }} />
+                                )}
+                                <span style={{ 
+                                  fontFamily: 'monospace', 
+                                  fontSize: '11px',
+                                  textDecoration: isDisabled ? 'line-through' : 'none'
+                                }}>
+                                  {tool.name}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* User's Activated Tools */}
+                    {selectedProfile?.allow_tools?.length > 0 && (
+                      <div 
+                        className="category-title" 
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          color: 'var(--text-secondary)',
+                          fontSize: '11px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          marginBottom: '8px'
+                        }}
+                      >
+                        <span style={{ 
+                          width: '16px', 
+                          height: '16px', 
+                          borderRadius: '4px', 
+                          background: 'var(--accent-success)', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          color: 'white'
+                        }}>+</span>
+                        Additional Tools
+                      </div>
+                    )}
+                    
                     {selectedProfile?.allow_tools?.map(toolName => {
                       const tool = allTools.find(t => t.name === toolName);
                       return (
@@ -1699,7 +2408,14 @@ function App() {
                               />
                             )}
                             <div className="card-info">
-                              <span className="card-title">{tool?.title || toolName}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className="card-title">{tool?.title || toolName}</span>
+                                {tool?.tools && tool.tools.length > 0 && (
+                                  <span style={{ fontSize: '10px', opacity: 0.6, background: 'var(--background-card)', padding: '1px 6px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                                    {tool.tools.length} {tool.tools.length === 1 ? 'tool' : 'tools'}
+                                  </span>
+                                )}
+                              </div>
                               <span className="card-subtitle">{tool?.description || "Ready for tool calls"}</span>
                             </div>
                           </div>
@@ -1720,8 +2436,24 @@ function App() {
                       );
                     })}
                     {!selectedProfile?.allow_tools?.length && (
-                      <div className="card-subtitle" style={{ textAlign: "center", padding: "20px" }}>
-                        No tools enabled for this profile.
+                      <div style={{ 
+                        textAlign: "center", 
+                        padding: "40px 20px",
+                        background: 'var(--background-subtle)',
+                        borderRadius: '12px',
+                        border: '1px dashed var(--border-subtle)'
+                      }}>
+                        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                          No additional tools enabled for this profile.
+                        </div>
+                        <button 
+                          className="primary"
+                          onClick={() => setActiveTab('catalog')}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <SearchRegular style={{ fontSize: '14px' }} />
+                          Go to Tool Discovery
+                        </button>
                       </div>
                     )}
                   </>
@@ -1775,6 +2507,11 @@ function App() {
                                   <div className="card-info">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                       <span className="card-title">{tool.title || tool.name}</span>
+                                      {tool.tools && tool.tools.length > 0 && (
+                                        <span style={{ fontSize: '10px', opacity: 0.6, background: 'var(--background-card)', padding: '1px 6px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                                          {tool.tools.length} {tool.tools.length === 1 ? 'tool' : 'tools'}
+                                        </span>
+                                      )}
                                       {tool.source === 'official' && (
                                         <span style={{ 
                                           fontSize: '9px', 
@@ -1862,20 +2599,6 @@ function App() {
                                       Delete
                                     </button>
                                   )}
-                                  {(tool.source === 'official' || tool.source === 'community') && (
-                                    <button 
-                                      className="secondary" 
-                                      style={{ marginRight: '4px' }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Clone official/community tool to custom
-                                        const customTool = { ...tool, source: 'custom', name: `${tool.name}-custom`, title: `${tool.title || tool.name} (Custom)` };
-                                        setDrawer({ type: "add-custom-tool", data: JSON.stringify(customTool, null, 2) });
-                                      }}
-                                    >
-                                      Customize
-                                    </button>
-                                  )}
                                   {isActive ? (
                                     <button disabled style={{ opacity: 0.5 }} onClick={(e) => e.stopPropagation()}>Active</button>
                                   ) : (
@@ -1908,74 +2631,179 @@ function App() {
                         key={client.id} 
                         className="compact-card clickable" 
                         onClick={() => setSelectedClient(client)}
+                        style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}
                       >
-                        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
                             {client.icon ? (
                               <img 
-                                src={getThemedIcon(client.icon)} 
+                                src={theme === 'dark' && client.icon_dark ? client.icon_dark : getThemedIcon(client.icon)} 
                                 alt={client.name} 
                                 style={{ 
-                                  width: '32px', 
-                                  height: '32px', 
+                                  width: '40px', 
+                                  height: '40px', 
                                   objectFit: 'contain',
-                                  borderRadius: '4px',
-                                  padding: '2px',
-                                  boxSizing: 'border-box'
+                                  borderRadius: '8px',
+                                  padding: '4px',
+                                  boxSizing: 'border-box',
+                                  background: 'var(--background-card)',
+                                  border: '1px solid var(--border-subtle)'
                                 }} 
                               />
                             ) : (
-                              <div style={{ width: '32px', height: '32px', background: 'var(--border-subtle)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ width: '40px', height: '40px', background: 'var(--border-subtle)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <PhoneLaptopRegular style={{ fontSize: '20px', opacity: 0.5 }} />
                               </div>
                             )}
-                            <div className="card-info">
-                              <span className="card-title" style={{ fontSize: '15px' }}>{client.name}</span>
-                              <span className="card-subtitle">{client.description}</span>
+                            <div className="card-info" style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span className="card-title" style={{ fontSize: '15px' }}>{client.name}</span>
+                                {client.developer && (
+                                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.8 }}>by {client.developer}</span>
+                                )}
+                              </div>
+                              <span className="card-subtitle" style={{ fontSize: '12px', lineHeight: '1.4' }}>{client.description}</span>
+                              <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                {client.category && (
+                                  <span style={{ 
+                                    fontSize: '10px', 
+                                    padding: '2px 8px', 
+                                    borderRadius: '10px', 
+                                    background: 'var(--card-hover)',
+                                    color: 'var(--text-secondary)',
+                                    fontWeight: 500
+                                  }}>
+                                    {client.category}
+                                  </span>
+                                )}
+                                {client.mcp_support && (
+                                  <span style={{ 
+                                    fontSize: '10px', 
+                                    padding: '2px 8px', 
+                                    borderRadius: '10px', 
+                                    background: client.mcp_support.status === 'stable' ? 'rgba(0, 200, 83, 0.15)' : 
+                                               client.mcp_support.status === 'beta' ? 'rgba(255, 193, 7, 0.15)' : 'rgba(156, 39, 176, 0.15)',
+                                    color: client.mcp_support.status === 'stable' ? '#00c853' : 
+                                           client.mcp_support.status === 'beta' ? '#ffc107' : '#9c27b0',
+                                    fontWeight: 600
+                                  }}>
+                                    MCP {client.mcp_support.status}
+                                  </span>
+                                )}
+                                {client.platforms && client.platforms.length > 0 && (
+                                  <span style={{ 
+                                    fontSize: '10px', 
+                                    color: 'var(--text-secondary)',
+                                    opacity: 0.7
+                                  }}>
+                                    {client.platforms.slice(0, 3).join(' · ')}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          <button
-                            className="primary"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              try {
-                                const res = await fetch(`${CONTROL_API}/clients/sync`, {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ target: client.id, profile: selectedProfileId })
-                                });
-                                if (res.ok) {
-                                  addLog(`Successfully installed ${client.name}.`, "INFO");
-                                  alert(`Successfully installed ${client.name}!`);
-                                } else {
-                                  const err = await res.text();
-                                  addLog(`Failed to install ${client.name}: ${err}`, "ERROR");
-                                  alert(`Failed to install ${client.name}: ${err}`);
+                          {client.installed ? (
+                            <button
+                              className="primary"
+                              style={{ flexShrink: 0, marginLeft: '12px' }}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const res = await fetch(`${CONTROL_API}/clients/sync`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ target: client.id, profile: selectedProfileId })
+                                  });
+                                  if (res.ok) {
+                                    addLog(`Successfully configured ${client.name}.`, "INFO");
+                                    alert(`Successfully configured ${client.name}!`);
+                                  } else {
+                                    const err = await res.text();
+                                    addLog(`Failed to configure ${client.name}: ${err}`, "ERROR");
+                                    alert(`Failed to configure ${client.name}: ${err}`);
+                                  }
+                                } catch (err: any) {
+                                  addLog(`Network error configuring ${client.name}: ${err.message}`, "ERROR");
+                                  alert(`Network error configuring ${client.name}`);
                                 }
-                              } catch (err: any) {
-                                addLog(`Network error installing ${client.name}: ${err.message}`, "ERROR");
-                                alert(`Network error installing ${client.name}`);
-                              }
-                            }}
-                          >
-                            Install
-                          </button>
+                              }}
+                            >
+                              Setup
+                            </button>
+                          ) : (
+                            client.download_url ? (
+                              <a
+                                href={client.download_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="primary"
+                                style={{ flexShrink: 0, marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}
+                              >
+                                Download
+                              </a>
+                            ) : (
+                              <button className="primary" disabled style={{ flexShrink: 0, marginLeft: '12px' }}>Download</button>
+                            )
+                          )}
                         </div>
                       </div>
                     ))}
                   </>
                 )}
                 {activeTab === 'logs' && (
-                  <div className="log-stream" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    {logs.map((log, i) => (
-                      <div key={i} style={{ fontFamily: "Google Sans Code, JetBrains Mono, monospace", fontSize: "11px", marginBottom: "4px" }}>
-                        <span style={{ opacity: 0.5 }}>[{log.timestamp}]</span>{" "}
-                        <span style={{ color: log.level === "ERROR" ? "#ff4d4d" : "inherit" }}>{log.message}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div className="search-input-wrapper" style={{ flex: 1 }}>
+                        <SearchRegular className="search-icon" />
+                        <input 
+                          type="text" 
+                          className="search-input" 
+                          placeholder="Search logs..." 
+                          value={logSearchQuery}
+                          onChange={(e) => setLogSearchQuery(e.target.value)}
+                        />
                       </div>
-                    ))}
-                    {logs.length === 0 && (
-                      <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No logs yet.</div>
-                    )}
+                      <select 
+                        className="filter-btn" 
+                        value={logLevelFilter}
+                        onChange={(e) => setLogLevelFilter(e.target.value as any)}
+                      >
+                        <option value="ALL">All Levels</option>
+                        <option value="INFO">Info</option>
+                        <option value="WARN">Warning</option>
+                        <option value="ERROR">Error</option>
+                      </select>
+                      <button className="secondary" title="Clear Logs" onClick={clearLogs} style={{ height: '36px', width: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <DeleteRegular />
+                      </button>
+                      <button className="secondary" title="Reveal Log File" onClick={revealLogs} style={{ height: '36px', width: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FolderOpenRegular />
+                      </button>
+                    </div>
+                    
+                    <div className="log-stream" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+                      {filteredLogs.map((log, i) => (
+                        <div key={i} style={{ 
+                          fontFamily: "Google Sans Code, JetBrains Mono, monospace", 
+                          fontSize: "11px", 
+                          marginBottom: "4px", 
+                          borderBottom: '1px solid var(--border-subtle)', 
+                          paddingBottom: '6px',
+                          paddingTop: '2px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}>
+                          <span style={{ opacity: 0.4, marginRight: '12px', whiteSpace: 'nowrap' }}>
+                            {formatLogTimestamp(log.timestamp)}
+                          </span>
+                          <span style={getLogLevelStyle(log.level)}>{log.level}</span>
+                          <span style={{ color: 'var(--text-primary)', lineHeight: '1.4' }}>{log.message}</span>
+                        </div>
+                      ))}
+                      {filteredLogs.length === 0 && (
+                        <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No logs found!</div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -2351,10 +3179,15 @@ function App() {
                         <code style={{ fontSize: '10px', opacity: 0.7 }}>{selectedFunctionName}</code>
                       )}
                     </div>
-                    <textarea
-                      rows={12}
-                      value={toolInput}
-                      onChange={(e) => setToolInput(e.target.value)}
+                    <JsonEditor
+                      content={toolInput ? { text: toolInput } : { text: "{}" }}
+                      onChange={(content: any) => {
+                        if (content.text !== undefined) {
+                          setToolInput(content.text);
+                        } else if (content.json !== undefined) {
+                          setToolInput(JSON.stringify(content.json, null, 2));
+                        }
+                      }}
                       onBlur={() => {
                         // Save params when user finishes editing
                         if (selectedFunctionName && toolInput) {
@@ -2366,16 +3199,10 @@ function App() {
                           }
                         }
                       }}
-                      placeholder="{}"
-                      style={{ 
-                        fontFamily: "Google Sans Code, monospace", 
-                        fontSize: '12px',
-                        background: 'var(--log-bg)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: '6px',
-                        padding: '12px'
-                      }}
-                    ></textarea>
+                      dark={theme === 'dark'}
+                      height="240px"
+                      mode="text"
+                    />
                     <button 
                       className="primary" 
                       style={{ marginTop: "12px", padding: '10px', fontSize: '14px', position: 'relative' }} 
@@ -2439,9 +3266,8 @@ function App() {
                 </div>
                 <div className="form-field">
                   <label>Tool Definition (JSON)</label>
-                  <textarea
-                    rows={15}
-                    value={drawer.data || JSON.stringify({
+                  <JsonEditor
+                    content={drawer.data ? { text: drawer.data } : { json: {
                       name: "my-tool",
                       title: "My Custom Tool",
                       description: "A description of my tool",
@@ -2452,18 +3278,17 @@ function App() {
                         command: "npx",
                         args: ["@modelcontextprotocol/server-everything"]
                       }
-                    }, null, 2)}
-                    onChange={(e) => setDrawer({ ...drawer, data: e.target.value })}
-                    placeholder="{ ... }"
-                    style={{ 
-                      fontFamily: "Google Sans Code, monospace", 
-                      fontSize: '12px',
-                      background: 'var(--log-bg)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: '6px',
-                      padding: '12px'
+                    }}}
+                    onChange={(content: any) => {
+                      if (content.text !== undefined) {
+                        setDrawer({ ...drawer, data: content.text });
+                      } else if (content.json !== undefined) {
+                        setDrawer({ ...drawer, data: JSON.stringify(content.json, null, 2) });
+                      }
                     }}
-                  ></textarea>
+                    dark={theme === 'dark'}
+                    height="400px"
+                  />
                 </div>
                 <button 
                   className="primary" 

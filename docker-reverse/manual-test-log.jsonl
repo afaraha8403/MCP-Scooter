@@ -1,0 +1,2097 @@
+{
+  "timestamp": "2026-01-20T04:46:15.507Z",
+  "direction": "CLIENT->SERVER",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"manual-test\",\"version\":\"1.0.0\"}}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {},
+      "clientInfo": {
+        "name": "manual-test",
+        "version": "1.0.0"
+      }
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:15.510Z",
+  "direction": "SERVER->CLIENT",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"capabilities\":{\"logging\":{},\"prompts\":{\"listChanged\":true},\"resources\":{\"listChanged\":true,\"subscribe\":true},\"tools\":{\"listChanged\":true}},\"protocolVersion\":\"2024-11-05\",\"serverInfo\":{\"name\":\"Docker AI MCP Gateway\",\"version\":\"2.0.1\"}}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "capabilities": {
+        "logging": {},
+        "prompts": {
+          "listChanged": true
+        },
+        "resources": {
+          "listChanged": true,
+          "subscribe": true
+        },
+        "tools": {
+          "listChanged": true
+        }
+      },
+      "protocolVersion": "2024-11-05",
+      "serverInfo": {
+        "name": "Docker AI MCP Gateway",
+        "version": "2.0.1"
+      }
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:17.514Z",
+  "direction": "CLIENT->SERVER (notification)",
+  "data": "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "method": "notifications/initialized",
+    "params": {}
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:18.526Z",
+  "direction": "CLIENT->SERVER",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/list",
+    "params": {}
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:18.529Z",
+  "direction": "SERVER->CLIENT",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Image Search\"},\"description\":\"\\n    Performs an image search using the Brave Search API. Helpful for when you need pictures of people, places, things, graphic design ideas, art inspiration, and more. When relaying results in a markdown environment, it may be helpful to include images in the results (e.g., ![image.title](image.properties.url)).\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":50,\"description\":\"Number of results (1-200, default 50). Combine this parameter with `offset` to paginate search results.\",\"maximum\":200,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"type\":\"string\"},\"query\":{\"description\":\"The user's search query. Query cannot be empty. Limited to 400 characters and 50 words.\",\"maxLength\":400,\"minLength\":1,\"type\":\"string\"},\"safesearch\":{\"default\":\"strict\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'strict' - Drops all adult content from search results.\",\"enum\":[\"off\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck provided query.\",\"type\":\"boolean\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_image_search\",\"outputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"minimum\":0,\"type\":\"integer\"},\"items\":{\"items\":{\"additionalProperties\":false,\"properties\":{\"confidence\":{\"description\":\"The confidence level of the result.\",\"enum\":[\"low\",\"medium\",\"high\"],\"type\":\"string\"},\"page_fetched\":{\"format\":\"date-time\",\"type\":\"string\"},\"properties\":{\"additionalProperties\":false,\"properties\":{\"height\":{\"exclusiveMinimum\":0,\"type\":\"integer\"},\"url\":{\"format\":\"uri\",\"type\":\"string\"},\"width\":{\"exclusiveMinimum\":0,\"type\":\"integer\"}},\"required\":[\"url\",\"width\",\"height\"],\"type\":\"object\"},\"title\":{\"type\":\"string\"},\"url\":{\"format\":\"uri\",\"type\":\"string\"}},\"required\":[\"title\",\"url\",\"page_fetched\",\"confidence\",\"properties\"],\"type\":\"object\"},\"type\":\"array\"},\"might_be_offensive\":{\"description\":\"Whether the image might be offensive.\",\"type\":\"boolean\"},\"type\":{\"const\":\"object\",\"type\":\"string\"}},\"required\":[\"type\",\"items\",\"count\",\"might_be_offensive\"],\"type\":\"object\"},\"title\":\"brave_image_search\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Local Search\"},\"description\":\"\\n    Brave Local Search API provides enrichments for location search results. Access to this API is available only through the Brave Search API Pro plans; confirm the user's plan before using this tool (if the user does not have a Pro plan, use the brave_web_search tool). Searches for local businesses and places using Brave's Local Search API. Best for queries related to physical locations, businesses, restaurants, services, etc.\\n    \\n    Returns detailed information including:\\n        - Business names and addresses\\n        - Ratings and review counts\\n        - Phone numbers and opening hours\\n\\n    Use this when the query implies 'near me', 'in my area', or mentions specific locations (e.g., 'in San Francisco'). This tool automatically falls back to brave_web_search if no local results are found.\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":10,\"description\":\"Number of results (1-20, default 10). Applies only to web search results (i.e., has no effect on locations, news, videos, etc.)\",\"maximum\":20,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"enum\":[\"ALL\",\"AR\",\"AU\",\"AT\",\"BE\",\"BR\",\"CA\",\"CL\",\"DK\",\"FI\",\"FR\",\"DE\",\"HK\",\"IN\",\"ID\",\"IT\",\"JP\",\"KR\",\"MY\",\"MX\",\"NL\",\"NZ\",\"NO\",\"CN\",\"PL\",\"PT\",\"PH\",\"RU\",\"SA\",\"ZA\",\"ES\",\"SE\",\"CH\",\"TW\",\"TR\",\"GB\",\"US\"],\"type\":\"string\"},\"extra_snippets\":{\"description\":\"A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.\",\"type\":\"boolean\"},\"freshness\":{\"description\":\"Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.\",\"enum\":[\"pd\",\"pw\",\"pm\",\"py\",\"YYYY-MM-DDtoYYYY-MM-DD\"],\"type\":\"string\"},\"goggles\":{\"description\":\"Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).\",\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"offset\":{\"default\":0,\"description\":\"Pagination offset (max 9, default 0)\",\"maximum\":9,\"minimum\":0,\"type\":\"integer\"},\"query\":{\"description\":\"Search query (max 400 chars, 50 words)\",\"maxLength\":400,\"type\":\"string\"},\"result_filter\":{\"default\":[\"web\",\"query\"],\"description\":\"Result filter (default ['web', 'query'])\",\"items\":{\"enum\":[\"discussions\",\"faq\",\"infobox\",\"news\",\"query\",\"summarizer\",\"videos\",\"web\",\"locations\",\"rich\"],\"type\":\"string\"},\"type\":\"array\"},\"safesearch\":{\"default\":\"moderate\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filters explicit content (e.g., images and videos), but allows adult domains in search results. 'strict' - Drops all adult content from search results. The default value is 'moderate'.\",\"enum\":[\"off\",\"moderate\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"enum\":[\"ar\",\"eu\",\"bn\",\"bg\",\"ca\",\"zh-hans\",\"zh-hant\",\"hr\",\"cs\",\"da\",\"nl\",\"en\",\"en-gb\",\"et\",\"fi\",\"fr\",\"gl\",\"de\",\"gu\",\"he\",\"hi\",\"hu\",\"is\",\"it\",\"jp\",\"kn\",\"ko\",\"lv\",\"lt\",\"ms\",\"ml\",\"mr\",\"nb\",\"pl\",\"pt-br\",\"pt-pt\",\"pa\",\"ro\",\"ru\",\"sr\",\"sk\",\"sl\",\"es\",\"sv\",\"ta\",\"te\",\"th\",\"tr\",\"uk\",\"vi\"],\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck the provided query.\",\"type\":\"boolean\"},\"summary\":{\"description\":\"This parameter enables summary key generation in web search results. This is required for summarizer to be enabled.\",\"type\":\"boolean\"},\"text_decorations\":{\"default\":true,\"description\":\"Whether display strings (e.g. result snippets) should include decoration markers (e.g. highlighting characters).\",\"type\":\"boolean\"},\"ui_lang\":{\"default\":\"en-US\",\"description\":\"The language of the UI. The 2 or more character language code for which the search results are provided.\",\"enum\":[\"es-AR\",\"en-AU\",\"de-AT\",\"nl-BE\",\"fr-BE\",\"pt-BR\",\"en-CA\",\"fr-CA\",\"es-CL\",\"da-DK\",\"fi-FI\",\"fr-FR\",\"de-DE\",\"zh-HK\",\"en-IN\",\"en-ID\",\"it-IT\",\"ja-JP\",\"ko-KR\",\"en-MY\",\"es-MX\",\"nl-NL\",\"en-NZ\",\"no-NO\",\"zh-CN\",\"pl-PL\",\"en-PH\",\"ru-RU\",\"en-ZA\",\"es-ES\",\"sv-SE\",\"fr-CH\",\"de-CH\",\"zh-TW\",\"tr-TR\",\"en-GB\",\"en-US\",\"es-US\"],\"type\":\"string\"},\"units\":{\"description\":\"The measurement units. If not provided, units are derived from search country.\",\"enum\":[\"metric\",\"imperial\"],\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_local_search\",\"title\":\"brave_local_search\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave News Search\"},\"description\":\"\\n    This tool searches for news articles using Brave's News Search API based on the user's query. Use it when you need current news information, breaking news updates, or articles about specific topics, events, or entities.\\n    \\n    When to use:\\n        - Finding recent news articles on specific topics\\n        - Getting breaking news updates\\n        - Researching current events or trending stories\\n        - Gathering news sources and headlines for analysis\\n\\n    Returns a JSON list of news-related results with title, url, and description. Some results may contain snippets of text from the article.\\n    \\n    When relaying results in markdown-supporting environments, always cite sources with hyperlinks.\\n    \\n    Examples:\\n        - \\\"According to [Reuters](https://www.reuters.com/technology/china-bans/), China bans uncertified and recalled power banks on planes\\\".\\n        - \\\"The [New York Times](https://www.nytimes.com/2025/06/27/us/technology/ev-sales.html) reports that Tesla's EV sales have increased by 20%\\\".\\n        - \\\"According to [BBC News](https://www.bbc.com/news/world-europe-65910000), the UK government has announced a new policy to support renewable energy\\\".\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":20,\"description\":\"Number of results (1-50, default 20)\",\"maximum\":50,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"type\":\"string\"},\"extra_snippets\":{\"default\":false,\"description\":\"A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.\",\"type\":\"boolean\"},\"freshness\":{\"anyOf\":[{\"const\":\"pd\",\"type\":\"string\"},{\"const\":\"pw\",\"type\":\"string\"},{\"const\":\"pm\",\"type\":\"string\"},{\"const\":\"py\",\"type\":\"string\"},{\"type\":\"string\"}],\"default\":\"pd\",\"description\":\"Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 Days. 'pm' - Discovered within the last 31 Days. 'py' - Discovered within the last 365 Days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.\"},\"goggles\":{\"description\":\"Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).\",\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"offset\":{\"default\":0,\"description\":\"Pagination offset (max 9, default 0)\",\"maximum\":9,\"minimum\":0,\"type\":\"integer\"},\"query\":{\"description\":\"Search query (max 400 chars, 50 words)\",\"maxLength\":400,\"type\":\"string\"},\"safesearch\":{\"default\":\"moderate\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filter out explicit content. 'strict' - Filter out explicit and suggestive content. The default value is 'moderate'.\",\"enum\":[\"off\",\"moderate\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck provided query.\",\"type\":\"boolean\"},\"ui_lang\":{\"default\":\"en-US\",\"description\":\"User interface language preferred in response. Usually of the format \\u003clanguage_code\\u003e-\\u003ccountry_code\\u003e. For more, see RFC 9110.\",\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_news_search\",\"title\":\"brave_news_search\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Summarizer\"},\"description\":\"\\n    Retrieves AI-generated summaries of web search results using Brave's Summarizer API. This tool processes search results to create concise, coherent summaries of information gathered from multiple sources.\\n\\n    When to use:\\n\\n    - When you need a concise overview of complex topics from multiple sources\\n    - For quick fact-checking or getting key points without reading full articles\\n    - When providing users with summarized information that synthesizes various perspectives\\n    - For research tasks requiring distilled information from web searches\\n\\n    Returns a text summary that consolidates information from the search results. Optional features include inline references to source URLs and additional entity information.\\n\\n    Requirements: Must first perform a web search using brave_web_search with summary=true parameter. Requires a Pro AI subscription to access the summarizer functionality.\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"entity_info\":{\"default\":false,\"description\":\"Returns extra entities info with the summary response.\",\"type\":\"boolean\"},\"inline_references\":{\"default\":false,\"description\":\"Adds inline references to the summary response.\",\"type\":\"boolean\"},\"key\":{\"description\":\"The key is equal to value of field key as part of the Summarizer response model.\",\"type\":\"string\"}},\"required\":[\"key\"],\"type\":\"object\"},\"name\":\"brave_summarizer\",\"title\":\"brave_summarizer\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Video Search\"},\"description\":\"\\n    Searches for videos using Brave's Video Search API and returns structured video results with metadata.\\n\\n    When to use:\\n        - When you need to find videos related to a specific topic, keyword, or query.\\n        - Useful for discovering video content, getting video metadata, or finding videos from specific creators/publishers.\\n\\n    Returns a JSON list of video-related results with title, url, description, duration, and thumbnail_url.\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":20,\"description\":\"Number of results (1-50, default 20). Combine this parameter with `offset` to paginate search results.\",\"maximum\":50,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"type\":\"string\"},\"freshness\":{\"anyOf\":[{\"const\":\"pd\",\"type\":\"string\"},{\"const\":\"pw\",\"type\":\"string\"},{\"const\":\"pm\",\"type\":\"string\"},{\"const\":\"py\",\"type\":\"string\"},{\"type\":\"string\"}],\"description\":\"Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - timeframe is also supported by specifying the date range (e.g. '2022-04-01to2022-07-30').\"},\"offset\":{\"default\":0,\"description\":\"Pagination offset (max 9, default 0). Combine this parameter with `count` to paginate search results.\",\"maximum\":9,\"minimum\":0,\"type\":\"integer\"},\"query\":{\"description\":\"The user's search query. Query cannot be empty. Limited to 400 characters and 50 words.\",\"maxLength\":400,\"minLength\":1,\"type\":\"string\"},\"safesearch\":{\"default\":\"moderate\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filter out explicit content. 'strict' - Filter out explicit and suggestive content. The default value is 'moderate'.\",\"enum\":[\"off\",\"moderate\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck provided query.\",\"type\":\"boolean\"},\"ui_lang\":{\"default\":\"en-US\",\"description\":\"User interface language preferred in response. Usually of the format \\u003clanguage_code\\u003e-\\u003ccountry_code\\u003e. For more, see RFC 9110.\",\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_video_search\",\"title\":\"brave_video_search\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Web Search\"},\"description\":\"\\n    Performs web searches using the Brave Search API and returns comprehensive search results with rich metadata.\\n\\n    When to use:\\n        - General web searches for information, facts, or current topics\\n        - Location-based queries (restaurants, businesses, points of interest)\\n        - News searches for recent events or breaking stories\\n        - Finding videos, discussions, or FAQ content\\n        - Research requiring diverse result types (web pages, images, reviews, etc.)\\n\\n    Returns a JSON list of web results with title, description, and URL.\\n    \\n    When the \\\"results_filter\\\" parameter is empty, JSON results may also contain FAQ, Discussions, News, and Video results.\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":10,\"description\":\"Number of results (1-20, default 10). Applies only to web search results (i.e., has no effect on locations, news, videos, etc.)\",\"maximum\":20,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"enum\":[\"ALL\",\"AR\",\"AU\",\"AT\",\"BE\",\"BR\",\"CA\",\"CL\",\"DK\",\"FI\",\"FR\",\"DE\",\"HK\",\"IN\",\"ID\",\"IT\",\"JP\",\"KR\",\"MY\",\"MX\",\"NL\",\"NZ\",\"NO\",\"CN\",\"PL\",\"PT\",\"PH\",\"RU\",\"SA\",\"ZA\",\"ES\",\"SE\",\"CH\",\"TW\",\"TR\",\"GB\",\"US\"],\"type\":\"string\"},\"extra_snippets\":{\"description\":\"A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.\",\"type\":\"boolean\"},\"freshness\":{\"description\":\"Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.\",\"enum\":[\"pd\",\"pw\",\"pm\",\"py\",\"YYYY-MM-DDtoYYYY-MM-DD\"],\"type\":\"string\"},\"goggles\":{\"description\":\"Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).\",\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"offset\":{\"default\":0,\"description\":\"Pagination offset (max 9, default 0)\",\"maximum\":9,\"minimum\":0,\"type\":\"integer\"},\"query\":{\"description\":\"Search query (max 400 chars, 50 words)\",\"maxLength\":400,\"type\":\"string\"},\"result_filter\":{\"default\":[\"web\",\"query\"],\"description\":\"Result filter (default ['web', 'query'])\",\"items\":{\"enum\":[\"discussions\",\"faq\",\"infobox\",\"news\",\"query\",\"summarizer\",\"videos\",\"web\",\"locations\",\"rich\"],\"type\":\"string\"},\"type\":\"array\"},\"safesearch\":{\"default\":\"moderate\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filters explicit content (e.g., images and videos), but allows adult domains in search results. 'strict' - Drops all adult content from search results. The default value is 'moderate'.\",\"enum\":[\"off\",\"moderate\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"enum\":[\"ar\",\"eu\",\"bn\",\"bg\",\"ca\",\"zh-hans\",\"zh-hant\",\"hr\",\"cs\",\"da\",\"nl\",\"en\",\"en-gb\",\"et\",\"fi\",\"fr\",\"gl\",\"de\",\"gu\",\"he\",\"hi\",\"hu\",\"is\",\"it\",\"jp\",\"kn\",\"ko\",\"lv\",\"lt\",\"ms\",\"ml\",\"mr\",\"nb\",\"pl\",\"pt-br\",\"pt-pt\",\"pa\",\"ro\",\"ru\",\"sr\",\"sk\",\"sl\",\"es\",\"sv\",\"ta\",\"te\",\"th\",\"tr\",\"uk\",\"vi\"],\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck the provided query.\",\"type\":\"boolean\"},\"summary\":{\"description\":\"This parameter enables summary key generation in web search results. This is required for summarizer to be enabled.\",\"type\":\"boolean\"},\"text_decorations\":{\"default\":true,\"description\":\"Whether display strings (e.g. result snippets) should include decoration markers (e.g. highlighting characters).\",\"type\":\"boolean\"},\"ui_lang\":{\"default\":\"en-US\",\"description\":\"The language of the UI. The 2 or more character language code for which the search results are provided.\",\"enum\":[\"es-AR\",\"en-AU\",\"de-AT\",\"nl-BE\",\"fr-BE\",\"pt-BR\",\"en-CA\",\"fr-CA\",\"es-CL\",\"da-DK\",\"fi-FI\",\"fr-FR\",\"de-DE\",\"zh-HK\",\"en-IN\",\"en-ID\",\"it-IT\",\"ja-JP\",\"ko-KR\",\"en-MY\",\"es-MX\",\"nl-NL\",\"en-NZ\",\"no-NO\",\"zh-CN\",\"pl-PL\",\"en-PH\",\"ru-RU\",\"en-ZA\",\"es-ES\",\"sv-SE\",\"fr-CH\",\"de-CH\",\"zh-TW\",\"tr-TR\",\"en-GB\",\"en-US\",\"es-US\"],\"type\":\"string\"},\"units\":{\"description\":\"The measurement units. If not provided, units are derived from search country.\",\"enum\":[\"metric\",\"imperial\"],\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_web_search\",\"title\":\"brave_web_search\"}]}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "tools": [
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Image Search"
+          },
+          "description": "\n    Performs an image search using the Brave Search API. Helpful for when you need pictures of people, places, things, graphic design ideas, art inspiration, and more. When relaying results in a markdown environment, it may be helpful to include images in the results (e.g., ![image.title](image.properties.url)).\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 50,
+                "description": "Number of results (1-200, default 50). Combine this parameter with `offset` to paginate search results.",
+                "maximum": 200,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "type": "string"
+              },
+              "query": {
+                "description": "The user's search query. Query cannot be empty. Limited to 400 characters and 50 words.",
+                "maxLength": 400,
+                "minLength": 1,
+                "type": "string"
+              },
+              "safesearch": {
+                "default": "strict",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'strict' - Drops all adult content from search results.",
+                "enum": [
+                  "off",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck provided query.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_image_search",
+          "outputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "items": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "description": "The confidence level of the result.",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                      ],
+                      "type": "string"
+                    },
+                    "page_fetched": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "properties": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "height": {
+                          "exclusiveMinimum": 0,
+                          "type": "integer"
+                        },
+                        "url": {
+                          "format": "uri",
+                          "type": "string"
+                        },
+                        "width": {
+                          "exclusiveMinimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "url",
+                        "width",
+                        "height"
+                      ],
+                      "type": "object"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "url",
+                    "page_fetched",
+                    "confidence",
+                    "properties"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "might_be_offensive": {
+                "description": "Whether the image might be offensive.",
+                "type": "boolean"
+              },
+              "type": {
+                "const": "object",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "items",
+              "count",
+              "might_be_offensive"
+            ],
+            "type": "object"
+          },
+          "title": "brave_image_search"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Local Search"
+          },
+          "description": "\n    Brave Local Search API provides enrichments for location search results. Access to this API is available only through the Brave Search API Pro plans; confirm the user's plan before using this tool (if the user does not have a Pro plan, use the brave_web_search tool). Searches for local businesses and places using Brave's Local Search API. Best for queries related to physical locations, businesses, restaurants, services, etc.\n    \n    Returns detailed information including:\n        - Business names and addresses\n        - Ratings and review counts\n        - Phone numbers and opening hours\n\n    Use this when the query implies 'near me', 'in my area', or mentions specific locations (e.g., 'in San Francisco'). This tool automatically falls back to brave_web_search if no local results are found.\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 10,
+                "description": "Number of results (1-20, default 10). Applies only to web search results (i.e., has no effect on locations, news, videos, etc.)",
+                "maximum": 20,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "enum": [
+                  "ALL",
+                  "AR",
+                  "AU",
+                  "AT",
+                  "BE",
+                  "BR",
+                  "CA",
+                  "CL",
+                  "DK",
+                  "FI",
+                  "FR",
+                  "DE",
+                  "HK",
+                  "IN",
+                  "ID",
+                  "IT",
+                  "JP",
+                  "KR",
+                  "MY",
+                  "MX",
+                  "NL",
+                  "NZ",
+                  "NO",
+                  "CN",
+                  "PL",
+                  "PT",
+                  "PH",
+                  "RU",
+                  "SA",
+                  "ZA",
+                  "ES",
+                  "SE",
+                  "CH",
+                  "TW",
+                  "TR",
+                  "GB",
+                  "US"
+                ],
+                "type": "string"
+              },
+              "extra_snippets": {
+                "description": "A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.",
+                "type": "boolean"
+              },
+              "freshness": {
+                "description": "Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.",
+                "enum": [
+                  "pd",
+                  "pw",
+                  "pm",
+                  "py",
+                  "YYYY-MM-DDtoYYYY-MM-DD"
+                ],
+                "type": "string"
+              },
+              "goggles": {
+                "description": "Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset (max 9, default 0)",
+                "maximum": 9,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "query": {
+                "description": "Search query (max 400 chars, 50 words)",
+                "maxLength": 400,
+                "type": "string"
+              },
+              "result_filter": {
+                "default": [
+                  "web",
+                  "query"
+                ],
+                "description": "Result filter (default ['web', 'query'])",
+                "items": {
+                  "enum": [
+                    "discussions",
+                    "faq",
+                    "infobox",
+                    "news",
+                    "query",
+                    "summarizer",
+                    "videos",
+                    "web",
+                    "locations",
+                    "rich"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "safesearch": {
+                "default": "moderate",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filters explicit content (e.g., images and videos), but allows adult domains in search results. 'strict' - Drops all adult content from search results. The default value is 'moderate'.",
+                "enum": [
+                  "off",
+                  "moderate",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "enum": [
+                  "ar",
+                  "eu",
+                  "bn",
+                  "bg",
+                  "ca",
+                  "zh-hans",
+                  "zh-hant",
+                  "hr",
+                  "cs",
+                  "da",
+                  "nl",
+                  "en",
+                  "en-gb",
+                  "et",
+                  "fi",
+                  "fr",
+                  "gl",
+                  "de",
+                  "gu",
+                  "he",
+                  "hi",
+                  "hu",
+                  "is",
+                  "it",
+                  "jp",
+                  "kn",
+                  "ko",
+                  "lv",
+                  "lt",
+                  "ms",
+                  "ml",
+                  "mr",
+                  "nb",
+                  "pl",
+                  "pt-br",
+                  "pt-pt",
+                  "pa",
+                  "ro",
+                  "ru",
+                  "sr",
+                  "sk",
+                  "sl",
+                  "es",
+                  "sv",
+                  "ta",
+                  "te",
+                  "th",
+                  "tr",
+                  "uk",
+                  "vi"
+                ],
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck the provided query.",
+                "type": "boolean"
+              },
+              "summary": {
+                "description": "This parameter enables summary key generation in web search results. This is required for summarizer to be enabled.",
+                "type": "boolean"
+              },
+              "text_decorations": {
+                "default": true,
+                "description": "Whether display strings (e.g. result snippets) should include decoration markers (e.g. highlighting characters).",
+                "type": "boolean"
+              },
+              "ui_lang": {
+                "default": "en-US",
+                "description": "The language of the UI. The 2 or more character language code for which the search results are provided.",
+                "enum": [
+                  "es-AR",
+                  "en-AU",
+                  "de-AT",
+                  "nl-BE",
+                  "fr-BE",
+                  "pt-BR",
+                  "en-CA",
+                  "fr-CA",
+                  "es-CL",
+                  "da-DK",
+                  "fi-FI",
+                  "fr-FR",
+                  "de-DE",
+                  "zh-HK",
+                  "en-IN",
+                  "en-ID",
+                  "it-IT",
+                  "ja-JP",
+                  "ko-KR",
+                  "en-MY",
+                  "es-MX",
+                  "nl-NL",
+                  "en-NZ",
+                  "no-NO",
+                  "zh-CN",
+                  "pl-PL",
+                  "en-PH",
+                  "ru-RU",
+                  "en-ZA",
+                  "es-ES",
+                  "sv-SE",
+                  "fr-CH",
+                  "de-CH",
+                  "zh-TW",
+                  "tr-TR",
+                  "en-GB",
+                  "en-US",
+                  "es-US"
+                ],
+                "type": "string"
+              },
+              "units": {
+                "description": "The measurement units. If not provided, units are derived from search country.",
+                "enum": [
+                  "metric",
+                  "imperial"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_local_search",
+          "title": "brave_local_search"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave News Search"
+          },
+          "description": "\n    This tool searches for news articles using Brave's News Search API based on the user's query. Use it when you need current news information, breaking news updates, or articles about specific topics, events, or entities.\n    \n    When to use:\n        - Finding recent news articles on specific topics\n        - Getting breaking news updates\n        - Researching current events or trending stories\n        - Gathering news sources and headlines for analysis\n\n    Returns a JSON list of news-related results with title, url, and description. Some results may contain snippets of text from the article.\n    \n    When relaying results in markdown-supporting environments, always cite sources with hyperlinks.\n    \n    Examples:\n        - \"According to [Reuters](https://www.reuters.com/technology/china-bans/), China bans uncertified and recalled power banks on planes\".\n        - \"The [New York Times](https://www.nytimes.com/2025/06/27/us/technology/ev-sales.html) reports that Tesla's EV sales have increased by 20%\".\n        - \"According to [BBC News](https://www.bbc.com/news/world-europe-65910000), the UK government has announced a new policy to support renewable energy\".\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 20,
+                "description": "Number of results (1-50, default 20)",
+                "maximum": 50,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "type": "string"
+              },
+              "extra_snippets": {
+                "default": false,
+                "description": "A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.",
+                "type": "boolean"
+              },
+              "freshness": {
+                "anyOf": [
+                  {
+                    "const": "pd",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pw",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pm",
+                    "type": "string"
+                  },
+                  {
+                    "const": "py",
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "default": "pd",
+                "description": "Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 Days. 'pm' - Discovered within the last 31 Days. 'py' - Discovered within the last 365 Days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30."
+              },
+              "goggles": {
+                "description": "Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset (max 9, default 0)",
+                "maximum": 9,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "query": {
+                "description": "Search query (max 400 chars, 50 words)",
+                "maxLength": 400,
+                "type": "string"
+              },
+              "safesearch": {
+                "default": "moderate",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filter out explicit content. 'strict' - Filter out explicit and suggestive content. The default value is 'moderate'.",
+                "enum": [
+                  "off",
+                  "moderate",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck provided query.",
+                "type": "boolean"
+              },
+              "ui_lang": {
+                "default": "en-US",
+                "description": "User interface language preferred in response. Usually of the format <language_code>-<country_code>. For more, see RFC 9110.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_news_search",
+          "title": "brave_news_search"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Summarizer"
+          },
+          "description": "\n    Retrieves AI-generated summaries of web search results using Brave's Summarizer API. This tool processes search results to create concise, coherent summaries of information gathered from multiple sources.\n\n    When to use:\n\n    - When you need a concise overview of complex topics from multiple sources\n    - For quick fact-checking or getting key points without reading full articles\n    - When providing users with summarized information that synthesizes various perspectives\n    - For research tasks requiring distilled information from web searches\n\n    Returns a text summary that consolidates information from the search results. Optional features include inline references to source URLs and additional entity information.\n\n    Requirements: Must first perform a web search using brave_web_search with summary=true parameter. Requires a Pro AI subscription to access the summarizer functionality.\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "entity_info": {
+                "default": false,
+                "description": "Returns extra entities info with the summary response.",
+                "type": "boolean"
+              },
+              "inline_references": {
+                "default": false,
+                "description": "Adds inline references to the summary response.",
+                "type": "boolean"
+              },
+              "key": {
+                "description": "The key is equal to value of field key as part of the Summarizer response model.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ],
+            "type": "object"
+          },
+          "name": "brave_summarizer",
+          "title": "brave_summarizer"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Video Search"
+          },
+          "description": "\n    Searches for videos using Brave's Video Search API and returns structured video results with metadata.\n\n    When to use:\n        - When you need to find videos related to a specific topic, keyword, or query.\n        - Useful for discovering video content, getting video metadata, or finding videos from specific creators/publishers.\n\n    Returns a JSON list of video-related results with title, url, description, duration, and thumbnail_url.\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 20,
+                "description": "Number of results (1-50, default 20). Combine this parameter with `offset` to paginate search results.",
+                "maximum": 50,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "type": "string"
+              },
+              "freshness": {
+                "anyOf": [
+                  {
+                    "const": "pd",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pw",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pm",
+                    "type": "string"
+                  },
+                  {
+                    "const": "py",
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "description": "Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - timeframe is also supported by specifying the date range (e.g. '2022-04-01to2022-07-30')."
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset (max 9, default 0). Combine this parameter with `count` to paginate search results.",
+                "maximum": 9,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "query": {
+                "description": "The user's search query. Query cannot be empty. Limited to 400 characters and 50 words.",
+                "maxLength": 400,
+                "minLength": 1,
+                "type": "string"
+              },
+              "safesearch": {
+                "default": "moderate",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filter out explicit content. 'strict' - Filter out explicit and suggestive content. The default value is 'moderate'.",
+                "enum": [
+                  "off",
+                  "moderate",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck provided query.",
+                "type": "boolean"
+              },
+              "ui_lang": {
+                "default": "en-US",
+                "description": "User interface language preferred in response. Usually of the format <language_code>-<country_code>. For more, see RFC 9110.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_video_search",
+          "title": "brave_video_search"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Web Search"
+          },
+          "description": "\n    Performs web searches using the Brave Search API and returns comprehensive search results with rich metadata.\n\n    When to use:\n        - General web searches for information, facts, or current topics\n        - Location-based queries (restaurants, businesses, points of interest)\n        - News searches for recent events or breaking stories\n        - Finding videos, discussions, or FAQ content\n        - Research requiring diverse result types (web pages, images, reviews, etc.)\n\n    Returns a JSON list of web results with title, description, and URL.\n    \n    When the \"results_filter\" parameter is empty, JSON results may also contain FAQ, Discussions, News, and Video results.\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 10,
+                "description": "Number of results (1-20, default 10). Applies only to web search results (i.e., has no effect on locations, news, videos, etc.)",
+                "maximum": 20,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "enum": [
+                  "ALL",
+                  "AR",
+                  "AU",
+                  "AT",
+                  "BE",
+                  "BR",
+                  "CA",
+                  "CL",
+                  "DK",
+                  "FI",
+                  "FR",
+                  "DE",
+                  "HK",
+                  "IN",
+                  "ID",
+                  "IT",
+                  "JP",
+                  "KR",
+                  "MY",
+                  "MX",
+                  "NL",
+                  "NZ",
+                  "NO",
+                  "CN",
+                  "PL",
+                  "PT",
+                  "PH",
+                  "RU",
+                  "SA",
+                  "ZA",
+                  "ES",
+                  "SE",
+                  "CH",
+                  "TW",
+                  "TR",
+                  "GB",
+                  "US"
+                ],
+                "type": "string"
+              },
+              "extra_snippets": {
+                "description": "A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.",
+                "type": "boolean"
+              },
+              "freshness": {
+                "description": "Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.",
+                "enum": [
+                  "pd",
+                  "pw",
+                  "pm",
+                  "py",
+                  "YYYY-MM-DDtoYYYY-MM-DD"
+                ],
+                "type": "string"
+              },
+              "goggles": {
+                "description": "Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset (max 9, default 0)",
+                "maximum": 9,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "query": {
+                "description": "Search query (max 400 chars, 50 words)",
+                "maxLength": 400,
+                "type": "string"
+              },
+              "result_filter": {
+                "default": [
+                  "web",
+                  "query"
+                ],
+                "description": "Result filter (default ['web', 'query'])",
+                "items": {
+                  "enum": [
+                    "discussions",
+                    "faq",
+                    "infobox",
+                    "news",
+                    "query",
+                    "summarizer",
+                    "videos",
+                    "web",
+                    "locations",
+                    "rich"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "safesearch": {
+                "default": "moderate",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filters explicit content (e.g., images and videos), but allows adult domains in search results. 'strict' - Drops all adult content from search results. The default value is 'moderate'.",
+                "enum": [
+                  "off",
+                  "moderate",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "enum": [
+                  "ar",
+                  "eu",
+                  "bn",
+                  "bg",
+                  "ca",
+                  "zh-hans",
+                  "zh-hant",
+                  "hr",
+                  "cs",
+                  "da",
+                  "nl",
+                  "en",
+                  "en-gb",
+                  "et",
+                  "fi",
+                  "fr",
+                  "gl",
+                  "de",
+                  "gu",
+                  "he",
+                  "hi",
+                  "hu",
+                  "is",
+                  "it",
+                  "jp",
+                  "kn",
+                  "ko",
+                  "lv",
+                  "lt",
+                  "ms",
+                  "ml",
+                  "mr",
+                  "nb",
+                  "pl",
+                  "pt-br",
+                  "pt-pt",
+                  "pa",
+                  "ro",
+                  "ru",
+                  "sr",
+                  "sk",
+                  "sl",
+                  "es",
+                  "sv",
+                  "ta",
+                  "te",
+                  "th",
+                  "tr",
+                  "uk",
+                  "vi"
+                ],
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck the provided query.",
+                "type": "boolean"
+              },
+              "summary": {
+                "description": "This parameter enables summary key generation in web search results. This is required for summarizer to be enabled.",
+                "type": "boolean"
+              },
+              "text_decorations": {
+                "default": true,
+                "description": "Whether display strings (e.g. result snippets) should include decoration markers (e.g. highlighting characters).",
+                "type": "boolean"
+              },
+              "ui_lang": {
+                "default": "en-US",
+                "description": "The language of the UI. The 2 or more character language code for which the search results are provided.",
+                "enum": [
+                  "es-AR",
+                  "en-AU",
+                  "de-AT",
+                  "nl-BE",
+                  "fr-BE",
+                  "pt-BR",
+                  "en-CA",
+                  "fr-CA",
+                  "es-CL",
+                  "da-DK",
+                  "fi-FI",
+                  "fr-FR",
+                  "de-DE",
+                  "zh-HK",
+                  "en-IN",
+                  "en-ID",
+                  "it-IT",
+                  "ja-JP",
+                  "ko-KR",
+                  "en-MY",
+                  "es-MX",
+                  "nl-NL",
+                  "en-NZ",
+                  "no-NO",
+                  "zh-CN",
+                  "pl-PL",
+                  "en-PH",
+                  "ru-RU",
+                  "en-ZA",
+                  "es-ES",
+                  "sv-SE",
+                  "fr-CH",
+                  "de-CH",
+                  "zh-TW",
+                  "tr-TR",
+                  "en-GB",
+                  "en-US",
+                  "es-US"
+                ],
+                "type": "string"
+              },
+              "units": {
+                "description": "The measurement units. If not provided, units are derived from search country.",
+                "enum": [
+                  "metric",
+                  "imperial"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_web_search",
+          "title": "brave_web_search"
+        }
+      ]
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:20.538Z",
+  "direction": "CLIENT->SERVER",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"docker_mcp_list_servers\",\"arguments\":{}}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "docker_mcp_list_servers",
+      "arguments": {}
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:20.540Z",
+  "direction": "SERVER->CLIENT",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32602,\"message\":\"unknown tool \\\"docker_mcp_list_servers\\\"\"}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "error": {
+      "code": -32602,
+      "message": "unknown tool \"docker_mcp_list_servers\""
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:22.546Z",
+  "direction": "CLIENT->SERVER",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"docker_mcp_add_server\",\"arguments\":{\"server_name\":\"brave\"}}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "tools/call",
+    "params": {
+      "name": "docker_mcp_add_server",
+      "arguments": {
+        "server_name": "brave"
+      }
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:22.547Z",
+  "direction": "SERVER->CLIENT",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":4,\"error\":{\"code\":-32602,\"message\":\"unknown tool \\\"docker_mcp_add_server\\\"\"}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "error": {
+      "code": -32602,
+      "message": "unknown tool \"docker_mcp_add_server\""
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:27.553Z",
+  "direction": "CLIENT->SERVER",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/list\",\"params\":{}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "tools/list",
+    "params": {}
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:27.555Z",
+  "direction": "SERVER->CLIENT",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":5,\"result\":{\"tools\":[{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Image Search\"},\"description\":\"\\n    Performs an image search using the Brave Search API. Helpful for when you need pictures of people, places, things, graphic design ideas, art inspiration, and more. When relaying results in a markdown environment, it may be helpful to include images in the results (e.g., ![image.title](image.properties.url)).\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":50,\"description\":\"Number of results (1-200, default 50). Combine this parameter with `offset` to paginate search results.\",\"maximum\":200,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"type\":\"string\"},\"query\":{\"description\":\"The user's search query. Query cannot be empty. Limited to 400 characters and 50 words.\",\"maxLength\":400,\"minLength\":1,\"type\":\"string\"},\"safesearch\":{\"default\":\"strict\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'strict' - Drops all adult content from search results.\",\"enum\":[\"off\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck provided query.\",\"type\":\"boolean\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_image_search\",\"outputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"minimum\":0,\"type\":\"integer\"},\"items\":{\"items\":{\"additionalProperties\":false,\"properties\":{\"confidence\":{\"description\":\"The confidence level of the result.\",\"enum\":[\"low\",\"medium\",\"high\"],\"type\":\"string\"},\"page_fetched\":{\"format\":\"date-time\",\"type\":\"string\"},\"properties\":{\"additionalProperties\":false,\"properties\":{\"height\":{\"exclusiveMinimum\":0,\"type\":\"integer\"},\"url\":{\"format\":\"uri\",\"type\":\"string\"},\"width\":{\"exclusiveMinimum\":0,\"type\":\"integer\"}},\"required\":[\"url\",\"width\",\"height\"],\"type\":\"object\"},\"title\":{\"type\":\"string\"},\"url\":{\"format\":\"uri\",\"type\":\"string\"}},\"required\":[\"title\",\"url\",\"page_fetched\",\"confidence\",\"properties\"],\"type\":\"object\"},\"type\":\"array\"},\"might_be_offensive\":{\"description\":\"Whether the image might be offensive.\",\"type\":\"boolean\"},\"type\":{\"const\":\"object\",\"type\":\"string\"}},\"required\":[\"type\",\"items\",\"count\",\"might_be_offensive\"],\"type\":\"object\"},\"title\":\"brave_image_search\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Local Search\"},\"description\":\"\\n    Brave Local Search API provides enrichments for location search results. Access to this API is available only through the Brave Search API Pro plans; confirm the user's plan before using this tool (if the user does not have a Pro plan, use the brave_web_search tool). Searches for local businesses and places using Brave's Local Search API. Best for queries related to physical locations, businesses, restaurants, services, etc.\\n    \\n    Returns detailed information including:\\n        - Business names and addresses\\n        - Ratings and review counts\\n        - Phone numbers and opening hours\\n\\n    Use this when the query implies 'near me', 'in my area', or mentions specific locations (e.g., 'in San Francisco'). This tool automatically falls back to brave_web_search if no local results are found.\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":10,\"description\":\"Number of results (1-20, default 10). Applies only to web search results (i.e., has no effect on locations, news, videos, etc.)\",\"maximum\":20,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"enum\":[\"ALL\",\"AR\",\"AU\",\"AT\",\"BE\",\"BR\",\"CA\",\"CL\",\"DK\",\"FI\",\"FR\",\"DE\",\"HK\",\"IN\",\"ID\",\"IT\",\"JP\",\"KR\",\"MY\",\"MX\",\"NL\",\"NZ\",\"NO\",\"CN\",\"PL\",\"PT\",\"PH\",\"RU\",\"SA\",\"ZA\",\"ES\",\"SE\",\"CH\",\"TW\",\"TR\",\"GB\",\"US\"],\"type\":\"string\"},\"extra_snippets\":{\"description\":\"A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.\",\"type\":\"boolean\"},\"freshness\":{\"description\":\"Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.\",\"enum\":[\"pd\",\"pw\",\"pm\",\"py\",\"YYYY-MM-DDtoYYYY-MM-DD\"],\"type\":\"string\"},\"goggles\":{\"description\":\"Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).\",\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"offset\":{\"default\":0,\"description\":\"Pagination offset (max 9, default 0)\",\"maximum\":9,\"minimum\":0,\"type\":\"integer\"},\"query\":{\"description\":\"Search query (max 400 chars, 50 words)\",\"maxLength\":400,\"type\":\"string\"},\"result_filter\":{\"default\":[\"web\",\"query\"],\"description\":\"Result filter (default ['web', 'query'])\",\"items\":{\"enum\":[\"discussions\",\"faq\",\"infobox\",\"news\",\"query\",\"summarizer\",\"videos\",\"web\",\"locations\",\"rich\"],\"type\":\"string\"},\"type\":\"array\"},\"safesearch\":{\"default\":\"moderate\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filters explicit content (e.g., images and videos), but allows adult domains in search results. 'strict' - Drops all adult content from search results. The default value is 'moderate'.\",\"enum\":[\"off\",\"moderate\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"enum\":[\"ar\",\"eu\",\"bn\",\"bg\",\"ca\",\"zh-hans\",\"zh-hant\",\"hr\",\"cs\",\"da\",\"nl\",\"en\",\"en-gb\",\"et\",\"fi\",\"fr\",\"gl\",\"de\",\"gu\",\"he\",\"hi\",\"hu\",\"is\",\"it\",\"jp\",\"kn\",\"ko\",\"lv\",\"lt\",\"ms\",\"ml\",\"mr\",\"nb\",\"pl\",\"pt-br\",\"pt-pt\",\"pa\",\"ro\",\"ru\",\"sr\",\"sk\",\"sl\",\"es\",\"sv\",\"ta\",\"te\",\"th\",\"tr\",\"uk\",\"vi\"],\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck the provided query.\",\"type\":\"boolean\"},\"summary\":{\"description\":\"This parameter enables summary key generation in web search results. This is required for summarizer to be enabled.\",\"type\":\"boolean\"},\"text_decorations\":{\"default\":true,\"description\":\"Whether display strings (e.g. result snippets) should include decoration markers (e.g. highlighting characters).\",\"type\":\"boolean\"},\"ui_lang\":{\"default\":\"en-US\",\"description\":\"The language of the UI. The 2 or more character language code for which the search results are provided.\",\"enum\":[\"es-AR\",\"en-AU\",\"de-AT\",\"nl-BE\",\"fr-BE\",\"pt-BR\",\"en-CA\",\"fr-CA\",\"es-CL\",\"da-DK\",\"fi-FI\",\"fr-FR\",\"de-DE\",\"zh-HK\",\"en-IN\",\"en-ID\",\"it-IT\",\"ja-JP\",\"ko-KR\",\"en-MY\",\"es-MX\",\"nl-NL\",\"en-NZ\",\"no-NO\",\"zh-CN\",\"pl-PL\",\"en-PH\",\"ru-RU\",\"en-ZA\",\"es-ES\",\"sv-SE\",\"fr-CH\",\"de-CH\",\"zh-TW\",\"tr-TR\",\"en-GB\",\"en-US\",\"es-US\"],\"type\":\"string\"},\"units\":{\"description\":\"The measurement units. If not provided, units are derived from search country.\",\"enum\":[\"metric\",\"imperial\"],\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_local_search\",\"title\":\"brave_local_search\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave News Search\"},\"description\":\"\\n    This tool searches for news articles using Brave's News Search API based on the user's query. Use it when you need current news information, breaking news updates, or articles about specific topics, events, or entities.\\n    \\n    When to use:\\n        - Finding recent news articles on specific topics\\n        - Getting breaking news updates\\n        - Researching current events or trending stories\\n        - Gathering news sources and headlines for analysis\\n\\n    Returns a JSON list of news-related results with title, url, and description. Some results may contain snippets of text from the article.\\n    \\n    When relaying results in markdown-supporting environments, always cite sources with hyperlinks.\\n    \\n    Examples:\\n        - \\\"According to [Reuters](https://www.reuters.com/technology/china-bans/), China bans uncertified and recalled power banks on planes\\\".\\n        - \\\"The [New York Times](https://www.nytimes.com/2025/06/27/us/technology/ev-sales.html) reports that Tesla's EV sales have increased by 20%\\\".\\n        - \\\"According to [BBC News](https://www.bbc.com/news/world-europe-65910000), the UK government has announced a new policy to support renewable energy\\\".\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":20,\"description\":\"Number of results (1-50, default 20)\",\"maximum\":50,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"type\":\"string\"},\"extra_snippets\":{\"default\":false,\"description\":\"A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.\",\"type\":\"boolean\"},\"freshness\":{\"anyOf\":[{\"const\":\"pd\",\"type\":\"string\"},{\"const\":\"pw\",\"type\":\"string\"},{\"const\":\"pm\",\"type\":\"string\"},{\"const\":\"py\",\"type\":\"string\"},{\"type\":\"string\"}],\"default\":\"pd\",\"description\":\"Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 Days. 'pm' - Discovered within the last 31 Days. 'py' - Discovered within the last 365 Days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.\"},\"goggles\":{\"description\":\"Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).\",\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"offset\":{\"default\":0,\"description\":\"Pagination offset (max 9, default 0)\",\"maximum\":9,\"minimum\":0,\"type\":\"integer\"},\"query\":{\"description\":\"Search query (max 400 chars, 50 words)\",\"maxLength\":400,\"type\":\"string\"},\"safesearch\":{\"default\":\"moderate\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filter out explicit content. 'strict' - Filter out explicit and suggestive content. The default value is 'moderate'.\",\"enum\":[\"off\",\"moderate\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck provided query.\",\"type\":\"boolean\"},\"ui_lang\":{\"default\":\"en-US\",\"description\":\"User interface language preferred in response. Usually of the format \\u003clanguage_code\\u003e-\\u003ccountry_code\\u003e. For more, see RFC 9110.\",\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_news_search\",\"title\":\"brave_news_search\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Summarizer\"},\"description\":\"\\n    Retrieves AI-generated summaries of web search results using Brave's Summarizer API. This tool processes search results to create concise, coherent summaries of information gathered from multiple sources.\\n\\n    When to use:\\n\\n    - When you need a concise overview of complex topics from multiple sources\\n    - For quick fact-checking or getting key points without reading full articles\\n    - When providing users with summarized information that synthesizes various perspectives\\n    - For research tasks requiring distilled information from web searches\\n\\n    Returns a text summary that consolidates information from the search results. Optional features include inline references to source URLs and additional entity information.\\n\\n    Requirements: Must first perform a web search using brave_web_search with summary=true parameter. Requires a Pro AI subscription to access the summarizer functionality.\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"entity_info\":{\"default\":false,\"description\":\"Returns extra entities info with the summary response.\",\"type\":\"boolean\"},\"inline_references\":{\"default\":false,\"description\":\"Adds inline references to the summary response.\",\"type\":\"boolean\"},\"key\":{\"description\":\"The key is equal to value of field key as part of the Summarizer response model.\",\"type\":\"string\"}},\"required\":[\"key\"],\"type\":\"object\"},\"name\":\"brave_summarizer\",\"title\":\"brave_summarizer\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Video Search\"},\"description\":\"\\n    Searches for videos using Brave's Video Search API and returns structured video results with metadata.\\n\\n    When to use:\\n        - When you need to find videos related to a specific topic, keyword, or query.\\n        - Useful for discovering video content, getting video metadata, or finding videos from specific creators/publishers.\\n\\n    Returns a JSON list of video-related results with title, url, description, duration, and thumbnail_url.\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":20,\"description\":\"Number of results (1-50, default 20). Combine this parameter with `offset` to paginate search results.\",\"maximum\":50,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"type\":\"string\"},\"freshness\":{\"anyOf\":[{\"const\":\"pd\",\"type\":\"string\"},{\"const\":\"pw\",\"type\":\"string\"},{\"const\":\"pm\",\"type\":\"string\"},{\"const\":\"py\",\"type\":\"string\"},{\"type\":\"string\"}],\"description\":\"Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - timeframe is also supported by specifying the date range (e.g. '2022-04-01to2022-07-30').\"},\"offset\":{\"default\":0,\"description\":\"Pagination offset (max 9, default 0). Combine this parameter with `count` to paginate search results.\",\"maximum\":9,\"minimum\":0,\"type\":\"integer\"},\"query\":{\"description\":\"The user's search query. Query cannot be empty. Limited to 400 characters and 50 words.\",\"maxLength\":400,\"minLength\":1,\"type\":\"string\"},\"safesearch\":{\"default\":\"moderate\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filter out explicit content. 'strict' - Filter out explicit and suggestive content. The default value is 'moderate'.\",\"enum\":[\"off\",\"moderate\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck provided query.\",\"type\":\"boolean\"},\"ui_lang\":{\"default\":\"en-US\",\"description\":\"User interface language preferred in response. Usually of the format \\u003clanguage_code\\u003e-\\u003ccountry_code\\u003e. For more, see RFC 9110.\",\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_video_search\",\"title\":\"brave_video_search\"},{\"annotations\":{\"openWorldHint\":true,\"title\":\"Brave Web Search\"},\"description\":\"\\n    Performs web searches using the Brave Search API and returns comprehensive search results with rich metadata.\\n\\n    When to use:\\n        - General web searches for information, facts, or current topics\\n        - Location-based queries (restaurants, businesses, points of interest)\\n        - News searches for recent events or breaking stories\\n        - Finding videos, discussions, or FAQ content\\n        - Research requiring diverse result types (web pages, images, reviews, etc.)\\n\\n    Returns a JSON list of web results with title, description, and URL.\\n    \\n    When the \\\"results_filter\\\" parameter is empty, JSON results may also contain FAQ, Discussions, News, and Video results.\\n\",\"inputSchema\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"count\":{\"default\":10,\"description\":\"Number of results (1-20, default 10). Applies only to web search results (i.e., has no effect on locations, news, videos, etc.)\",\"maximum\":20,\"minimum\":1,\"type\":\"integer\"},\"country\":{\"default\":\"US\",\"description\":\"Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.\",\"enum\":[\"ALL\",\"AR\",\"AU\",\"AT\",\"BE\",\"BR\",\"CA\",\"CL\",\"DK\",\"FI\",\"FR\",\"DE\",\"HK\",\"IN\",\"ID\",\"IT\",\"JP\",\"KR\",\"MY\",\"MX\",\"NL\",\"NZ\",\"NO\",\"CN\",\"PL\",\"PT\",\"PH\",\"RU\",\"SA\",\"ZA\",\"ES\",\"SE\",\"CH\",\"TW\",\"TR\",\"GB\",\"US\"],\"type\":\"string\"},\"extra_snippets\":{\"description\":\"A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.\",\"type\":\"boolean\"},\"freshness\":{\"description\":\"Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.\",\"enum\":[\"pd\",\"pw\",\"pm\",\"py\",\"YYYY-MM-DDtoYYYY-MM-DD\"],\"type\":\"string\"},\"goggles\":{\"description\":\"Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).\",\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"offset\":{\"default\":0,\"description\":\"Pagination offset (max 9, default 0)\",\"maximum\":9,\"minimum\":0,\"type\":\"integer\"},\"query\":{\"description\":\"Search query (max 400 chars, 50 words)\",\"maxLength\":400,\"type\":\"string\"},\"result_filter\":{\"default\":[\"web\",\"query\"],\"description\":\"Result filter (default ['web', 'query'])\",\"items\":{\"enum\":[\"discussions\",\"faq\",\"infobox\",\"news\",\"query\",\"summarizer\",\"videos\",\"web\",\"locations\",\"rich\"],\"type\":\"string\"},\"type\":\"array\"},\"safesearch\":{\"default\":\"moderate\",\"description\":\"Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filters explicit content (e.g., images and videos), but allows adult domains in search results. 'strict' - Drops all adult content from search results. The default value is 'moderate'.\",\"enum\":[\"off\",\"moderate\",\"strict\"],\"type\":\"string\"},\"search_lang\":{\"default\":\"en\",\"description\":\"Search language preference. The 2 or more character language code for which the search results are provided.\",\"enum\":[\"ar\",\"eu\",\"bn\",\"bg\",\"ca\",\"zh-hans\",\"zh-hant\",\"hr\",\"cs\",\"da\",\"nl\",\"en\",\"en-gb\",\"et\",\"fi\",\"fr\",\"gl\",\"de\",\"gu\",\"he\",\"hi\",\"hu\",\"is\",\"it\",\"jp\",\"kn\",\"ko\",\"lv\",\"lt\",\"ms\",\"ml\",\"mr\",\"nb\",\"pl\",\"pt-br\",\"pt-pt\",\"pa\",\"ro\",\"ru\",\"sr\",\"sk\",\"sl\",\"es\",\"sv\",\"ta\",\"te\",\"th\",\"tr\",\"uk\",\"vi\"],\"type\":\"string\"},\"spellcheck\":{\"default\":true,\"description\":\"Whether to spellcheck the provided query.\",\"type\":\"boolean\"},\"summary\":{\"description\":\"This parameter enables summary key generation in web search results. This is required for summarizer to be enabled.\",\"type\":\"boolean\"},\"text_decorations\":{\"default\":true,\"description\":\"Whether display strings (e.g. result snippets) should include decoration markers (e.g. highlighting characters).\",\"type\":\"boolean\"},\"ui_lang\":{\"default\":\"en-US\",\"description\":\"The language of the UI. The 2 or more character language code for which the search results are provided.\",\"enum\":[\"es-AR\",\"en-AU\",\"de-AT\",\"nl-BE\",\"fr-BE\",\"pt-BR\",\"en-CA\",\"fr-CA\",\"es-CL\",\"da-DK\",\"fi-FI\",\"fr-FR\",\"de-DE\",\"zh-HK\",\"en-IN\",\"en-ID\",\"it-IT\",\"ja-JP\",\"ko-KR\",\"en-MY\",\"es-MX\",\"nl-NL\",\"en-NZ\",\"no-NO\",\"zh-CN\",\"pl-PL\",\"en-PH\",\"ru-RU\",\"en-ZA\",\"es-ES\",\"sv-SE\",\"fr-CH\",\"de-CH\",\"zh-TW\",\"tr-TR\",\"en-GB\",\"en-US\",\"es-US\"],\"type\":\"string\"},\"units\":{\"description\":\"The measurement units. If not provided, units are derived from search country.\",\"enum\":[\"metric\",\"imperial\"],\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"brave_web_search\",\"title\":\"brave_web_search\"}]}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": {
+      "tools": [
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Image Search"
+          },
+          "description": "\n    Performs an image search using the Brave Search API. Helpful for when you need pictures of people, places, things, graphic design ideas, art inspiration, and more. When relaying results in a markdown environment, it may be helpful to include images in the results (e.g., ![image.title](image.properties.url)).\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 50,
+                "description": "Number of results (1-200, default 50). Combine this parameter with `offset` to paginate search results.",
+                "maximum": 200,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "type": "string"
+              },
+              "query": {
+                "description": "The user's search query. Query cannot be empty. Limited to 400 characters and 50 words.",
+                "maxLength": 400,
+                "minLength": 1,
+                "type": "string"
+              },
+              "safesearch": {
+                "default": "strict",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'strict' - Drops all adult content from search results.",
+                "enum": [
+                  "off",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck provided query.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_image_search",
+          "outputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "items": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "description": "The confidence level of the result.",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                      ],
+                      "type": "string"
+                    },
+                    "page_fetched": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "properties": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "height": {
+                          "exclusiveMinimum": 0,
+                          "type": "integer"
+                        },
+                        "url": {
+                          "format": "uri",
+                          "type": "string"
+                        },
+                        "width": {
+                          "exclusiveMinimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "url",
+                        "width",
+                        "height"
+                      ],
+                      "type": "object"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "url",
+                    "page_fetched",
+                    "confidence",
+                    "properties"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "might_be_offensive": {
+                "description": "Whether the image might be offensive.",
+                "type": "boolean"
+              },
+              "type": {
+                "const": "object",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "items",
+              "count",
+              "might_be_offensive"
+            ],
+            "type": "object"
+          },
+          "title": "brave_image_search"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Local Search"
+          },
+          "description": "\n    Brave Local Search API provides enrichments for location search results. Access to this API is available only through the Brave Search API Pro plans; confirm the user's plan before using this tool (if the user does not have a Pro plan, use the brave_web_search tool). Searches for local businesses and places using Brave's Local Search API. Best for queries related to physical locations, businesses, restaurants, services, etc.\n    \n    Returns detailed information including:\n        - Business names and addresses\n        - Ratings and review counts\n        - Phone numbers and opening hours\n\n    Use this when the query implies 'near me', 'in my area', or mentions specific locations (e.g., 'in San Francisco'). This tool automatically falls back to brave_web_search if no local results are found.\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 10,
+                "description": "Number of results (1-20, default 10). Applies only to web search results (i.e., has no effect on locations, news, videos, etc.)",
+                "maximum": 20,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "enum": [
+                  "ALL",
+                  "AR",
+                  "AU",
+                  "AT",
+                  "BE",
+                  "BR",
+                  "CA",
+                  "CL",
+                  "DK",
+                  "FI",
+                  "FR",
+                  "DE",
+                  "HK",
+                  "IN",
+                  "ID",
+                  "IT",
+                  "JP",
+                  "KR",
+                  "MY",
+                  "MX",
+                  "NL",
+                  "NZ",
+                  "NO",
+                  "CN",
+                  "PL",
+                  "PT",
+                  "PH",
+                  "RU",
+                  "SA",
+                  "ZA",
+                  "ES",
+                  "SE",
+                  "CH",
+                  "TW",
+                  "TR",
+                  "GB",
+                  "US"
+                ],
+                "type": "string"
+              },
+              "extra_snippets": {
+                "description": "A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.",
+                "type": "boolean"
+              },
+              "freshness": {
+                "description": "Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.",
+                "enum": [
+                  "pd",
+                  "pw",
+                  "pm",
+                  "py",
+                  "YYYY-MM-DDtoYYYY-MM-DD"
+                ],
+                "type": "string"
+              },
+              "goggles": {
+                "description": "Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset (max 9, default 0)",
+                "maximum": 9,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "query": {
+                "description": "Search query (max 400 chars, 50 words)",
+                "maxLength": 400,
+                "type": "string"
+              },
+              "result_filter": {
+                "default": [
+                  "web",
+                  "query"
+                ],
+                "description": "Result filter (default ['web', 'query'])",
+                "items": {
+                  "enum": [
+                    "discussions",
+                    "faq",
+                    "infobox",
+                    "news",
+                    "query",
+                    "summarizer",
+                    "videos",
+                    "web",
+                    "locations",
+                    "rich"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "safesearch": {
+                "default": "moderate",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filters explicit content (e.g., images and videos), but allows adult domains in search results. 'strict' - Drops all adult content from search results. The default value is 'moderate'.",
+                "enum": [
+                  "off",
+                  "moderate",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "enum": [
+                  "ar",
+                  "eu",
+                  "bn",
+                  "bg",
+                  "ca",
+                  "zh-hans",
+                  "zh-hant",
+                  "hr",
+                  "cs",
+                  "da",
+                  "nl",
+                  "en",
+                  "en-gb",
+                  "et",
+                  "fi",
+                  "fr",
+                  "gl",
+                  "de",
+                  "gu",
+                  "he",
+                  "hi",
+                  "hu",
+                  "is",
+                  "it",
+                  "jp",
+                  "kn",
+                  "ko",
+                  "lv",
+                  "lt",
+                  "ms",
+                  "ml",
+                  "mr",
+                  "nb",
+                  "pl",
+                  "pt-br",
+                  "pt-pt",
+                  "pa",
+                  "ro",
+                  "ru",
+                  "sr",
+                  "sk",
+                  "sl",
+                  "es",
+                  "sv",
+                  "ta",
+                  "te",
+                  "th",
+                  "tr",
+                  "uk",
+                  "vi"
+                ],
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck the provided query.",
+                "type": "boolean"
+              },
+              "summary": {
+                "description": "This parameter enables summary key generation in web search results. This is required for summarizer to be enabled.",
+                "type": "boolean"
+              },
+              "text_decorations": {
+                "default": true,
+                "description": "Whether display strings (e.g. result snippets) should include decoration markers (e.g. highlighting characters).",
+                "type": "boolean"
+              },
+              "ui_lang": {
+                "default": "en-US",
+                "description": "The language of the UI. The 2 or more character language code for which the search results are provided.",
+                "enum": [
+                  "es-AR",
+                  "en-AU",
+                  "de-AT",
+                  "nl-BE",
+                  "fr-BE",
+                  "pt-BR",
+                  "en-CA",
+                  "fr-CA",
+                  "es-CL",
+                  "da-DK",
+                  "fi-FI",
+                  "fr-FR",
+                  "de-DE",
+                  "zh-HK",
+                  "en-IN",
+                  "en-ID",
+                  "it-IT",
+                  "ja-JP",
+                  "ko-KR",
+                  "en-MY",
+                  "es-MX",
+                  "nl-NL",
+                  "en-NZ",
+                  "no-NO",
+                  "zh-CN",
+                  "pl-PL",
+                  "en-PH",
+                  "ru-RU",
+                  "en-ZA",
+                  "es-ES",
+                  "sv-SE",
+                  "fr-CH",
+                  "de-CH",
+                  "zh-TW",
+                  "tr-TR",
+                  "en-GB",
+                  "en-US",
+                  "es-US"
+                ],
+                "type": "string"
+              },
+              "units": {
+                "description": "The measurement units. If not provided, units are derived from search country.",
+                "enum": [
+                  "metric",
+                  "imperial"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_local_search",
+          "title": "brave_local_search"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave News Search"
+          },
+          "description": "\n    This tool searches for news articles using Brave's News Search API based on the user's query. Use it when you need current news information, breaking news updates, or articles about specific topics, events, or entities.\n    \n    When to use:\n        - Finding recent news articles on specific topics\n        - Getting breaking news updates\n        - Researching current events or trending stories\n        - Gathering news sources and headlines for analysis\n\n    Returns a JSON list of news-related results with title, url, and description. Some results may contain snippets of text from the article.\n    \n    When relaying results in markdown-supporting environments, always cite sources with hyperlinks.\n    \n    Examples:\n        - \"According to [Reuters](https://www.reuters.com/technology/china-bans/), China bans uncertified and recalled power banks on planes\".\n        - \"The [New York Times](https://www.nytimes.com/2025/06/27/us/technology/ev-sales.html) reports that Tesla's EV sales have increased by 20%\".\n        - \"According to [BBC News](https://www.bbc.com/news/world-europe-65910000), the UK government has announced a new policy to support renewable energy\".\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 20,
+                "description": "Number of results (1-50, default 20)",
+                "maximum": 50,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "type": "string"
+              },
+              "extra_snippets": {
+                "default": false,
+                "description": "A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.",
+                "type": "boolean"
+              },
+              "freshness": {
+                "anyOf": [
+                  {
+                    "const": "pd",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pw",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pm",
+                    "type": "string"
+                  },
+                  {
+                    "const": "py",
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "default": "pd",
+                "description": "Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 Days. 'pm' - Discovered within the last 31 Days. 'py' - Discovered within the last 365 Days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30."
+              },
+              "goggles": {
+                "description": "Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset (max 9, default 0)",
+                "maximum": 9,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "query": {
+                "description": "Search query (max 400 chars, 50 words)",
+                "maxLength": 400,
+                "type": "string"
+              },
+              "safesearch": {
+                "default": "moderate",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filter out explicit content. 'strict' - Filter out explicit and suggestive content. The default value is 'moderate'.",
+                "enum": [
+                  "off",
+                  "moderate",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck provided query.",
+                "type": "boolean"
+              },
+              "ui_lang": {
+                "default": "en-US",
+                "description": "User interface language preferred in response. Usually of the format <language_code>-<country_code>. For more, see RFC 9110.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_news_search",
+          "title": "brave_news_search"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Summarizer"
+          },
+          "description": "\n    Retrieves AI-generated summaries of web search results using Brave's Summarizer API. This tool processes search results to create concise, coherent summaries of information gathered from multiple sources.\n\n    When to use:\n\n    - When you need a concise overview of complex topics from multiple sources\n    - For quick fact-checking or getting key points without reading full articles\n    - When providing users with summarized information that synthesizes various perspectives\n    - For research tasks requiring distilled information from web searches\n\n    Returns a text summary that consolidates information from the search results. Optional features include inline references to source URLs and additional entity information.\n\n    Requirements: Must first perform a web search using brave_web_search with summary=true parameter. Requires a Pro AI subscription to access the summarizer functionality.\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "entity_info": {
+                "default": false,
+                "description": "Returns extra entities info with the summary response.",
+                "type": "boolean"
+              },
+              "inline_references": {
+                "default": false,
+                "description": "Adds inline references to the summary response.",
+                "type": "boolean"
+              },
+              "key": {
+                "description": "The key is equal to value of field key as part of the Summarizer response model.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ],
+            "type": "object"
+          },
+          "name": "brave_summarizer",
+          "title": "brave_summarizer"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Video Search"
+          },
+          "description": "\n    Searches for videos using Brave's Video Search API and returns structured video results with metadata.\n\n    When to use:\n        - When you need to find videos related to a specific topic, keyword, or query.\n        - Useful for discovering video content, getting video metadata, or finding videos from specific creators/publishers.\n\n    Returns a JSON list of video-related results with title, url, description, duration, and thumbnail_url.\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 20,
+                "description": "Number of results (1-50, default 20). Combine this parameter with `offset` to paginate search results.",
+                "maximum": 50,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "type": "string"
+              },
+              "freshness": {
+                "anyOf": [
+                  {
+                    "const": "pd",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pw",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pm",
+                    "type": "string"
+                  },
+                  {
+                    "const": "py",
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "description": "Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - timeframe is also supported by specifying the date range (e.g. '2022-04-01to2022-07-30')."
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset (max 9, default 0). Combine this parameter with `count` to paginate search results.",
+                "maximum": 9,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "query": {
+                "description": "The user's search query. Query cannot be empty. Limited to 400 characters and 50 words.",
+                "maxLength": 400,
+                "minLength": 1,
+                "type": "string"
+              },
+              "safesearch": {
+                "default": "moderate",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filter out explicit content. 'strict' - Filter out explicit and suggestive content. The default value is 'moderate'.",
+                "enum": [
+                  "off",
+                  "moderate",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck provided query.",
+                "type": "boolean"
+              },
+              "ui_lang": {
+                "default": "en-US",
+                "description": "User interface language preferred in response. Usually of the format <language_code>-<country_code>. For more, see RFC 9110.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_video_search",
+          "title": "brave_video_search"
+        },
+        {
+          "annotations": {
+            "openWorldHint": true,
+            "title": "Brave Web Search"
+          },
+          "description": "\n    Performs web searches using the Brave Search API and returns comprehensive search results with rich metadata.\n\n    When to use:\n        - General web searches for information, facts, or current topics\n        - Location-based queries (restaurants, businesses, points of interest)\n        - News searches for recent events or breaking stories\n        - Finding videos, discussions, or FAQ content\n        - Research requiring diverse result types (web pages, images, reviews, etc.)\n\n    Returns a JSON list of web results with title, description, and URL.\n    \n    When the \"results_filter\" parameter is empty, JSON results may also contain FAQ, Discussions, News, and Video results.\n",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "default": 10,
+                "description": "Number of results (1-20, default 10). Applies only to web search results (i.e., has no effect on locations, news, videos, etc.)",
+                "maximum": 20,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "country": {
+                "default": "US",
+                "description": "Search query country, where the results come from. The country string is limited to 2 character country codes of supported countries.",
+                "enum": [
+                  "ALL",
+                  "AR",
+                  "AU",
+                  "AT",
+                  "BE",
+                  "BR",
+                  "CA",
+                  "CL",
+                  "DK",
+                  "FI",
+                  "FR",
+                  "DE",
+                  "HK",
+                  "IN",
+                  "ID",
+                  "IT",
+                  "JP",
+                  "KR",
+                  "MY",
+                  "MX",
+                  "NL",
+                  "NZ",
+                  "NO",
+                  "CN",
+                  "PL",
+                  "PT",
+                  "PH",
+                  "RU",
+                  "SA",
+                  "ZA",
+                  "ES",
+                  "SE",
+                  "CH",
+                  "TW",
+                  "TR",
+                  "GB",
+                  "US"
+                ],
+                "type": "string"
+              },
+              "extra_snippets": {
+                "description": "A snippet is an excerpt from a page you get as a result of the query, and extra_snippets allow you to get up to 5 additional, alternative excerpts. Only available under Free AI, Base AI, Pro AI, Base Data, Pro Data and Custom plans.",
+                "type": "boolean"
+              },
+              "freshness": {
+                "description": "Filters search results by when they were discovered. The following values are supported: 'pd' - Discovered within the last 24 hours. 'pw' - Discovered within the last 7 days. 'pm' - Discovered within the last 31 days. 'py' - Discovered within the last 365 days. 'YYYY-MM-DDtoYYYY-MM-DD' - Timeframe is also supported by specifying the date range e.g. 2022-04-01to2022-07-30.",
+                "enum": [
+                  "pd",
+                  "pw",
+                  "pm",
+                  "py",
+                  "YYYY-MM-DDtoYYYY-MM-DD"
+                ],
+                "type": "string"
+              },
+              "goggles": {
+                "description": "Goggles act as a custom re-ranking on top of Brave's search index. The parameter supports both a url where the Goggle is hosted or the definition of the Goggle. For more details, refer to the Goggles repository (i.e., https://github.com/brave/goggles-quickstart).",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset (max 9, default 0)",
+                "maximum": 9,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "query": {
+                "description": "Search query (max 400 chars, 50 words)",
+                "maxLength": 400,
+                "type": "string"
+              },
+              "result_filter": {
+                "default": [
+                  "web",
+                  "query"
+                ],
+                "description": "Result filter (default ['web', 'query'])",
+                "items": {
+                  "enum": [
+                    "discussions",
+                    "faq",
+                    "infobox",
+                    "news",
+                    "query",
+                    "summarizer",
+                    "videos",
+                    "web",
+                    "locations",
+                    "rich"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "safesearch": {
+                "default": "moderate",
+                "description": "Filters search results for adult content. The following values are supported: 'off' - No filtering. 'moderate' - Filters explicit content (e.g., images and videos), but allows adult domains in search results. 'strict' - Drops all adult content from search results. The default value is 'moderate'.",
+                "enum": [
+                  "off",
+                  "moderate",
+                  "strict"
+                ],
+                "type": "string"
+              },
+              "search_lang": {
+                "default": "en",
+                "description": "Search language preference. The 2 or more character language code for which the search results are provided.",
+                "enum": [
+                  "ar",
+                  "eu",
+                  "bn",
+                  "bg",
+                  "ca",
+                  "zh-hans",
+                  "zh-hant",
+                  "hr",
+                  "cs",
+                  "da",
+                  "nl",
+                  "en",
+                  "en-gb",
+                  "et",
+                  "fi",
+                  "fr",
+                  "gl",
+                  "de",
+                  "gu",
+                  "he",
+                  "hi",
+                  "hu",
+                  "is",
+                  "it",
+                  "jp",
+                  "kn",
+                  "ko",
+                  "lv",
+                  "lt",
+                  "ms",
+                  "ml",
+                  "mr",
+                  "nb",
+                  "pl",
+                  "pt-br",
+                  "pt-pt",
+                  "pa",
+                  "ro",
+                  "ru",
+                  "sr",
+                  "sk",
+                  "sl",
+                  "es",
+                  "sv",
+                  "ta",
+                  "te",
+                  "th",
+                  "tr",
+                  "uk",
+                  "vi"
+                ],
+                "type": "string"
+              },
+              "spellcheck": {
+                "default": true,
+                "description": "Whether to spellcheck the provided query.",
+                "type": "boolean"
+              },
+              "summary": {
+                "description": "This parameter enables summary key generation in web search results. This is required for summarizer to be enabled.",
+                "type": "boolean"
+              },
+              "text_decorations": {
+                "default": true,
+                "description": "Whether display strings (e.g. result snippets) should include decoration markers (e.g. highlighting characters).",
+                "type": "boolean"
+              },
+              "ui_lang": {
+                "default": "en-US",
+                "description": "The language of the UI. The 2 or more character language code for which the search results are provided.",
+                "enum": [
+                  "es-AR",
+                  "en-AU",
+                  "de-AT",
+                  "nl-BE",
+                  "fr-BE",
+                  "pt-BR",
+                  "en-CA",
+                  "fr-CA",
+                  "es-CL",
+                  "da-DK",
+                  "fi-FI",
+                  "fr-FR",
+                  "de-DE",
+                  "zh-HK",
+                  "en-IN",
+                  "en-ID",
+                  "it-IT",
+                  "ja-JP",
+                  "ko-KR",
+                  "en-MY",
+                  "es-MX",
+                  "nl-NL",
+                  "en-NZ",
+                  "no-NO",
+                  "zh-CN",
+                  "pl-PL",
+                  "en-PH",
+                  "ru-RU",
+                  "en-ZA",
+                  "es-ES",
+                  "sv-SE",
+                  "fr-CH",
+                  "de-CH",
+                  "zh-TW",
+                  "tr-TR",
+                  "en-GB",
+                  "en-US",
+                  "es-US"
+                ],
+                "type": "string"
+              },
+              "units": {
+                "description": "The measurement units. If not provided, units are derived from search country.",
+                "enum": [
+                  "metric",
+                  "imperial"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "name": "brave_web_search",
+          "title": "brave_web_search"
+        }
+      ]
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:29.554Z",
+  "direction": "CLIENT->SERVER",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"brave_web_search\",\"arguments\":{\"query\":\"AI news January 2026\"}}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "tools/call",
+    "params": {
+      "name": "brave_web_search",
+      "arguments": {
+        "query": "AI news January 2026"
+      }
+    }
+  }
+}
+---
+{
+  "timestamp": "2026-01-20T04:46:31.396Z",
+  "direction": "SERVER->CLIENT",
+  "data": "{\"jsonrpc\":\"2.0\",\"id\":6,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://techcrunch.com/2026/01/02/in-2026-ai-will-move-from-hype-to-pragmatism/\\\",\\\"title\\\":\\\"In 2026, AI will move from hype to pragmatism | TechCrunch\\\",\\\"description\\\":\\\"The experts TechCrunch spoke to see 2026 as \\u003cstrong\\u003ea year of transition\\u003c/strong\\u003e, one that evolves from brute-force scaling to researching new architectures, from flashy demos to targeted deployments, and from agents that promise autonomy to ones that actually ...\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.ibm.com/think/news/ai-tech-trends-predictions-2026\\\",\\\"title\\\":\\\"The trends that will shape AI and tech in 2026 | IBM\\\",\\\"description\\\":\\\"... “\\u003cstrong\\u003e2026 will be the year of frontier versus efficient model classes\\u003c/strong\\u003e,” Kaoutar El Maghraoui, a Principal Research Scientist at IBM, said during a recent episode of Mixture of Experts.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.nytimes.com/2026/01/01/technology/space-data-centers-ai.html\\\",\\\"title\\\":\\\"Even the Sky May Not Be the Limit for A.I. Data Centers - The New York Times\\\",\\\"description\\\":\\\"\\u003cstrong\\u003eSome tech leaders are concerned that the artificial intelligence race will exhaust available land and energy\\u003c/strong\\u003e. The solution might lie in orbit.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.nbcnews.com/business/markets/ai-stocks-jump-broadly-positive-outlook-2026-markets-rcna251902\\\",\\\"title\\\":\\\"AI stocks jump amid broadly positive outlook for 2026 markets\\\",\\\"description\\\":\\\"U.S. stocks are starting 2026 in a similar fashion to 2025. \\u003cstrong\\u003eArtificial intelligence stocks jumped on Friday, while the rest of the market was mixed\\u003c/strong\\u003e. The S\\u0026amp;P 500 ended the trading session slightly higher, while the tech-heavy Nasdaq closed ...\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.theguardian.com/business/2026/jan/04/ai-reality-growing-economic-risk-2026\\\",\\\"title\\\":\\\"The cost of AI slop could cause a rethink that shakes the global economy in 2026 | Heather Stewart | The Guardian\\\",\\\"description\\\":\\\"Sun 4 Jan 2026 07.18 ESTLast modified on Sun 4 Jan 2026 12.41 EST ... The US dictionary Merriam-Webster’s word of the year for 2025 was “slop”, which it defines as “digital content of low quality that is produced, usually in quantity, by means of artificial intelligence”. The choice underlined the fact that while AI is being widely embraced, not least by corporate bosses keen to cut payroll costs, its downsides are also becoming obvious.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://reutersinstitute.politics.ox.ac.uk/news/how-will-ai-reshape-news-2026-forecasts-17-experts-around-world\\\",\\\"title\\\":\\\"How will AI reshape the news in 2026? Forecasts by 17 experts from around the world | Reuters Institute for the Study of Journalism\\\",\\\"description\\\":\\\"Our podcast: Trust, politics and AI. What people think about climate news ... AI is undermining OSINT’s core assumptions. Here’s how journalists should adapt ... \\u003cstrong\\u003eFour figures from technology, journalism and academia join the Reuters Institute as Visiting Fellows in January 2026\\u003c/strong\\u003e\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.technologyreview.com/2026/01/05/1130662/whats-next-for-ai-in-2026/\\\",\\\"title\\\":\\\"What's next for AI in 2026 | MIT Technology Review\\\",\\\"description\\\":\\\"\\u003cstrong\\u003eReasoning models have fast become the new paradigm for best-in-class problem solving); a boom in AI for science\\u003c/strong\\u003e (check: OpenAI is now following Google DeepMind by setting up a dedicated team to focus on just that); AI companies that are cozier ...\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.theguardian.com/technology/2026/jan/19/ed-zitron-on-big-tech-backlash-boom-and-bust-ai-has-taught-us-that-people-are-excited-to-replace-human-beings\\\",\\\"title\\\":\\\"Ed Zitron on big tech, backlash, boom and bust: ‘AI has taught us that people are excited to replace human beings’ | AI (artificial intelligence) | The Guardian\\\",\\\"description\\\":\\\"Explaining Zitron’s thesis about why generative AI is doomed to fail is not simple: last year he wrote a 19,000-word essay, laying it out. But you could break it down into two, interrelated parts. One is the actual efficacy of the technology; the other is the financial architecture of the AI boom.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.reuters.com/world/asia-pacific/ai-driven-inflation-is-2026s-most-overlooked-risk-investors-say-2026-01-05/\\\",\\\"title\\\":\\\"AI-driven inflation is 2026's most overlooked risk, investors say | Reuters\\\",\\\"description\\\":\\\"LONDON/NEW YORK, Jan 5 (Reuters) - Global stock markets, riding high on AI euphoria at the start of 2026 may be disregarding one of the biggest threats that could spoil the party: \\u003cstrong\\u003ea surge in inflation driven partly by the tech investment boom\\u003c/strong\\u003e.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.axios.com/2026/01/01/ai-2026-money-openai-google-anthropic-agents\\\",\\\"title\\\":\\\"AI 2026 trends: bubbles, agents, demand for ROI\\\",\\\"description\\\":\\\"\\u0026quot;In 2026, \\u003cstrong\\u003ethe most successful companies will set goals that sound absurd without AI — and then use agent collaboration to make them routine\\u003c/strong\\u003e,\\u0026quot; Dan Rogers, CEO of Asana, tells Axios.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.youtube.com/watch?v=3tHrt59_s30\\\",\\\"title\\\":\\\"Have you heard these exciting AI news? - January 16, 2026 AI Updates Weekly - YouTube\\\",\\\"description\\\":\\\"Have you heard these exciting AI news? - January 16, 2026 AI Updates WeeklyPresented by Lev SelectorSlides on GDrive: https://drive.google.com/drive/folders/...\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.aiapps.com/blog/ai-news-january-2026-breakthroughs-launches-trends/\\\",\\\"title\\\":\\\"Top AI News for January 2026: Breakthroughs, Launches \\u0026 Trends You Can’t Miss\\\",\\\"description\\\":\\\"AI is transforming industries in January 2026, with \\u003cstrong\\u003emajor advancements across robotics, autonomous vehicles, and specialized tools\\u003c/strong\\u003e. Key highlights include NVIDIA\\u0026#x27;s updates in physical AI, the release of compact, high-performing models like ...\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.marketingprofs.com/opinions/2026/54187/ai-update-january-16-2026-ai-news-and-views-from-the-past-week\\\",\\\"title\\\":\\\"Artificial Intelligence - AI Update, January 16, 2026: AI News and Views From the Past Week\\\",\\\"description\\\":\\\"The team ran experiments in mid-2025, notified companies in September 2025, and \\u003cstrong\\u003epublished in January 2026 after a disclosure period\\u003c/strong\\u003e. Importance for marketers: IP and brand risk remains material in generative systems, and governance must account ...\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://blog.mean.ceo/ai-news-january-2026/\\\",\\\"title\\\":\\\"AI News | January, 2026 (STARTUPS EDITION)\\\",\\\"description\\\":\\\"Violetta Bonenkamp · — · January 15, 2026 · \\u003cstrong\\u003eGoogle\\u0026#x27;s latest AI advancements, including its Gemini model and groundbreaking partnership with Apple, are revolutionizing AI accessibility and competitiveness\\u003c/strong\\u003e.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.theguardian.com/technology/2026/jan/06/leading-ai-expert-delays-timeline-possible-destruction-humanity\\\",\\\"title\\\":\\\"Leading AI expert delays timeline for its possible destruction of humanity | AI (artificial intelligence) | The Guardian\\\",\\\"description\\\":\\\"\\u003cstrong\\u003eA leading artificial intelligence expert has rolled back his timeline for AI doom\\u003c/strong\\u003e, saying it will take longer than he initially predicted for AI systems to be able to code autonomously and thus speed their own development toward superintelligence.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.vtnetzwelt.com/ai-development/latest-tech-ai-updates-what-january-2026-is-really-telling-us/\\\",\\\"title\\\":\\\"Latest Tech \\u0026 AI Updates January 2026 - AI Trends \\u0026 Insights\\\",\\\"description\\\":\\\"Latest tech and AI updates from January 2026. See how CES 2026, enterprise adoption, and accountability are shaping real-world AI use.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.fool.com/investing/2026/01/03/nvidias-65-billion-forecast-sends-a-clear-message/\\\",\\\"title\\\":\\\"Nvidia's $65 Billion Forecast Sends a Clear Message About the AI Boom | The Motley Fool\\\",\\\"description\\\":\\\"\\u003cstrong\\u003eNvidia has been generating strong sales of its AI accelerators, and expects that to continue in its fiscal 2026 Q4 with estimated revenue of $65 billion\\u003c/strong\\u003e.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.theguardian.com/us-news/ng-interactive/2026/jan/18/tech-ai-bubble-burst-reverse-centaur\\\",\\\"title\\\":\\\"AI companies will fail. We can salvage something from the wreckage | AI (artificial intelligence) | The Guardian\\\",\\\"description\\\":\\\"\\u003cstrong\\u003eAI is a bubble and it will burst\\u003c/strong\\u003e. Most of the companies will fail. Most of the datacenters will be shuttered or sold for parts. So what will be left behind? We will have a bunch of coders who are really good at applied statistics.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.reuters.com/technology/artificial-intelligence/artificial-intelligencer-top-ai-themes-that-will-shape-2026-2026-01-15/\\\",\\\"title\\\":\\\"Top AI themes that will shape 2026 | Reuters\\\",\\\"description\\\":\\\"My News · Register · By Krystal ... Purchase Licensing Rights, opens new tab · Jan 15 (Reuters) - (\\u003cstrong\\u003eArtificial Intelligencer is published every Wednesday\\u003c/strong\\u003e....\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"url\\\":\\\"https://www.humai.blog/ai-news-trends-january-2026-complete-monthly-digest/\\\",\\\"title\\\":\\\"AI News \\u0026 Trends January 2026: Complete Monthly Digest\\\",\\\"description\\\":\\\"\\u003cstrong\\u003eOpenAI is developing a new voice-based AI model specifically designed for voice-first devices\\u003c/strong\\u003e, moving beyond their current GPT-realtime speech model that uses Transformer architecture.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"mutated_by_goggles\\\":false,\\\"breaking\\\":false,\\\"is_live\\\":false,\\\"age\\\":\\\"1 day ago\\\",\\\"url\\\":\\\"https://www.crn.com.au/news/2026/ai/partners-react-to-microsoft-australia-and-actu-new-ai-agreement\\\",\\\"title\\\":\\\"“A practical starting point to scale skills, embed worker voice, and accelerate responsible adoption”: Partners react to Microsoft Australia and ACTU new AI agreement\\\",\\\"description\\\":\\\"Partners are open and excited to the recent \\u003cstrong\\u003eAI\\u003c/strong\\u003e agreement between the two entities.\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"mutated_by_goggles\\\":false,\\\"breaking\\\":false,\\\"is_live\\\":false,\\\"age\\\":\\\"1 day ago\\\",\\\"url\\\":\\\"https://www.abc.net.au/news/2026-01-19/ai-grok-ethical-social-and-economic-nightmare/106242320\\\",\\\"title\\\":\\\"AI platforms like Grok are an ethical, social and economic nightmare — and we're starting to wake up - ABC News\\\",\\\"description\\\":\\\"abc.net.au/\\u003cstrong\\u003enews\\u003c/strong\\u003e/\\u003cstrong\\u003eai\\u003c/strong\\u003e-grok-ethical-social-and-economic-nightmare/106242320Link copied ... As 2025 began, I thought humanity\\u0026#x27;s biggest problem was climate change. In \\u003cstrong\\u003e2026\\u003c/strong\\u003e, \\u003cstrong\\u003eAI\\u003c/strong\\u003e is more pressing. As an experiment, given the recent controversy about it, I asked Grok if it could make a nude picture of Queen Elizabeth I, who has been dead for more than 400 years. It refused. ... It replied: \\u0026quot;Because the current restrictions (rolled out in early \\u003cstrong\\u003eJanuary\\u003c/strong\\u003e ...\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"mutated_by_goggles\\\":false,\\\"url\\\":\\\"https://www.youtube.com/watch?v=OMwNvclw7do\\\",\\\"title\\\":\\\"Pressure Points: AI Trade Update - Jan 2026 - YouTube\\\",\\\"description\\\":\\\"We’re 4% of the way into 2026, and the fundamentals of AI infrastructure are tracking above expectations. Next stop: hyperscalers’ capex guidance in two weeks.\\\",\\\"age\\\":\\\"4 days ago\\\",\\\"thumbnail_url\\\":\\\"https://imgs.search.brave.com/HQPUxv3OgnIDXGjOS0nsQ84OBxgc7b07DQ11LtZ2l6I/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9P/TXdOdmNsdzdkby9o/cWRlZmF1bHQuanBn\\\",\\\"duration\\\":\\\"07:42\\\",\\\"creator\\\":\\\"Deepwater Asset Management\\\",\\\"publisher\\\":\\\"YouTube\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"mutated_by_goggles\\\":false,\\\"url\\\":\\\"https://www.youtube.com/watch?v=MWSvfTQZUdc\\\",\\\"title\\\":\\\"Where is AI headed in 2026? | Front Burner - YouTube\\\",\\\"description\\\":\\\"A look at the big trends and potential challenges that will shape the artificial intelligence industry in the new year, with reporter Murad Hemmadi.»»» Subsc...\\\",\\\"age\\\":\\\"2 weeks ago\\\",\\\"thumbnail_url\\\":\\\"https://imgs.search.brave.com/puJJhWlvq_8jWs9kBMZdyrynKOLpb0DPoK_ZQXxY47c/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9N/V1N2ZlRRWlVkYy9t/YXhyZXNkZWZhdWx0/LmpwZw\\\",\\\"duration\\\":\\\"27:06\\\",\\\"creator\\\":\\\"CBC News\\\",\\\"publisher\\\":\\\"YouTube\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"mutated_by_goggles\\\":false,\\\"url\\\":\\\"https://www.youtube.com/watch?v=_y6GP23mK7A\\\",\\\"title\\\":\\\"Have you heard these exciting AI news? - January 09, 2026 AI Updates ...\\\",\\\"description\\\":\\\"Have you heard these exciting AI news? - January 09, 2026 AI Updates WeeklyPresented by Lev SelectorSlides on GDrive: https://drive.google.com/drive/folders/...\\\",\\\"age\\\":\\\"1 week ago\\\",\\\"thumbnail_url\\\":\\\"https://imgs.search.brave.com/u74NDbCrBTTDcGDUegkKS9QXWxWfH3rZbdBiAJipGds/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9f/eTZHUDIzbUs3QS9t/YXhyZXNkZWZhdWx0/LmpwZw\\\",\\\"duration\\\":\\\"25:46\\\",\\\"creator\\\":\\\"Lev Selector\\\",\\\"publisher\\\":\\\"YouTube\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"mutated_by_goggles\\\":false,\\\"url\\\":\\\"https://www.youtube.com/watch?v=t8r6tSz6WoM\\\",\\\"title\\\":\\\"Nvidia's Jensen Huang Says Rubin AI Chips On Track | Bloomberg: ...\\\",\\\"description\\\":\\\"\\\\\\\"Bloomberg: The Asia Trade\\\\\\\" brings you everything you need to know to get ahead as the trading day begins in Asia. Bloomberg TV is live from Sydney and Singa...\\\",\\\"age\\\":\\\"2 weeks ago\\\",\\\"thumbnail_url\\\":\\\"https://imgs.search.brave.com/oiEC7RUCtIhXQhHV8GFhltWfSJZKeUmndK_9O0BmJBs/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS90/OHI2dFN6NldvTS9t/YXhyZXNkZWZhdWx0/LmpwZw\\\",\\\"duration\\\":\\\"01:32:21\\\",\\\"creator\\\":\\\"Bloomberg Television\\\",\\\"publisher\\\":\\\"YouTube\\\"}\"},{\"type\":\"text\",\"text\":\"{\\\"mutated_by_goggles\\\":false,\\\"url\\\":\\\"https://finance.yahoo.com/video/ai-takes-center-stage-ces-175056864.html\\\",\\\"title\\\":\\\"AI takes center stage as CES 2026 unveils tech innovations\\\",\\\"description\\\":\\\"STORY: From robotics to pocket pets, AI agents - that's autonomous software systems that use artificial intelligence - are central to many tech innovations at CES 2026. UPSOT: “wow’s that’s cool” :: Las Vegas, Nevada January 4, 2026 First-time exhibitor X-Origin AI has brought along ...\\\",\\\"age\\\":\\\"2 weeks ago\\\",\\\"thumbnail_url\\\":\\\"https://imgs.search.brave.com/QMsOZmrUprUGR2ejc93JJrlm50LjLF4eW0b2RNd3BZQ/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9zLnlp/bWcuY29tL255L2Fw/aS9yZXMvMS4yL3hf/SVIwbmUyUUdDVk5J/V3pKT0JGSWctLS9Z/WEJ3YVdROWFHbG5h/R3hoYm1SbGNqdDNQ/VEV5TURBN2FEMDJO/elUtL2h0dHBzOi8v/Y2YtaW1hZ2VzLnVz/LWVhc3QtMS5wcm9k/LmJvbHRkbnMubmV0/L3YxL2ppdC82NDE1/NjY1ODE1MDAxL2E1/OGRlMmUxLWZkZTct/NDE5My1iYTM0LWRl/YjYxOTRiNTViNi9t/YWluLzEyODB4NzIw/LzFtMXM4OTNtcy9t/YXRjaC9pbWFnZS5q/cGc\\\"}\"}]}}",
+  "parsed": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://techcrunch.com/2026/01/02/in-2026-ai-will-move-from-hype-to-pragmatism/\",\"title\":\"In 2026, AI will move from hype to pragmatism | TechCrunch\",\"description\":\"The experts TechCrunch spoke to see 2026 as <strong>a year of transition</strong>, one that evolves from brute-force scaling to researching new architectures, from flashy demos to targeted deployments, and from agents that promise autonomy to ones that actually ...\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.ibm.com/think/news/ai-tech-trends-predictions-2026\",\"title\":\"The trends that will shape AI and tech in 2026 | IBM\",\"description\":\"... “<strong>2026 will be the year of frontier versus efficient model classes</strong>,” Kaoutar El Maghraoui, a Principal Research Scientist at IBM, said during a recent episode of Mixture of Experts.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.nytimes.com/2026/01/01/technology/space-data-centers-ai.html\",\"title\":\"Even the Sky May Not Be the Limit for A.I. Data Centers - The New York Times\",\"description\":\"<strong>Some tech leaders are concerned that the artificial intelligence race will exhaust available land and energy</strong>. The solution might lie in orbit.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.nbcnews.com/business/markets/ai-stocks-jump-broadly-positive-outlook-2026-markets-rcna251902\",\"title\":\"AI stocks jump amid broadly positive outlook for 2026 markets\",\"description\":\"U.S. stocks are starting 2026 in a similar fashion to 2025. <strong>Artificial intelligence stocks jumped on Friday, while the rest of the market was mixed</strong>. The S&amp;P 500 ended the trading session slightly higher, while the tech-heavy Nasdaq closed ...\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.theguardian.com/business/2026/jan/04/ai-reality-growing-economic-risk-2026\",\"title\":\"The cost of AI slop could cause a rethink that shakes the global economy in 2026 | Heather Stewart | The Guardian\",\"description\":\"Sun 4 Jan 2026 07.18 ESTLast modified on Sun 4 Jan 2026 12.41 EST ... The US dictionary Merriam-Webster’s word of the year for 2025 was “slop”, which it defines as “digital content of low quality that is produced, usually in quantity, by means of artificial intelligence”. The choice underlined the fact that while AI is being widely embraced, not least by corporate bosses keen to cut payroll costs, its downsides are also becoming obvious.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://reutersinstitute.politics.ox.ac.uk/news/how-will-ai-reshape-news-2026-forecasts-17-experts-around-world\",\"title\":\"How will AI reshape the news in 2026? Forecasts by 17 experts from around the world | Reuters Institute for the Study of Journalism\",\"description\":\"Our podcast: Trust, politics and AI. What people think about climate news ... AI is undermining OSINT’s core assumptions. Here’s how journalists should adapt ... <strong>Four figures from technology, journalism and academia join the Reuters Institute as Visiting Fellows in January 2026</strong>\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.technologyreview.com/2026/01/05/1130662/whats-next-for-ai-in-2026/\",\"title\":\"What's next for AI in 2026 | MIT Technology Review\",\"description\":\"<strong>Reasoning models have fast become the new paradigm for best-in-class problem solving); a boom in AI for science</strong> (check: OpenAI is now following Google DeepMind by setting up a dedicated team to focus on just that); AI companies that are cozier ...\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.theguardian.com/technology/2026/jan/19/ed-zitron-on-big-tech-backlash-boom-and-bust-ai-has-taught-us-that-people-are-excited-to-replace-human-beings\",\"title\":\"Ed Zitron on big tech, backlash, boom and bust: ‘AI has taught us that people are excited to replace human beings’ | AI (artificial intelligence) | The Guardian\",\"description\":\"Explaining Zitron’s thesis about why generative AI is doomed to fail is not simple: last year he wrote a 19,000-word essay, laying it out. But you could break it down into two, interrelated parts. One is the actual efficacy of the technology; the other is the financial architecture of the AI boom.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.reuters.com/world/asia-pacific/ai-driven-inflation-is-2026s-most-overlooked-risk-investors-say-2026-01-05/\",\"title\":\"AI-driven inflation is 2026's most overlooked risk, investors say | Reuters\",\"description\":\"LONDON/NEW YORK, Jan 5 (Reuters) - Global stock markets, riding high on AI euphoria at the start of 2026 may be disregarding one of the biggest threats that could spoil the party: <strong>a surge in inflation driven partly by the tech investment boom</strong>.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.axios.com/2026/01/01/ai-2026-money-openai-google-anthropic-agents\",\"title\":\"AI 2026 trends: bubbles, agents, demand for ROI\",\"description\":\"&quot;In 2026, <strong>the most successful companies will set goals that sound absurd without AI — and then use agent collaboration to make them routine</strong>,&quot; Dan Rogers, CEO of Asana, tells Axios.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.youtube.com/watch?v=3tHrt59_s30\",\"title\":\"Have you heard these exciting AI news? - January 16, 2026 AI Updates Weekly - YouTube\",\"description\":\"Have you heard these exciting AI news? - January 16, 2026 AI Updates WeeklyPresented by Lev SelectorSlides on GDrive: https://drive.google.com/drive/folders/...\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.aiapps.com/blog/ai-news-january-2026-breakthroughs-launches-trends/\",\"title\":\"Top AI News for January 2026: Breakthroughs, Launches & Trends You Can’t Miss\",\"description\":\"AI is transforming industries in January 2026, with <strong>major advancements across robotics, autonomous vehicles, and specialized tools</strong>. Key highlights include NVIDIA&#x27;s updates in physical AI, the release of compact, high-performing models like ...\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.marketingprofs.com/opinions/2026/54187/ai-update-january-16-2026-ai-news-and-views-from-the-past-week\",\"title\":\"Artificial Intelligence - AI Update, January 16, 2026: AI News and Views From the Past Week\",\"description\":\"The team ran experiments in mid-2025, notified companies in September 2025, and <strong>published in January 2026 after a disclosure period</strong>. Importance for marketers: IP and brand risk remains material in generative systems, and governance must account ...\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://blog.mean.ceo/ai-news-january-2026/\",\"title\":\"AI News | January, 2026 (STARTUPS EDITION)\",\"description\":\"Violetta Bonenkamp · — · January 15, 2026 · <strong>Google&#x27;s latest AI advancements, including its Gemini model and groundbreaking partnership with Apple, are revolutionizing AI accessibility and competitiveness</strong>.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.theguardian.com/technology/2026/jan/06/leading-ai-expert-delays-timeline-possible-destruction-humanity\",\"title\":\"Leading AI expert delays timeline for its possible destruction of humanity | AI (artificial intelligence) | The Guardian\",\"description\":\"<strong>A leading artificial intelligence expert has rolled back his timeline for AI doom</strong>, saying it will take longer than he initially predicted for AI systems to be able to code autonomously and thus speed their own development toward superintelligence.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.vtnetzwelt.com/ai-development/latest-tech-ai-updates-what-january-2026-is-really-telling-us/\",\"title\":\"Latest Tech & AI Updates January 2026 - AI Trends & Insights\",\"description\":\"Latest tech and AI updates from January 2026. See how CES 2026, enterprise adoption, and accountability are shaping real-world AI use.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.fool.com/investing/2026/01/03/nvidias-65-billion-forecast-sends-a-clear-message/\",\"title\":\"Nvidia's $65 Billion Forecast Sends a Clear Message About the AI Boom | The Motley Fool\",\"description\":\"<strong>Nvidia has been generating strong sales of its AI accelerators, and expects that to continue in its fiscal 2026 Q4 with estimated revenue of $65 billion</strong>.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.theguardian.com/us-news/ng-interactive/2026/jan/18/tech-ai-bubble-burst-reverse-centaur\",\"title\":\"AI companies will fail. We can salvage something from the wreckage | AI (artificial intelligence) | The Guardian\",\"description\":\"<strong>AI is a bubble and it will burst</strong>. Most of the companies will fail. Most of the datacenters will be shuttered or sold for parts. So what will be left behind? We will have a bunch of coders who are really good at applied statistics.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.reuters.com/technology/artificial-intelligence/artificial-intelligencer-top-ai-themes-that-will-shape-2026-2026-01-15/\",\"title\":\"Top AI themes that will shape 2026 | Reuters\",\"description\":\"My News · Register · By Krystal ... Purchase Licensing Rights, opens new tab · Jan 15 (Reuters) - (<strong>Artificial Intelligencer is published every Wednesday</strong>....\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"url\":\"https://www.humai.blog/ai-news-trends-january-2026-complete-monthly-digest/\",\"title\":\"AI News & Trends January 2026: Complete Monthly Digest\",\"description\":\"<strong>OpenAI is developing a new voice-based AI model specifically designed for voice-first devices</strong>, moving beyond their current GPT-realtime speech model that uses Transformer architecture.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"mutated_by_goggles\":false,\"breaking\":false,\"is_live\":false,\"age\":\"1 day ago\",\"url\":\"https://www.crn.com.au/news/2026/ai/partners-react-to-microsoft-australia-and-actu-new-ai-agreement\",\"title\":\"“A practical starting point to scale skills, embed worker voice, and accelerate responsible adoption”: Partners react to Microsoft Australia and ACTU new AI agreement\",\"description\":\"Partners are open and excited to the recent <strong>AI</strong> agreement between the two entities.\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"mutated_by_goggles\":false,\"breaking\":false,\"is_live\":false,\"age\":\"1 day ago\",\"url\":\"https://www.abc.net.au/news/2026-01-19/ai-grok-ethical-social-and-economic-nightmare/106242320\",\"title\":\"AI platforms like Grok are an ethical, social and economic nightmare — and we're starting to wake up - ABC News\",\"description\":\"abc.net.au/<strong>news</strong>/<strong>ai</strong>-grok-ethical-social-and-economic-nightmare/106242320Link copied ... As 2025 began, I thought humanity&#x27;s biggest problem was climate change. In <strong>2026</strong>, <strong>AI</strong> is more pressing. As an experiment, given the recent controversy about it, I asked Grok if it could make a nude picture of Queen Elizabeth I, who has been dead for more than 400 years. It refused. ... It replied: &quot;Because the current restrictions (rolled out in early <strong>January</strong> ...\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"mutated_by_goggles\":false,\"url\":\"https://www.youtube.com/watch?v=OMwNvclw7do\",\"title\":\"Pressure Points: AI Trade Update - Jan 2026 - YouTube\",\"description\":\"We’re 4% of the way into 2026, and the fundamentals of AI infrastructure are tracking above expectations. Next stop: hyperscalers’ capex guidance in two weeks.\",\"age\":\"4 days ago\",\"thumbnail_url\":\"https://imgs.search.brave.com/HQPUxv3OgnIDXGjOS0nsQ84OBxgc7b07DQ11LtZ2l6I/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9P/TXdOdmNsdzdkby9o/cWRlZmF1bHQuanBn\",\"duration\":\"07:42\",\"creator\":\"Deepwater Asset Management\",\"publisher\":\"YouTube\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"mutated_by_goggles\":false,\"url\":\"https://www.youtube.com/watch?v=MWSvfTQZUdc\",\"title\":\"Where is AI headed in 2026? | Front Burner - YouTube\",\"description\":\"A look at the big trends and potential challenges that will shape the artificial intelligence industry in the new year, with reporter Murad Hemmadi.»»» Subsc...\",\"age\":\"2 weeks ago\",\"thumbnail_url\":\"https://imgs.search.brave.com/puJJhWlvq_8jWs9kBMZdyrynKOLpb0DPoK_ZQXxY47c/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9N/V1N2ZlRRWlVkYy9t/YXhyZXNkZWZhdWx0/LmpwZw\",\"duration\":\"27:06\",\"creator\":\"CBC News\",\"publisher\":\"YouTube\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"mutated_by_goggles\":false,\"url\":\"https://www.youtube.com/watch?v=_y6GP23mK7A\",\"title\":\"Have you heard these exciting AI news? - January 09, 2026 AI Updates ...\",\"description\":\"Have you heard these exciting AI news? - January 09, 2026 AI Updates WeeklyPresented by Lev SelectorSlides on GDrive: https://drive.google.com/drive/folders/...\",\"age\":\"1 week ago\",\"thumbnail_url\":\"https://imgs.search.brave.com/u74NDbCrBTTDcGDUegkKS9QXWxWfH3rZbdBiAJipGds/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9f/eTZHUDIzbUs3QS9t/YXhyZXNkZWZhdWx0/LmpwZw\",\"duration\":\"25:46\",\"creator\":\"Lev Selector\",\"publisher\":\"YouTube\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"mutated_by_goggles\":false,\"url\":\"https://www.youtube.com/watch?v=t8r6tSz6WoM\",\"title\":\"Nvidia's Jensen Huang Says Rubin AI Chips On Track | Bloomberg: ...\",\"description\":\"\\\"Bloomberg: The Asia Trade\\\" brings you everything you need to know to get ahead as the trading day begins in Asia. Bloomberg TV is live from Sydney and Singa...\",\"age\":\"2 weeks ago\",\"thumbnail_url\":\"https://imgs.search.brave.com/oiEC7RUCtIhXQhHV8GFhltWfSJZKeUmndK_9O0BmJBs/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS90/OHI2dFN6NldvTS9t/YXhyZXNkZWZhdWx0/LmpwZw\",\"duration\":\"01:32:21\",\"creator\":\"Bloomberg Television\",\"publisher\":\"YouTube\"}"
+        },
+        {
+          "type": "text",
+          "text": "{\"mutated_by_goggles\":false,\"url\":\"https://finance.yahoo.com/video/ai-takes-center-stage-ces-175056864.html\",\"title\":\"AI takes center stage as CES 2026 unveils tech innovations\",\"description\":\"STORY: From robotics to pocket pets, AI agents - that's autonomous software systems that use artificial intelligence - are central to many tech innovations at CES 2026. UPSOT: “wow’s that’s cool” :: Las Vegas, Nevada January 4, 2026 First-time exhibitor X-Origin AI has brought along ...\",\"age\":\"2 weeks ago\",\"thumbnail_url\":\"https://imgs.search.brave.com/QMsOZmrUprUGR2ejc93JJrlm50LjLF4eW0b2RNd3BZQ/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9zLnlp/bWcuY29tL255L2Fw/aS9yZXMvMS4yL3hf/SVIwbmUyUUdDVk5J/V3pKT0JGSWctLS9Z/WEJ3YVdROWFHbG5h/R3hoYm1SbGNqdDNQ/VEV5TURBN2FEMDJO/elUtL2h0dHBzOi8v/Y2YtaW1hZ2VzLnVz/LWVhc3QtMS5wcm9k/LmJvbHRkbnMubmV0/L3YxL2ppdC82NDE1/NjY1ODE1MDAxL2E1/OGRlMmUxLWZkZTct/NDE5My1iYTM0LWRl/YjYxOTRiNTViNi9t/YWluLzEyODB4NzIw/LzFtMXM4OTNtcy9t/YXRjaC9pbWFnZS5q/cGc\"}"
+        }
+      ]
+    }
+  }
+}
+---

@@ -31,9 +31,9 @@ func (c *ClaudeIntegration) Configure(port int, profileID string, apiKey string)
 	}
 
 	// Add or update MCP Scooter entry for Claude
-	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	url := fmt.Sprintf("http://127.0.0.1:%d/profiles/%s/sse", port, profileID)
 	if profileID == "work" {
-		url = fmt.Sprintf("http://localhost:%d/sse", port)
+		url = fmt.Sprintf("http://127.0.0.1:%d/sse", port)
 	}
 
 	serverConfig := map[string]interface{}{
@@ -77,9 +77,9 @@ func (c *ClaudeIntegration) ConfigureCode(port int, profileID string, apiKey str
 		config.McpServers = make(map[string]interface{})
 	}
 
-	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	url := fmt.Sprintf("http://127.0.0.1:%d/profiles/%s/sse", port, profileID)
 	if profileID == "work" {
-		url = fmt.Sprintf("http://localhost:%d/sse", port)
+		url = fmt.Sprintf("http://127.0.0.1:%d/sse", port)
 	}
 
 	serverConfig := map[string]interface{}{

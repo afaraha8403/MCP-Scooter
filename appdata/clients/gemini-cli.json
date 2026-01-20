@@ -2,6 +2,47 @@
   "id": "gemini-cli",
   "name": "Gemini CLI",
   "icon": "/client-logos/gemini_cli.svg",
-  "description": "Google's Gemini model accessed via terminal",
-  "manual_instructions": "### Manual Configuration for Gemini CLI\n\nTo manually connect Gemini CLI to MCP Scooter, add the following to your configuration file:\n\n```toml\n[mcp.servers.mcp-scooter]\nurl = \"http://localhost:6277/profiles/{profile}/sse\"\n```"
+  "description": "Google's agentic AI coding assistant for terminal-based development",
+  "version": "Latest",
+  "developer": "Google",
+  "category": "Terminal Agent",
+  "tags": ["cli", "terminal", "agent", "google", "gemini"],
+  "about": "## Gemini CLI\n\nGemini CLI is Google's open-source agentic AI assistant for developers, bringing Gemini's capabilities directly to your terminal. It supports MCP for extending its abilities with external tools and data sources.\n\n### Key Capabilities\n\n- **Terminal-Native** - Runs directly in your command line environment\n- **Agentic Workflows** - Multi-step task automation and code generation\n- **MCP Integration** - Connect to external tools and services via MCP\n- **Open Source** - Community-driven development and extensibility\n\n### MCP Support\n\nGemini CLI supports MCP servers for extending its capabilities. Configure servers in your settings file to enable additional tools and context sources.\n\n### IDE Integration\n\nGemini CLI integrates with Zed editor via the Agent Client Protocol (ACP), enabling:\n- Real-time visualization of edits\n- Multi-buffer review across files\n- Preview and accept/reject patches\n- Pull request-style workflows\n\n### Gemini Models\n\n- **Gemini 2.0 Flash** - Fast responses for common tasks\n- **Gemini 2.0 Pro** - Advanced reasoning and complex tasks\n- **Gemini 1.5 Pro** - Large context window (up to 2M tokens)\n\n### Getting Started\n\n```bash\nnpm install -g @google/gemini-cli\ngemini\n```\n\nRequires a Google AI API key or Google Cloud credentials.",
+  "homepage": "https://github.com/google-gemini/gemini-cli",
+  "repository": "https://github.com/google-gemini/gemini-cli",
+  "documentation": "https://github.com/google-gemini/gemini-cli#readme",
+  "download_url": "https://www.npmjs.com/package/@google/gemini-cli",
+  "platforms": ["macOS", "Windows", "Linux"],
+  "mcp_support": {
+    "transports": ["stdio", "sse"],
+    "features": ["tools"],
+    "status": "stable"
+  },
+  "features": [
+    {
+      "name": "Agentic Coding",
+      "description": "Multi-step autonomous task completion in your terminal"
+    },
+    {
+      "name": "Large Context Window",
+      "description": "Up to 2M tokens with Gemini 1.5 Pro for massive codebases"
+    },
+    {
+      "name": "Zed Integration",
+      "description": "Works with Zed editor via ACP for visual editing workflows"
+    },
+    {
+      "name": "Open Source",
+      "description": "Apache 2.0 licensed, community-driven development"
+    },
+    {
+      "name": "Google Cloud Integration",
+      "description": "Seamless authentication with Google Cloud credentials"
+    }
+  ],
+  "metadata": {
+    "license": "Apache-2.0",
+    "pricing": "Free with API key, usage-based pricing for API calls"
+  },
+  "manual_instructions": "### Manual Configuration for Gemini CLI\n\nTo manually connect Gemini CLI to MCP Scooter, add the following to your configuration file:\n\n```toml\n[mcp.servers.mcp-scooter]\nurl = \"http://127.0.0.1:6277/profiles/{profile}/sse\"\n```"
 }

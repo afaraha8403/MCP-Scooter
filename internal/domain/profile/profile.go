@@ -21,6 +21,10 @@ type Profile struct {
 
 	// AllowTools is a list of allowed tool names
 	AllowTools []string `yaml:"allow_tools" json:"allow_tools"`
+
+	// DisabledSystemTools is a list of builtin/system tool names that the user has disabled.
+	// By default, all system tools are enabled. This list tracks which ones are turned off.
+	DisabledSystemTools []string `yaml:"disabled_system_tools" json:"disabled_system_tools"`
 }
 
 // Validate checks if the profile configuration is valid.

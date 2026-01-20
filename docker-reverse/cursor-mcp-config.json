@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "docker-mcp-direct": {
+      "command": "docker",
+      "args": [
+        "mcp",
+        "gateway",
+        "run"
+      ],
+      "type": "stdio"
+    },
+    "docker-mcp-logged": {
+      "command": "node",
+      "args": [
+        "c:\\Users\\alifa\\Development\\MCP Scout\\docker-reverse\\mcp-logger.js",
+        "docker",
+        "mcp",
+        "gateway",
+        "run"
+      ],
+      "type": "stdio"
+    }
+  }
+}

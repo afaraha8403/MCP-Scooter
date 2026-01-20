@@ -39,7 +39,7 @@ To become the **standard local runtime** for MCP. If MCP is the "USB port" for A
 * **09:00 AM (Work Mode):**  
   * Alex opens MCP Scooter. It sits in the tray.  
   * She selects the **"Work @ Corp"** profile.  
-  * She opens Cursor. Cursor is configured to talk to localhost:6277.  
+  * She opens Cursor. Cursor is configured to talk to 127.0.0.1:6277.  
   * She asks Cursor: *"Check the Prod DB health."*  
   * **Scooter Action:** Scooter authenticates via the Work Profile, dynamically spawns the Postgres-Prod tool (in a secure sandbox), and pipes the result to Cursor. The LLM *never saw* the definitions for her personal Spotify tool.  
 * **06:00 PM (Personal Mode):**  
@@ -108,19 +108,37 @@ The killer feature. Users create isolated environments (Profiles) and secure the
 
 ### **4.3 The "Scooter Gateway" (Dynamic Discovery Engine)**
 
-This mimics the "Docker Dynamic Mode" but runs natively. Instead of hard-coding tools, **Scooter exposes a Discovery Protocol** to the agent.
+This mimics the "Docker MCP Toolkit" pattern but runs natively. Instead of hard-coding tools, **Scooter exposes a Discovery Protocol** to the agent. The key principle is that **external tools are never exposed until explicitly activated**.
 
 * **The "Zero-Config" Experience:**
   * When a user installs Scooter, they don't need to manually "install" 50 tools.
-  * Scooter simply connects to the AI Client and exposes **3 Primordial Tools**: scout\_find, scout\_add, scout\_remove.  
-* **Autonomous Tool Loading (The "Anthropic Tool Search" Pattern):**  
-  1. **Trigger:** User asks *"Check my linear issues"*.  
-  2. **Search:** The Agent (Claude/Cursor) calls scout\_find(query="linear").  
-  3. **Discovery:** Scooter searches the local registry and the "Scooter Store" (Community Catalog). It returns: *"Found 'linear-mcp'. Capabilities: Manage issues, view cycles."*  
-  4. **Installation:** The Agent calls scout\_add("linear-mcp").  
-  5. **Execution:** Scooter authenticates (via OAuth), spins up the WASM module, and **hot-swaps** the Linear tool definitions into the active session.
-  6. **Usage:** The Agent can now call linear\_list\_issues().
-* **Resource Hygiene:** Scooter monitors usage. If linear-mcp hasn't been used in 10 turns, Scooter automatically unloads it to save RAM and Context Window space.
+  * Scooter simply connects to the AI Client and exposes **7 Primordial Tools** (the "meta-layer"):
+    * `scooter_find` - Search for available tools
+    * `scooter_add` - Activate a tool server
+    * `scooter_remove` - Deactivate a tool server
+    * `scooter_list_active` - List currently active servers and their tools
+    * `scooter_code_interpreter` - Execute sandboxed JavaScript
+    * `scooter_filesystem` - Safe file operations
+    * `scooter_fetch` - HTTP requests
+  * **Critical:** External tools (like `brave_web_search`) are **NOT** visible to the AI client until the agent explicitly calls `scooter_add`. This prevents context bloat and matches Docker MCP Toolkit behavior.
+
+* **Tool Activation Flow (Explicit Loading Pattern):**  
+  1. **Initial State:** AI client connects and calls `tools/list`. It only sees the 7 primordial tools.
+  2. **Discovery:** User asks *"Search the web for AI news"*. Agent calls `scooter_find(query="search")`.
+  3. **Results:** Scooter returns available servers: *"Found 'brave-search'. Tools: brave\_web\_search, brave\_local\_search"*.
+  4. **Activation:** Agent calls `scooter_add("brave-search")`.
+  5. **Server Startup:** Scooter checks if `brave-search` is in the profile's `AllowTools`, then starts the MCP server process.
+  6. **Notification:** Scooter sends `notifications/tools/list_changed` via SSE to notify the client.
+  7. **Tool Available:** Client refreshes `tools/list` and now sees `brave_web_search` and `brave_local_search`.
+  8. **Usage:** Agent can now call `brave_web_search({query: "AI news"})`.
+
+* **No Auto-Loading:** Unlike some implementations, Scooter does **NOT** auto-load tools when called. If an agent tries to call `brave_web_search` without first calling `scooter_add("brave-search")`, Scooter returns a helpful error: *"Tool 'brave\_web\_search' is not active. Use scooter\_add('brave-search') to enable it first."*
+
+* **Permission Model:**
+  * Tools must be in the profile's `AllowTools` list before they can be activated via `scooter_add`.
+  * Attempting to add an unauthorized tool returns: *"Tool 'github' is not allowed for this profile. Add it to AllowTools in your profile configuration."*
+
+* **Resource Hygiene:** Scooter monitors usage. If a tool server hasn't been used in 10 minutes, Scooter automatically unloads it to save RAM and Context Window space. When this happens, SSE clients are notified via `tools/list_changed`.
 
 ### **4.4 One-Click Setup (The "Integrations" Tab)**
 
@@ -137,7 +155,7 @@ Scooter automates the configuration of 3rd party clients. The "Integrations" tab
 | **Codex** | Edits TOML config | \~/.codex/config.toml |
 | **Zed** | Edits Settings | \~/.config/zed/settings.json |
 
-* **Implementation:** Scooter acts as a local proxy. It writes a configuration that points the client to `http://localhost:6277/sse` (Server-Sent Events) and includes the **Gateway API Key** in the request headers, effectively routing all traffic through Scooter securely.
+* **Implementation:** Scooter acts as a local proxy. It writes a configuration that points the client to `http://127.0.0.1:6277/sse` (Server-Sent Events) and includes the **Gateway API Key** in the request headers, effectively routing all traffic through Scooter securely.
 
 ### **4.5 Custom MCP & Export/Import**
 
@@ -173,30 +191,34 @@ Just like Docker's "Code Mode," Scooter allows agents to write scripts to chain 
 
 ## **5\. Exposed Tools & Capabilities Registry**
 
-Unlike standard MCP servers that expose a static list, Scooter exposes a dynamic hierarchy. The following **Primordial Tools** are intrinsic to the platform and always available.
+Unlike standard MCP servers that expose a static list, Scooter exposes a dynamic hierarchy. The following **Primordial Tools** are intrinsic to the platform and always available. **External tools are only visible after explicit activation via `scooter_add`.**
 
 ### **5.1 The "Meta-Layer" (Discovery Tools)**
 
-Every AI client connected to Scooter sees these tools by default.
+Every AI client connected to Scooter sees these tools by default. These are the **only** tools visible until the agent activates external tools.
 
-* **scout\_find(query: string)**  
+* **scooter\_find(query: string)**  
   * *Description:* Searches the Local Registry and Community Catalog for tools.  
-  * *Returns:* Tool Names, Descriptions, and Installation status.  
-* **scout\_add(tool\_name: string)**  
-  * *Description:* Installs and enables an MCP tool for the current session.  
-  * *Action:* Authenticates (if needed), loads the WASM, and injects tool definitions.  
-* **scout\_remove(tool\_name: string)**  
-  * *Description:* Unloads a tool to free up context window space.  
-* **scout\_list\_active()**  
-  * *Description:* Returns a list of currently loaded tools.
+  * *Returns:* Server names, descriptions, and the list of tools each server provides.
+  * *Example Response:* `[{name: "brave-search", tools: ["brave_web_search", "brave_local_search"]}]`
+* **scooter\_add(tool\_name: string)**  
+  * *Description:* Activates an MCP tool server for the current session.  
+  * *Action:* Validates against AllowTools, authenticates (if needed), starts the server process, and notifies clients via SSE.
+  * *Returns:* `{status: "activated", server: "brave-search", available_tools: ["brave_web_search", "brave_local_search"]}`
+* **scooter\_remove(tool\_name: string)**  
+  * *Description:* Deactivates a tool server to free up context window space and resources.
+  * *Returns:* `{status: "deactivated", server: "brave-search", removed_tools: ["brave_web_search", "brave_local_search"]}`
+* **scooter\_list\_active()**  
+  * *Description:* Returns a list of currently active servers and their tools.
+  * *Returns:* `{active_servers: [{name: "brave-search", tools: ["brave_web_search", ...]}], count: 1}`
 
 ### **5.2 The "Core Suite" (Native Implementations)**
 
-Scooter includes high-performance, native Go implementations of these standard utilities.
+Scooter includes high-performance, native Go implementations of these standard utilities. These are also part of the primordial tools and always available.
 
-* **scout\_filesystem**: Safe read/write with strict path scoping.  
-* **scout\_fetch**: Headless browser/HTTP client for web retrieval.  
-* **scout\_code\_interpreter**: The "Code Mode" runtime for executing ephemeral scripts.
+* **scooter\_filesystem**: Safe read/write/list/delete with strict path scoping.  
+* **scooter\_fetch**: HTTP client for web retrieval. Supports GET, POST, custom headers.  
+* **scooter\_code\_interpreter**: The "Code Mode" runtime for executing sandboxed JavaScript. Use `callTool(name, args)` to chain other active tools.
 
 ## **6\. Competitive Landscape**
 

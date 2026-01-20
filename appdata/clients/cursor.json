@@ -2,6 +2,48 @@
   "id": "cursor",
   "name": "Cursor",
   "icon": "/client-logos/cursor_light.svg",
-  "description": "AI-powered code editor built on VS Code",
-  "manual_instructions": "### Manual Configuration for Cursor\n\nTo manually connect Cursor to MCP Scooter:\n\n1. Open **Cursor Settings**.\n2. Navigate to **Features > MCP**.\n3. Click **+ Add new MCP server**.\n4. Enter the following details:\n   - **Name:** MCP Scooter\n   - **Type:** `SSE`\n   - **URL:** `http://localhost:6277/profiles/{profile}/sse`"
+  "icon_dark": "/client-logos/cursor_dark.svg",
+  "description": "AI-first code editor built on VS Code with native MCP integration",
+  "version": "1.x",
+  "developer": "Anysphere",
+  "category": "Code Editor",
+  "tags": ["ide", "vscode", "ai", "coding", "agent"],
+  "about": "## Cursor\n\nCursor is an AI-first code editor built on VS Code, designed from the ground up for AI-assisted development. It features native MCP integration for extending AI capabilities with external tools and data sources.\n\n### Key Capabilities\n\n- **AI-Native Editing** - Chat, Composer, and Agent modes for different workflows\n- **MCP Integration** - Connect external tools, issue trackers, design files, and more\n- **VS Code Compatible** - Full VS Code extension ecosystem support\n- **Multi-Model Support** - Use Claude, GPT-4, and other models\n\n### MCP Features\n\n#### Server Configuration\nConnect to MCP servers via `mcp.json` or the Settings UI. Supports both local and remote servers.\n\n#### Agent Mode Integration\nThe Agent mode can utilize MCP resources to enrich context for complex tasks.\n\n#### Image Support\nMCP servers can pass images (screenshots, UI mocks, diagrams) as context to the AI.\n\n### Recent Features (2025-2026)\n\n- **One-Click MCP Setup** - Simplified server configuration with OAuth support\n- **Rules & Automation** - Generate and apply Cursor Rules with MCP contexts\n- **Security Enhancements** - Approval required for MCP config modifications (CVE-2025-54136 fix)\n- **Resource Support** - MCP resources available as context in Agent mode\n\n### Popular MCP Integrations\n\n- **Linear** - View/create issues without leaving the IDE\n- **Zapier AI Actions** - Automate across thousands of apps\n- **Figma** - Design-to-code workflows\n- **Guru** - Access trusted documentation and knowledge",
+  "homepage": "https://www.cursor.com",
+  "repository": "https://github.com/getcursor/cursor",
+  "documentation": "https://docs.cursor.com/context/model-context-protocol",
+  "download_url": "https://www.cursor.com/download",
+  "platforms": ["macOS", "Windows", "Linux"],
+  "mcp_support": {
+    "transports": ["stdio", "sse"],
+    "features": ["tools", "resources", "images"],
+    "status": "stable"
+  },
+  "features": [
+    {
+      "name": "Agent Mode",
+      "description": "Autonomous coding assistant that can use MCP tools and resources"
+    },
+    {
+      "name": "Composer Mode",
+      "description": "Multi-file editing with AI assistance across your codebase"
+    },
+    {
+      "name": "MCP Resources",
+      "description": "Pull external context from issue trackers, docs, and design tools"
+    },
+    {
+      "name": "Image Context",
+      "description": "Pass screenshots and diagrams to the AI via MCP"
+    },
+    {
+      "name": "One-Click Setup",
+      "description": "Easy MCP server configuration with OAuth support"
+    }
+  ],
+  "metadata": {
+    "license": "Proprietary",
+    "pricing": "Free tier, Pro $20/mo, Business $40/mo"
+  },
+  "manual_instructions": "### Manual Configuration for Cursor\n\nTo manually connect Cursor to MCP Scooter:\n\n1. Open **Cursor Settings**.\n2. Navigate to **Features > MCP**.\n3. Click **+ Add new MCP server**.\n4. Enter the following details:\n   - **Name:** MCP Scooter\n   - **Type:** `SSE`\n   - **URL:** `http://127.0.0.1:6277/profiles/{profile}/sse`"
 }

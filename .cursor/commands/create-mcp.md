@@ -138,6 +138,11 @@ Create the complete registry JSON file at `appdata/registry/official/{name}.json
 }
 ```
 
+**About Field Guidelines:**
+- Do NOT include manual setup instructions for other IDEs (Cursor, Claude, Zed, etc.).
+- MCP Scooter handles the connection; focusing on the MCP's features and purpose is enough.
+- Include features, getting started (scooter_add), and any specific prerequisites.
+
 **Package Configuration by Type:**
 
 ```json

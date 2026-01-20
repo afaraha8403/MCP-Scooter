@@ -1,13 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/mcp-scooter/scooter/internal/api"
 	"github.com/mcp-scooter/scooter/internal/domain/profile"
+	"github.com/mcp-scooter/scooter/internal/logger"
 )
 
 func main() {
@@ -33,6 +38,12 @@ func run(serve bool) error {
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		return fmt.Errorf("failed to create app dir: %w", err)
 	}
+
+	// Initialize Logger
+	if err := logger.Init(appDir); err != nil {
+		fmt.Printf("Warning: failed to initialize persistent logging: %v\n", err)
+	}
+	defer logger.Close()
 
 	wasmDir := filepath.Join(appDir, "wasm")
 	os.MkdirAll(wasmDir, 0755)
@@ -96,6 +107,10 @@ func run(serve bool) error {
 	// Initialize Profile Manager
 	manager := api.NewProfileManager(profiles, wasmDir, registryDir, clientsDir)
 
+	logger.AddLog("INFO", "=== MCP Scooter Backend Starting ===")
+	logger.AddLog("INFO", fmt.Sprintf("App Directory: %s", appDir))
+	logger.AddLog("INFO", fmt.Sprintf("McpPort: %d, ControlPort: %d", settings.McpPort, settings.ControlPort))
+
 	// Initialize Control Server (Management API)
 	controlServer := api.NewControlServer(store, manager, settings, onboardingRequired)
 
@@ -114,8 +129,26 @@ func run(serve bool) error {
 	}()
 
 	fmt.Printf("Starting control server on :%d...\n", settings.ControlPort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", settings.ControlPort), controlServer); err != nil {
-		return fmt.Errorf("control server failed: %w", err)
+	server := &http.Server{Addr: fmt.Sprintf(":%d", settings.ControlPort), Handler: controlServer}
+	
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("control server failed: %v\n", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	<-stop
+	fmt.Println("\nShutting down gracefully...")
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	if err := server.Shutdown(ctx); err != nil {
+		fmt.Printf("Server shutdown failed: %v\n", err)
 	}
 
 	return nil

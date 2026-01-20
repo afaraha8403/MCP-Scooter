@@ -52,7 +52,7 @@ func TestCursorIntegration(t *testing.T) {
 
 	scooter := config.McpServers["mcp-scooter"].(map[string]interface{})
 	assert.Equal(t, "sse", scooter["type"])
-	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
+	assert.Equal(t, "http://127.0.0.1:6277/sse", scooter["url"])
 }
 
 func TestVSCodeIntegration(t *testing.T) {
@@ -75,7 +75,7 @@ func TestVSCodeIntegration(t *testing.T) {
 
 	scooter := config.McpServers["mcp-scooter"].(map[string]interface{})
 	assert.Equal(t, "sse", scooter["type"])
-	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
+	assert.Equal(t, "http://127.0.0.1:6277/sse", scooter["url"])
 }
 
 func TestGeminiIntegration(t *testing.T) {
@@ -98,7 +98,7 @@ func TestGeminiIntegration(t *testing.T) {
 
 	scooter := config.McpServers["mcp-scooter"].(map[string]interface{})
 	assert.Equal(t, "sse", scooter["type"])
-	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
+	assert.Equal(t, "http://127.0.0.1:6277/sse", scooter["url"])
 }
 
 func TestCodexIntegration(t *testing.T) {
@@ -120,7 +120,7 @@ func TestCodexIntegration(t *testing.T) {
 	mcpServers := config["mcpServers"].(map[string]interface{})
 	scooter := mcpServers["mcp-scooter"].(map[string]interface{})
 	assert.Equal(t, "sse", scooter["type"])
-	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
+	assert.Equal(t, "http://127.0.0.1:6277/sse", scooter["url"])
 }
 
 func TestZedIntegration(t *testing.T) {
@@ -142,7 +142,7 @@ func TestZedIntegration(t *testing.T) {
 
 	contextServers := config["context_servers"].(map[string]interface{})
 	scooter := contextServers["mcp-scooter"].(map[string]interface{})
-	assert.Equal(t, "http://localhost:6277/sse", scooter["url"])
+	assert.Equal(t, "http://127.0.0.1:6277/sse", scooter["url"])
 }
 
 func TestProfileIntegration(t *testing.T) {
@@ -165,7 +165,7 @@ func TestProfileIntegration(t *testing.T) {
 
 	scooter := config.McpServers["mcp-scooter"].(map[string]interface{})
 	assert.Equal(t, "sse", scooter["type"])
-	assert.Equal(t, "http://localhost:6277/profiles/personal/sse", scooter["url"])
+	assert.Equal(t, "http://127.0.0.1:6277/profiles/personal/sse", scooter["url"])
 	headers := scooter["headers"].(map[string]interface{})
 	assert.Equal(t, "Bearer test-api-key", headers["Authorization"])
 }

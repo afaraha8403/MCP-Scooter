@@ -2,6 +2,47 @@
   "id": "vscode",
   "name": "VS Code",
   "icon": "/client-logos/vs_code.svg",
-  "description": "Microsoft's ubiquitous code editor with MCP extensions",
-  "manual_instructions": "### Manual Configuration for VS Code\n\nTo manually connect VS Code to MCP Scooter:\n\n1. Install an MCP-compatible extension (e.g., [MCP Client](https://marketplace.visualstudio.com/items?itemName=mcp.client)).\n2. Open the extension settings or configuration file.\n3. Add a new server with the following URL:\n\n```\nhttp://localhost:6277/profiles/{profile}/sse\n```"
+  "description": "Microsoft's code editor with full MCP specification support via GitHub Copilot",
+  "version": "1.102+",
+  "developer": "Microsoft",
+  "category": "Code Editor",
+  "tags": ["ide", "microsoft", "copilot", "extensions", "enterprise"],
+  "about": "## Visual Studio Code\n\nVS Code is Microsoft's ubiquitous code editor, now with full MCP (Model Context Protocol) specification support integrated with GitHub Copilot's Agent Mode.\n\n### MCP Status: Production Ready\n\nAs of VS Code 1.102, MCP support is generally available (out of preview) for production workflows.\n\n### Key Capabilities\n\n- **Full MCP Spec Support** - Authorization, prompts, resources, sampling, and tools\n- **Copilot Agent Mode** - AI assistant that can invoke MCP servers\n- **Enterprise Ready** - Admin policies for MCP server control\n- **Extension Ecosystem** - MCP servers available as extensions\n\n### MCP Features\n\n| Feature | Description |\n|---------|-------------|\n| **Authorization** | Control which tools/servers a session can access |\n| **Prompts** | Reusable workflows via slash-commands (`/servername.promptname`) |\n| **Resources** | Contextual data (images, logs) from servers |\n| **Sampling** | MCP servers can make model requests for complex reasoning |\n\n### Configuration\n\n1. Admin must enable \"MCP servers in Copilot\" policy\n2. Add servers via `.vscode/mcp.json` or settings\n3. Enable Agent Mode for Copilot\n4. Use features via slash-commands or Copilot UI\n\n### Popular MCP Integrations\n\n- **Fabric Data Agent** - Microsoft Fabric organizational data\n- **Ansible Development Tools** - Ansible-specific tools and best practices\n- **Bifrost** - VSCode language server functionality via MCP\n\n### Security Notes\n\nMCP is disabled by default in organizations. Admins must explicitly enable via policy. Be cautious with untrusted MCP servers as they can execute code and access files.",
+  "homepage": "https://code.visualstudio.com",
+  "repository": "https://github.com/microsoft/vscode",
+  "documentation": "https://code.visualstudio.com/blogs/2025/06/12/full-mcp-spec-support",
+  "download_url": "https://code.visualstudio.com/download",
+  "platforms": ["macOS", "Windows", "Linux", "Web"],
+  "mcp_support": {
+    "transports": ["stdio", "sse", "http"],
+    "features": ["tools", "prompts", "resources", "sampling", "authorization"],
+    "status": "stable"
+  },
+  "features": [
+    {
+      "name": "Full MCP Specification",
+      "description": "Complete implementation of MCP including authorization, prompts, resources, and sampling"
+    },
+    {
+      "name": "Copilot Agent Mode",
+      "description": "AI assistant that can coordinate between MCP servers and tools"
+    },
+    {
+      "name": "Slash Commands",
+      "description": "Access MCP prompts via /servername.promptname syntax"
+    },
+    {
+      "name": "Enterprise Policies",
+      "description": "Admin control over MCP server access and permissions"
+    },
+    {
+      "name": "Extension Marketplace",
+      "description": "Growing gallery of MCP server extensions"
+    }
+  ],
+  "metadata": {
+    "license": "MIT",
+    "pricing": "Free, Copilot requires subscription ($10-39/mo)"
+  },
+  "manual_instructions": "### Manual Configuration for VS Code\n\nTo manually connect VS Code to MCP Scooter:\n\n1. Create or edit `.vscode/mcp.json` in your workspace:\n\n```json\n{\n  \"mcpServers\": {\n    \"mcp-scooter\": {\n      \"type\": \"sse\",\n      \"url\": \"http://127.0.0.1:6277/profiles/{profile}/sse\"\n    }\n  }\n}\n```\n\n2. Ensure MCP is enabled in your organization's Copilot policy.\n3. Use Agent Mode in GitHub Copilot to access MCP tools."
 }

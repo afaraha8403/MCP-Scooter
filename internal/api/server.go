@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +15,12 @@ import (
 	"github.com/mcp-scooter/scooter/internal/domain/discovery"
 	"github.com/mcp-scooter/scooter/internal/domain/integration"
 	"github.com/mcp-scooter/scooter/internal/domain/profile"
+	"github.com/mcp-scooter/scooter/internal/domain/registry"
+	"github.com/mcp-scooter/scooter/internal/logger"
+	"crypto/rand"
+	"encoding/hex"
+	"os/exec"
+	"runtime"
 )
 
 // ControlServer handles management requests (CRUD for profiles).
@@ -56,6 +63,109 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("POST /api/settings/regenerate-key", s.handleRegenerateKey)
 	s.mux.HandleFunc("GET /api/tool-params", s.handleGetToolParams)
 	s.mux.HandleFunc("PUT /api/tool-params", s.handleSaveToolParams)
+	// Log management
+	s.mux.HandleFunc("GET /api/logs", s.handleGetLogs)
+	s.mux.HandleFunc("POST /api/logs", s.handlePostLog)
+	s.mux.HandleFunc("GET /api/logs/stream", s.handleLogStream)
+	s.mux.HandleFunc("DELETE /api/logs", s.handleClearLogs)
+	s.mux.HandleFunc("POST /api/logs/reveal", s.handleRevealLogs)
+	// Secure credential management
+	s.mux.HandleFunc("POST /api/credentials", s.handleSetCredential)
+	s.mux.HandleFunc("GET /api/credentials/check", s.handleCheckCredentials)
+	s.mux.HandleFunc("DELETE /api/credentials", s.handleDeleteCredential)
+	s.mux.HandleFunc("GET /api/status", s.handleGetStatus)
+}
+
+func (s *ControlServer) handleGetStatus(w http.ResponseWriter, r *http.Request) {
+	profiles := s.manager.GetProfiles()
+
+	type ToolStatus struct {
+		Name   string `json:"name"`
+		Status string `json:"status"` // "ok", "warning", "error"
+	}
+
+	type ProfileStatus struct {
+		ID          string       `json:"id"`
+		Running     bool         `json:"running"`
+		ActiveTools int          `json:"active_tools"`
+		ToolStatus  []ToolStatus `json:"tool_status"`
+	}
+
+	info := make([]ProfileStatus, len(profiles))
+	s.manager.mu.RLock()
+	for i, p := range profiles {
+		engine, running := s.manager.engines[p.ID]
+
+		toolStatuses := []ToolStatus{}
+		activeTools := 0
+		if running {
+			activeNames := engine.ListActive()
+			activeTools = len(activeNames)
+
+			// Map to check if a tool is active
+			activeMap := make(map[string]bool)
+			for _, name := range activeNames {
+				activeMap[name] = true
+			}
+
+			// Add allowed tools
+			for _, name := range p.AllowTools {
+				status := "idle"
+				if activeMap[name] {
+					status = "ok"
+				}
+				toolStatuses = append(toolStatuses, ToolStatus{
+					Name:   name,
+					Status: status,
+				})
+			}
+
+			// Add active tools that might not be in AllowTools (e.g. builtins)
+			for _, name := range activeNames {
+				alreadyAdded := false
+				for _, added := range p.AllowTools {
+					if added == name {
+						alreadyAdded = true
+						break
+					}
+				}
+				if !alreadyAdded {
+					toolStatuses = append(toolStatuses, ToolStatus{
+						Name:   name,
+						Status: "ok",
+					})
+				}
+			}
+		}
+
+		info[i] = ProfileStatus{
+			ID:          p.ID,
+			Running:     running,
+			ActiveTools: activeTools,
+			ToolStatus:  toolStatuses,
+		}
+		if info[i].ToolStatus == nil {
+			info[i].ToolStatus = []ToolStatus{}
+		}
+	}
+	s.manager.mu.RUnlock()
+
+	response := struct {
+		GatewayRunning  bool            `json:"gateway_running"`
+		ControlPort     int             `json:"control_port"`
+		McpPort         int             `json:"mcp_port"`
+		ActiveProfileID string          `json:"active_profile_id"`
+		Profiles        []ProfileStatus `json:"profiles"`
+	}{
+		GatewayRunning:  true,
+		ControlPort:     s.settings.ControlPort,
+		McpPort:         s.settings.McpPort,
+		ActiveProfileID: s.settings.LastProfileID,
+		Profiles:        info,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func (s *ControlServer) handleRegenerateKey(w http.ResponseWriter, r *http.Request) {
@@ -124,6 +234,91 @@ func (s *ControlServer) handleSaveToolParams(w http.ResponseWriter, r *http.Requ
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
+}
+
+func (s *ControlServer) handleGetLogs(w http.ResponseWriter, r *http.Request) {
+	logs := logger.GetLogs()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"logs": logs,
+	})
+}
+
+func (s *ControlServer) handlePostLog(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Level   string `json:"level"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Level == "" {
+		req.Level = "INFO"
+	}
+	logger.AddLog(req.Level, req.Message)
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (s *ControlServer) handleLogStream(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+		return
+	}
+
+	logChan := logger.Subscribe()
+	defer logger.Unsubscribe(logChan)
+
+	// Send initial pulse to confirm connection
+	fmt.Fprintf(w, "event: connected\ndata: {\"status\": \"ok\"}\n\n")
+	flusher.Flush()
+
+	for {
+		select {
+		case entry := <-logChan:
+			data, _ := json.Marshal(entry)
+			fmt.Fprintf(w, "event: log\ndata: %s\n\n", string(data))
+			flusher.Flush()
+		case <-r.Context().Done():
+			return
+		}
+	}
+}
+
+func (s *ControlServer) handleClearLogs(w http.ResponseWriter, r *http.Request) {
+	if err := logger.ClearLogs(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *ControlServer) handleRevealLogs(w http.ResponseWriter, r *http.Request) {
+	path := logger.GetLogFilePath()
+	dir := filepath.Dir(path)
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("explorer", dir)
+	case "darwin":
+		cmd = exec.Command("open", dir)
+	default: // linux and others
+		cmd = exec.Command("xdg-open", dir)
+	}
+
+	if err := cmd.Start(); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to open logs folder: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *ControlServer) handleGetSettings(w http.ResponseWriter, r *http.Request) {
@@ -299,11 +494,36 @@ func (s *ControlServer) handleGetTools(w http.ResponseWriter, r *http.Request) {
 }
 
 type ClientDefinition struct {
-	ID                 string `json:"id"`
-	Name               string `json:"name"`
-	Icon               string `json:"icon"`
-	Description        string `json:"description"`
-	ManualInstructions string `json:"manual_instructions"`
+	ID                 string   `json:"id"`
+	Name               string   `json:"name"`
+	Icon               string   `json:"icon"`
+	IconDark           string   `json:"icon_dark,omitempty"`
+	Description        string   `json:"description"`
+	ManualInstructions string   `json:"manual_instructions"`
+	Version            string   `json:"version,omitempty"`
+	Developer          string   `json:"developer,omitempty"`
+	Category           string   `json:"category,omitempty"`
+	Tags               []string `json:"tags,omitempty"`
+	About              string   `json:"about,omitempty"`
+	Homepage           string   `json:"homepage,omitempty"`
+	Repository         string   `json:"repository,omitempty"`
+	Documentation      string   `json:"documentation,omitempty"`
+	DownloadURL        string   `json:"download_url,omitempty"`
+	Platforms          []string `json:"platforms,omitempty"`
+	Installed          bool     `json:"installed"`
+	MCPSupport         *struct {
+		Transports []string `json:"transports"`
+		Features   []string `json:"features"`
+		Status     string   `json:"status"`
+	} `json:"mcp_support,omitempty"`
+	Features []struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	} `json:"features,omitempty"`
+	Metadata *struct {
+		License string `json:"license,omitempty"`
+		Pricing string `json:"pricing,omitempty"`
+	} `json:"metadata,omitempty"`
 }
 
 func (s *ControlServer) handleGetClients(w http.ResponseWriter, r *http.Request) {
@@ -321,6 +541,8 @@ func (s *ControlServer) handleGetClients(w http.ResponseWriter, r *http.Request)
 					}
 					var cd ClientDefinition
 					if err := json.Unmarshal(data, &cd); err == nil {
+						// Simple installation detection
+						cd.Installed = s.isClientInstalled(cd.ID)
 						clients = append(clients, cd)
 					}
 				}
@@ -332,6 +554,65 @@ func (s *ControlServer) handleGetClients(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"clients": clients,
 	})
+}
+
+func (s *ControlServer) isClientInstalled(id string) bool {
+	home, _ := os.UserHomeDir()
+	appData := os.Getenv("APPDATA")
+	localAppData := os.Getenv("LOCALAPPDATA")
+
+	switch id {
+	case "vscode":
+		// Check for VS Code executable or config
+		paths := []string{
+			filepath.Join(home, ".vscode"),
+			filepath.Join(appData, "Code"),
+			filepath.Join(localAppData, "Programs", "Microsoft VS Code"),
+		}
+		for _, p := range paths {
+			if _, err := os.Stat(p); err == nil {
+				return true
+			}
+		}
+	case "cursor":
+		paths := []string{
+			filepath.Join(home, ".cursor"),
+			filepath.Join(appData, "Cursor"),
+			filepath.Join(localAppData, "Programs", "cursor"),
+		}
+		for _, p := range paths {
+			if _, err := os.Stat(p); err == nil {
+				return true
+			}
+		}
+	case "claude-desktop":
+		paths := []string{
+			filepath.Join(appData, "Claude"),
+			filepath.Join(localAppData, "Programs", "Claude"),
+		}
+		for _, p := range paths {
+			if _, err := os.Stat(p); err == nil {
+				return true
+			}
+		}
+	case "zed":
+		paths := []string{
+			filepath.Join(home, ".zed"),
+			filepath.Join(appData, "Zed"),
+		}
+		for _, p := range paths {
+			if _, err := os.Stat(p); err == nil {
+				return true
+			}
+		}
+	case "claude-code":
+		// Usually installed via npm globally
+		return true // Assume true for CLI if we can't easily check
+	case "gemini-cli":
+		// Usually installed via npm globally
+		return true // Assume true for CLI if we can't easily check
+	}
+	return false
 }
 
 func (s *ControlServer) handleRegisterTool(w http.ResponseWriter, r *http.Request) {
@@ -374,10 +655,77 @@ func (s *ControlServer) handleRegisterTool(w http.ResponseWriter, r *http.Reques
 	}
 	s.manager.mu.Unlock()
 
-	addLog(fmt.Sprintf("Registered and persisted tool: %s", td.Name))
+	logger.AddLog("INFO", fmt.Sprintf("Registered and persisted tool: %s", td.Name))
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(td)
+}
+
+// handleSetCredential securely stores a credential in the system keychain.
+func (s *ControlServer) handleSetCredential(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ToolName string `json:"tool_name"`
+		EnvVar   string `json:"env_var"`
+		Value    string `json:"value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.ToolName == "" || req.EnvVar == "" {
+		http.Error(w, "tool_name and env_var are required", http.StatusBadRequest)
+		return
+	}
+
+	// Get credential manager from an active engine
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	credManager := engine.GetCredentialManager()
+
+	if err := credManager.SetCredential(req.ToolName, req.EnvVar, req.Value); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to store credential: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	logger.AddLog("INFO", fmt.Sprintf("Stored credential %s for tool %s", req.EnvVar, req.ToolName))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "stored"})
+}
+
+// handleCheckCredentials checks if required credentials are present for a tool.
+func (s *ControlServer) handleCheckCredentials(w http.ResponseWriter, r *http.Request) {
+	toolName := r.URL.Query().Get("tool_name")
+	if toolName == "" {
+		http.Error(w, "tool_name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get tool definition to check authorization requirements
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	tools := engine.Find("")
+	
+	var toolDef *discovery.ToolDefinition
+	for i := range tools {
+		if tools[i].Name == toolName {
+			toolDef = &tools[i]
+			break
+		}
+	}
+
+	if toolDef == nil {
+		http.Error(w, "Tool not found", http.StatusNotFound)
+		return
+	}
+
+	credManager := engine.GetCredentialManager()
+	hasAll, missing := credManager.HasRequiredCredentials(toolName, toolDef.Authorization)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"has_required": hasAll,
+		"missing":      missing,
+	})
 }
 
 func (s *ControlServer) handleDeleteTool(w http.ResponseWriter, r *http.Request) {
@@ -406,14 +754,31 @@ func (s *ControlServer) handleDeleteTool(w http.ResponseWriter, r *http.Request)
 	}
 	s.manager.mu.Unlock()
 
-	addLog(fmt.Sprintf("Deleted tool: %s", name))
+	logger.AddLog("INFO", fmt.Sprintf("Deleted tool: %s", name))
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// Simple global log helper for the server
-func addLog(msg string) {
-	fmt.Printf("[API] %s\n", msg)
+// handleDeleteCredential removes a credential from the keychain.
+func (s *ControlServer) handleDeleteCredential(w http.ResponseWriter, r *http.Request) {
+	toolName := r.URL.Query().Get("tool_name")
+	envVar := r.URL.Query().Get("env_var")
+	
+	if toolName == "" || envVar == "" {
+		http.Error(w, "tool_name and env_var are required", http.StatusBadRequest)
+		return
+	}
+
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	credManager := engine.GetCredentialManager()
+
+	if err := credManager.DeleteCredential(toolName, envVar); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to delete credential: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	logger.AddLog("INFO", fmt.Sprintf("Deleted credential %s for tool %s", envVar, toolName))
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *ControlServer) handleCreateProfile(w http.ResponseWriter, r *http.Request) {
@@ -548,30 +913,75 @@ func (s *ControlServer) handleInstallIntegration(w http.ResponseWriter, r *http.
 
 // McpGateway handles MCP traffic for all profiles on a single port.
 type McpGateway struct {
-	manager  *ProfileManager
-	mux      *http.ServeMux
-	settings profile.Settings
+	manager      *ProfileManager
+	mux          *http.ServeMux
+	settings     profile.Settings
+	sseClients   map[string][]chan string // profileID -> list of SSE notification channels
+	sseSessions  map[string]chan string   // sessionId -> specific session channel
+	sseClientsMu sync.RWMutex
 }
 
 func NewMcpGateway(manager *ProfileManager, settings profile.Settings) *McpGateway {
 	g := &McpGateway{
-		manager:  manager,
-		mux:      http.NewServeMux(),
-		settings: settings,
+		manager:     manager,
+		mux:         http.NewServeMux(),
+		settings:    settings,
+		sseClients:  make(map[string][]chan string),
+		sseSessions: make(map[string]chan string),
 	}
 	g.routes()
+	
+	// Set up cleanup callbacks for all engines to notify SSE clients when tools are auto-unloaded
+	for _, p := range manager.GetProfiles() {
+		if engine, ok := manager.GetEngine(p.ID); ok {
+			profileID := p.ID // Capture for closure
+			engine.SetCleanupCallback(func(serverName string) {
+				logger.AddLog("INFO", fmt.Sprintf("Tool '%s' auto-unloaded, notifying SSE clients", serverName))
+				g.NotifyToolsChanged(profileID)
+			})
+		}
+	}
+	
 	return g
+}
+
+// NotifyToolsChanged sends a tools/list_changed notification to all SSE clients for a profile.
+// This is called after scooter_add, scooter_remove, or auto-cleanup.
+func (g *McpGateway) NotifyToolsChanged(profileID string) {
+	g.sseClientsMu.RLock()
+	clients := g.sseClients[profileID]
+	g.sseClientsMu.RUnlock()
+
+	notification := `{"jsonrpc":"2.0","method":"notifications/tools/list_changed"}`
+	
+	for _, ch := range clients {
+		select {
+		case ch <- notification:
+			// Sent successfully
+		default:
+			// Channel full, skip (client will catch up on next poll)
+		}
+	}
+	
+	if len(clients) > 0 {
+		logger.AddLog("INFO", fmt.Sprintf("Sent tools/list_changed to %d SSE clients for profile '%s'", len(clients), profileID))
+	}
 }
 
 func (g *McpGateway) routes() {
 	// Standard MCP routes with profile ID in the path
 	g.mux.HandleFunc("GET /profiles/{id}/sse", g.handleSSE)
+	g.mux.HandleFunc("POST /profiles/{id}/sse", g.handleMessage) // Streamable HTTP: POST to same endpoint
 	g.mux.HandleFunc("POST /profiles/{id}/message", g.handleMessage)
 	
 	// Default routes for "work" profile (compatibility)
 	g.mux.HandleFunc("GET /sse", func(w http.ResponseWriter, r *http.Request) {
 		r.SetPathValue("id", "work")
 		g.handleSSE(w, r)
+	})
+	g.mux.HandleFunc("POST /sse", func(w http.ResponseWriter, r *http.Request) {
+		r.SetPathValue("id", "work")
+		g.handleMessage(w, r) // Streamable HTTP: POST to same endpoint
 	})
 	g.mux.HandleFunc("POST /message", func(w http.ResponseWriter, r *http.Request) {
 		r.SetPathValue("id", "work")
@@ -617,7 +1027,7 @@ func (g *McpGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (g *McpGateway) handleSSE(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	engine, ok := g.manager.GetEngine(id)
+	_, ok := g.manager.GetEngine(id)
 	if !ok {
 		http.Error(w, "Profile not found", http.StatusNotFound)
 		return
@@ -627,31 +1037,67 @@ func (g *McpGateway) handleSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
+	logger.AddLog("INFO", fmt.Sprintf("SSE connection opened for profile: %s", id))
+
 	flusher, ok := w.(http.Flusher)
 	if !ok {
+		logger.AddLog("ERROR", "Streaming unsupported for SSE")
 		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
 		return
 	}
+
+	// Register this SSE client for notifications and responses
+	sessionId := generateSessionID()
+	notifyChan := make(chan string, 10)
+	g.sseClientsMu.Lock()
+	g.sseSessions[sessionId] = notifyChan
+	g.sseClients[id] = append(g.sseClients[id], notifyChan)
+	g.sseClientsMu.Unlock()
+
+	// Cleanup on disconnect
+	defer func() {
+		g.sseClientsMu.Lock()
+		delete(g.sseSessions, sessionId)
+		channels := g.sseClients[id]
+		for i, ch := range channels {
+			if ch == notifyChan {
+				g.sseClients[id] = append(channels[:i], channels[i+1:]...)
+				break
+			}
+		}
+		g.sseClientsMu.Unlock()
+		close(notifyChan)
+		logger.AddLog("INFO", fmt.Sprintf("SSE connection closed for profile: %s (session: %s)", id, sessionId))
+	}()
+
+	// Send endpoint event for client to know where to POST messages
+	// Standard MCP SSE transport requires the client to POST to this endpoint
+	fmt.Fprintf(w, "event: endpoint\ndata: http://127.0.0.1:%d/profiles/%s/sse?sessionId=%s\n\n", g.settings.McpPort, id, sessionId)
 	flusher.Flush()
 
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(30 * time.Second) // Increased heartbeat interval
 	defer ticker.Stop()
-
-	// Notify about active tools on connection
-	active := engine.ListActive()
-	activeData, _ := json.Marshal(active)
-	fmt.Fprintf(w, "event: tools\ndata: %s\n\n", string(activeData))
-	flusher.Flush()
 
 	for {
 		select {
+		case notification := <-notifyChan:
+			// Send MCP message (notification or response)
+			fmt.Fprintf(w, "event: message\ndata: %s\n\n", notification)
+			flusher.Flush()
 		case <-ticker.C:
-			fmt.Fprintf(w, "event: pulse\ndata: {\"profile\": \"%s\", \"status\": \"ok\", \"timestamp\": \"%s\"}\n\n", id, time.Now().Format(time.RFC3339))
+			// Keep-alive pulse (non-standard but helpful)
+			fmt.Fprintf(w, "event: pulse\ndata: {\"profile\": \"%s\", \"session\": \"%s\", \"status\": \"ok\", \"timestamp\": \"%s\"}\n\n", id, sessionId, time.Now().Format(time.RFC3339))
 			flusher.Flush()
 		case <-r.Context().Done():
 			return
 		}
 	}
+}
+
+func generateSessionID() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
@@ -663,54 +1109,174 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req JSONRPCRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.AddLog("ERROR", fmt.Sprintf("Failed to read MCP request body: %v", err))
+		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		return
+	}
+
+	if err := json.Unmarshal(body, &req); err != nil {
+		logger.AddLog("ERROR", fmt.Sprintf("Failed to decode MCP request: %v. Body: %s", err, string(body)))
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(NewJSONRPCErrorResponse(nil, ParseError, "Parse error"))
 		return
 	}
 
+	// Handle notifications (no ID)
+	if req.ID == nil {
+		logger.AddLog("INFO", fmt.Sprintf("Received MCP Notification from profile %s: %s", id, req.Method))
+		if req.Method == "notifications/initialized" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		// Other notifications are ignored for now
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	var resp JSONRPCResponse
+	logger.AddLog("INFO", fmt.Sprintf("MCP Request [%v] from profile %s: %s", req.ID, id, req.Method))
+
 	switch req.Method {
 	case "initialize":
+		logger.AddLog("INFO", "Handling 'initialize' request")
 		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
 			"protocolVersion": "2024-11-05",
-			"capabilities":    map[string]interface{}{},
+			"capabilities": map[string]interface{}{
+				"tools": map[string]interface{}{},
+			},
 			"serverInfo": map[string]string{
 				"name":    "mcp-scooter",
 				"version": "0.1.0",
 			},
 		})
 
-	case "list_tools":
-		tools := engine.Find("")
+	case "tools/list", "list_tools":
+		logger.AddLog("INFO", "Handling 'tools/list' request")
+		p, ok := g.manager.GetProfile(id)
+		if ok {
+			engine.SetDisabledTools(p.DisabledSystemTools)
+		}
+		
+		var mcpTools []registry.Tool
+		
+		// 1. Always include builtin (primordial) tools - these are the "meta-layer"
+		//    that allows agents to discover and activate other tools dynamically.
+		for _, td := range discovery.PrimordialTools() {
+			if !engine.IsToolDisabled(td.Name) {
+				mcpTools = append(mcpTools, td.Tools...)
+			}
+		}
+		
+		// 2. Include tools ONLY from active servers (not all allowed tools).
+		//    This is the "Docker MCP Toolkit" pattern - tools must be explicitly
+		//    activated via scooter_add before they appear in the tool list.
+		for _, serverName := range engine.ListActive() {
+			serverTools := engine.GetActiveToolsForServer(serverName)
+			mcpTools = append(mcpTools, serverTools...)
+		}
+
 		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
-			"tools": tools,
+			"tools": mcpTools,
+		})
+		logger.AddLog("INFO", fmt.Sprintf("Returned %d tools (builtins + %d active servers)", len(mcpTools), len(engine.ListActive())))
+
+	case "resources/list":
+		logger.AddLog("INFO", "Handling 'resources/list' request")
+		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
+			"resources": []interface{}{},
 		})
 
-	case "call_tool":
+	case "prompts/list":
+		logger.AddLog("INFO", "Handling 'prompts/list' request")
+		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
+			"prompts": []interface{}{},
+		})
+
+	case "tools/call", "call_tool":
 		var params struct {
 			Name      string                 `json:"name"`
 			Arguments map[string]interface{} `json:"arguments"`
 		}
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			resp = NewJSONRPCErrorResponse(req.ID, InvalidParams, fmt.Sprintf("Invalid params for call_tool: %v", err))
+			msg := fmt.Sprintf("Invalid params for call_tool: %v", err)
+			logger.AddLog("ERROR", msg)
+			resp = NewJSONRPCErrorResponse(req.ID, InvalidParams, msg)
 			break
 		}
 
-		// Auto-load tool if allowed but not active
-		serverName, found := engine.GetServerForTool(params.Name)
-		if found {
-			// Check if this server is allowed for this profile
-			// Internal requests (from Scooter Desktop) bypass the AllowTools check for testing
-			isInternal := r.Header.Get("X-Scooter-Internal") == "true"
-			isAllowed := isInternal
-			
-			p, ok := g.manager.GetProfile(id)
-			if ok {
-				// Sync engine environment with profile environment
-				engine.SetEnv(p.Env)
+		logger.AddLog("INFO", fmt.Sprintf("Handling 'tools/call' for '%s' (Profile: %s)", params.Name, id))
 
+		// Sync profile settings with engine
+		p, profileOk := g.manager.GetProfile(id)
+		if profileOk {
+			engine.SetEnv(p.Env)
+			engine.SetDisabledTools(p.DisabledSystemTools)
+		}
+
+		// Check if this is a builtin tool (always allowed)
+		isBuiltin := false
+		for _, primordial := range discovery.PrimordialTools() {
+			if primordial.Name == params.Name {
+				isBuiltin = true
+				break
+			}
+		}
+
+		// Special permission check for scooter_add - the tool being added must be in AllowTools
+		if params.Name == "scooter_add" {
+			toolToAdd, _ := params.Arguments["tool_name"].(string)
+			if toolToAdd != "" && profileOk {
+				isInternal := r.Header.Get("X-Scooter-Internal") == "true"
+				isAllowed := isInternal
+				
 				if !isAllowed {
+					for _, allowed := range p.AllowTools {
+						if allowed == toolToAdd {
+							isAllowed = true
+							break
+						}
+					}
+				}
+				
+				if !isAllowed {
+					msg := fmt.Sprintf("Tool '%s' is not allowed for this profile. Add it to AllowTools in your profile configuration before using scooter_add.", toolToAdd)
+					logger.AddLog("ERROR", msg)
+					resp = NewJSONRPCErrorResponse(req.ID, InvalidParams, msg)
+					break
+				}
+			}
+		}
+
+		if !isBuiltin {
+			// For non-builtin tools, check if the server is active
+			serverName, found := engine.GetServerForTool(params.Name)
+			if !found {
+				// Tool not found in registry at all
+				msg := fmt.Sprintf("Tool '%s' not found. Use scooter_find to discover available tools.", params.Name)
+				logger.AddLog("ERROR", msg)
+				resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, msg)
+				break
+			}
+
+			// Check if server is active
+			isActive := false
+			for _, active := range engine.ListActive() {
+				if active == serverName {
+					isActive = true
+					break
+				}
+			}
+
+			if !isActive {
+				// Tool exists but server is not active - NO auto-loading (Docker MCP Toolkit pattern)
+				// Check if it's even allowed for this profile
+				isAllowed := false
+				isInternal := r.Header.Get("X-Scooter-Internal") == "true"
+				if isInternal {
+					isAllowed = true
+				} else if profileOk {
 					for _, allowed := range p.AllowTools {
 						if allowed == serverName {
 							isAllowed = true
@@ -718,32 +1284,36 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-			}
 
-			if isAllowed {
-				// Ensure it's added to the engine
-				active := false
-				for _, a := range engine.ListActive() {
-					if a == serverName {
-						active = true
-						break
-					}
+				if isAllowed {
+					msg := fmt.Sprintf("Tool '%s' is not active. Use scooter_add('%s') to enable it first.", params.Name, serverName)
+					logger.AddLog("ERROR", msg)
+					resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, msg)
+				} else {
+					msg := fmt.Sprintf("Tool '%s' is not allowed for this profile. Add '%s' to AllowTools in your profile configuration.", params.Name, serverName)
+					logger.AddLog("ERROR", msg)
+					resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, msg)
 				}
-				if !active {
-					addLog(fmt.Sprintf("Auto-loading tool '%s' for profile '%s'", serverName, id))
-					if err := engine.Add(serverName); err != nil {
-						resp = NewJSONRPCErrorResponse(req.ID, InternalError, fmt.Sprintf("Failed to auto-load tool: %v", err))
-						break
-					}
-				}
+				break
 			}
 		}
 
 		// Call unified tool executor
+		startTime := time.Now()
 		result, err := engine.CallTool(params.Name, params.Arguments)
+		duration := time.Since(startTime)
+
 		if err != nil {
+			msg := fmt.Sprintf("Tool execution error for '%s': %v", params.Name, err)
+			logger.AddLog("ERROR", msg)
 			resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, fmt.Sprintf("Tool error: %v", err))
 		} else {
+			logger.AddLog("INFO", fmt.Sprintf("Tool '%s' executed successfully in %v", params.Name, duration))
+			// If scooter_add or scooter_remove succeeded, notify SSE clients to refresh tools
+			if params.Name == "scooter_add" || params.Name == "scooter_remove" {
+				g.NotifyToolsChanged(id)
+			}
+			
 			// If result is already a map with "content", use it directly
 			if resMap, ok := result.(map[string]interface{}); ok {
 				if _, hasContent := resMap["content"]; hasContent {
@@ -768,6 +1338,32 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, "Method not found")
 	}
 
+	// For standard MCP SSE transport, the response SHOULD be sent via the SSE stream,
+	// and the POST request should return 202 Accepted or 200 OK with no body.
+	sessionId := r.URL.Query().Get("sessionId")
+	if sessionId != "" {
+		g.sseClientsMu.RLock()
+		ch, ok := g.sseSessions[sessionId]
+		g.sseClientsMu.RUnlock()
+
+		if ok {
+			respData, _ := json.Marshal(resp)
+			select {
+			case ch <- string(respData):
+				logger.AddLog("INFO", fmt.Sprintf("Sent response to SSE session %s", sessionId))
+				w.WriteHeader(http.StatusAccepted)
+				return
+			case <-time.After(2 * time.Second):
+				logger.AddLog("ERROR", fmt.Sprintf("Timeout sending response to SSE session %s. Falling back to HTTP body.", sessionId))
+				// Fallback to sending in body if channel is blocked
+			}
+		} else {
+			logger.AddLog("WARNING", fmt.Sprintf("Session %s not found for MCP message. Falling back to HTTP body.", sessionId))
+		}
+	}
+
+	// Fallback/Legacy: send response in the HTTP body (Streamable HTTP style)
+	logger.AddLog("INFO", fmt.Sprintf("Sending MCP response in HTTP body (Profile: %s)", id))
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }

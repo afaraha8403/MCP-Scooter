@@ -53,7 +53,7 @@ export function ProfileSelectionModal({
 
   return (
     <div className="drawer-overlay" onClick={onClose}>
-      <div className="drawer-content profile-selection-modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
+      <div className="drawer-content profile-selection-modal" onClick={e => e.stopPropagation()}>
         <div className="drawer-header">
           <span className="drawer-title">Switch Profile</span>
           <button className="icon-btn" onClick={onClose}><DismissRegular /></button>

@@ -2,6 +2,47 @@
   "id": "claude-code",
   "name": "Claude Code",
   "icon": "/client-logos/claude_code.svg",
-  "description": "Anthropic's CLI-based agent for terminal usage",
-  "manual_instructions": "### Manual Configuration for Claude Code\n\nTo manually connect Claude Code to MCP Scooter, run the following command in your terminal:\n\n```bash\nclaude mcp add mcp-scooter http://localhost:6277/profiles/{profile}/sse\n```"
+  "description": "Anthropic's agentic AI coding assistant that lives in your terminal",
+  "version": "2.1.x",
+  "developer": "Anthropic",
+  "category": "Terminal Agent",
+  "tags": ["cli", "terminal", "agent", "coding", "agentic"],
+  "about": "## Claude Code\n\nClaude Code is an agentic AI assistant that lives in your terminal, deeply aware of your entire codebase. It can edit files, run commands, create pull requests, and integrate with your existing development workflow.\n\n### Key Capabilities\n\n- **Full Codebase Awareness** - Understands your entire project structure, dependencies, and code patterns\n- **Terminal Integration** - Execute commands, run tests, manage git operations directly\n- **Agentic Workflows** - Autonomous multi-step task completion with async subagents\n- **IDE Integration** - Works alongside VS Code, JetBrains, and other editors\n\n### Recent Features (2025-2026)\n\n- **Async Subagents** - Spawn background tasks that continue even after main session ends\n- **Instant Context Compaction** - Faster session summarization (seconds vs minutes)\n- **Hotkey Model Switching** - Switch between Haiku, Sonnet, and Opus mid-conversation\n- **Web & Mobile Interfaces** - Browser and mobile access in addition to CLI\n- **Enhanced Permissions** - Granular folder and network-level access controls\n\n### Supported Models\n\n- Claude Haiku 4.5 (fast, cost-effective)\n- Claude Sonnet 4.5 (balanced)\n- Claude Opus 4.5 (complex tasks)\n\n### SDK Support\n\nTypeScript and Python SDKs available for embedding and customizing agents.",
+  "homepage": "https://www.anthropic.com/claude-code",
+  "repository": "https://github.com/anthropics/claude-code",
+  "documentation": "https://docs.anthropic.com/s/claude-code",
+  "download_url": "https://www.anthropic.com/claude-code",
+  "platforms": ["macOS", "Linux", "Windows"],
+  "mcp_support": {
+    "transports": ["stdio", "sse"],
+    "features": ["tools", "prompts", "resources"],
+    "status": "stable"
+  },
+  "features": [
+    {
+      "name": "Codebase Awareness",
+      "description": "Deep understanding of your entire project structure and code patterns"
+    },
+    {
+      "name": "Command Execution",
+      "description": "Run terminal commands, tests, and build processes with permission controls"
+    },
+    {
+      "name": "Git Integration",
+      "description": "Create branches, commits, and pull requests directly"
+    },
+    {
+      "name": "Async Subagents",
+      "description": "Background tasks that continue running independently"
+    },
+    {
+      "name": "Multi-Model Support",
+      "description": "Switch between Haiku, Sonnet, and Opus models on the fly"
+    }
+  ],
+  "metadata": {
+    "license": "Proprietary",
+    "pricing": "Included with Claude Pro/Team/Enterprise"
+  },
+  "manual_instructions": "### Manual Configuration for Claude Code\n\nTo manually connect Claude Code to MCP Scooter, run the following command in your terminal:\n\n```bash\nclaude mcp add mcp-scooter http://127.0.0.1:6277/profiles/{profile}/sse\n```"
 }

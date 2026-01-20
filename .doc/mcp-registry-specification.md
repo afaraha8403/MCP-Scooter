@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Status:** Draft  
-**Date:** January 16, 2026  
+**Date:** January 20, 2026  
 **Related:** PRD v2.9
 
 ---
@@ -50,16 +50,20 @@ Based on the PRD's core promise of "zero latency and <50MB RAM usage," the regis
   // ═══════════════════════════════════════════════════════════════════
   // SECTION 2: CLASSIFICATION (Required)
   // ═══════════════════════════════════════════════════════════════════
-  "category": "string",
-  "source": "string",
+  "category": "string (enum)",
+  "source": "string (enum)",
   "tags": ["string"],
   
   // ═══════════════════════════════════════════════════════════════════
   // SECTION 3: PRESENTATION (Optional)
   // ═══════════════════════════════════════════════════════════════════
   "icon": "string",
+  "icon_background": {
+    "light": "string (hex color)",
+    "dark": "string (hex color)"
+  },
   "banner": "string",
-  "color": "string",
+  "color": "string (hex color)",
   
   // ═══════════════════════════════════════════════════════════════════
   // SECTION 4: DOCUMENTATION (Recommended)
@@ -75,6 +79,7 @@ Based on the PRD's core promise of "zero latency and <50MB RAM usage," the regis
   "authorization": {
     "type": "none | api_key | oauth2 | bearer_token | custom",
     "required": true,
+    "recommended": false,
     // ... type-specific fields
   },
   
@@ -84,9 +89,11 @@ Based on the PRD's core promise of "zero latency and <50MB RAM usage," the regis
   "tools": [
     {
       "name": "string",
+      "title": "string",
       "description": "string",
       "inputSchema": {},
       "outputSchema": {},
+      "sampleInput": {},
       "annotations": {}
     }
   ],
@@ -130,10 +137,10 @@ Based on the PRD's core promise of "zero latency and <50MB RAM usage," the regis
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | ✅ | Unique identifier. Use lowercase with hyphens (e.g., `brave-search`, `postgres-mcp`). This is what users type in `scout_add("name")`. |
-| `version` | string | ✅ | Semantic version (e.g., `1.0.0`, `2.3.1`). Used for update detection. |
-| `title` | string | ✅ | Human-friendly display name (e.g., "Brave Search", "PostgreSQL Explorer"). |
-| `description` | string | ✅ | One-line summary (max 120 chars). Shown in search results and tool cards. |
+| `name` | string | ✅ | Unique identifier. Pattern: `^[a-z][a-z0-9-]*$`. Length: 2-64. |
+| `version` | string | ✅ | Semantic version (e.g., `1.0.0`, `2.3.1`). |
+| `title` | string | ✅ | Human-friendly display name. Length: 2-64. |
+| `description` | string | ✅ | One-line summary. Length: 10-200. |
 
 **Example:**
 ```json
@@ -152,8 +159,8 @@ Based on the PRD's core promise of "zero latency and <50MB RAM usage," the regis
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `category` | string | ✅ | Primary category for filtering. See [Category Taxonomy](#category-taxonomy). |
-| `source` | string | ✅ | Origin of the tool: `official`, `community`, `enterprise`, `local`. |
-| `tags` | string[] | ⬜ | Additional searchable keywords (max 10). |
+| `source` | string | ✅ | Origin of the tool: `official`, `community`, `enterprise`, `local`, `custom`. |
+| `tags` | string[] | ⬜ | Additional searchable keywords (max 10, unique). |
 
 **Category Taxonomy:**
 - `development` — Code, Git, IDE integrations
@@ -183,13 +190,18 @@ Based on the PRD's core promise of "zero latency and <50MB RAM usage," the regis
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `icon` | string | ⬜ | Path to SVG icon. Relative: `/registry-logos/name.svg`. Or absolute URL. |
+| `icon_background` | object | ⬜ | Background colors for the icon in `light` and `dark` modes. |
 | `banner` | string | ⬜ | Path to banner image for detail view. |
-| `color` | string | ⬜ | Brand color in hex (e.g., `#FB542B` for Brave). Used for UI accents. |
+| `color` | string | ⬜ | Brand color in hex (e.g., `#FB542B`). |
 
 **Example:**
 ```json
 {
   "icon": "/registry-logos/brave-search.svg",
+  "icon_background": {
+    "light": "#efeae7",
+    "dark": "#6a6a89"
+  },
   "color": "#FB542B"
 }
 ```
@@ -232,6 +244,14 @@ This is a **markdown string** that provides comprehensive information about the 
 The `authorization` field defines how the MCP authenticates. This is critical for Scooter's Profile system to properly inject credentials.
 
 #### Authorization Types:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `required` | boolean | Whether auth is strictly required (default: `true`). |
+| `recommended` | boolean | Whether auth is recommended even if not required (default: `false`). |
+| `display_name` | string | Default UI label for the auth field. |
+| `description` | string | Default help text. |
+| `help_url` | string | Default documentation link. |
 
 ##### Type: `none`
 No authentication required. Tool is publicly accessible.
@@ -435,11 +455,12 @@ The `tools` array lists all tools/functions this MCP server exposes. This enable
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | ✅ | Unique tool identifier. Use snake_case. |
-| `title` | string | ⬜ | Human-friendly name for UI. |
-| `description` | string | ✅ | What this tool does. Be specific for LLM discovery. |
+| `name` | string | ✅ | Unique tool identifier (snake_case). Length: 2-64. |
+| `title` | string | ⬜ | Human-friendly name for UI. Max length: 64. |
+| `description` | string | ✅ | What this tool does. Length: 10-500. |
 | `inputSchema` | object | ✅ | JSON Schema defining input parameters. |
 | `outputSchema` | object | ⬜ | JSON Schema defining output structure. |
+| `sampleInput` | object | ⬜ | Example JSON payload for LLM to understand tool usage. |
 | `annotations` | object | ⬜ | Hints for safety and behavior. |
 
 **Annotation Fields:**
@@ -496,7 +517,7 @@ Per PRD Section 7.2, Scooter uses wazero for WASM isolation.
     "type": "wasm",
     "url": "https://mcp-scooter.com/wasm/brave-search.wasm",
     "local_path": "/wasm/brave-search.wasm",
-    "sha256": "abc123..."
+    "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
   }
 }
 ```
@@ -592,10 +613,21 @@ Additional metadata for attribution and maintenance.
     "updated": "2026-01-10T00:00:00Z",
     "deprecated": false,
     "deprecation_message": null,
-    "minimum_scout_version": "1.0.0"
+    "minimum_scooter_version": "1.0.0"
   }
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `author` | string | Name of the primary author/organization. |
+| `license` | string | License identifier (e.g., MIT, Apache-2.0). |
+| `maintainers` | string[] | List of maintainer contact info. |
+| `created` | ISO8601 | Original creation date. |
+| `updated` | ISO8601 | Last updated date. |
+| `deprecated` | boolean | Whether this MCP is deprecated (default: `false`). |
+| `deprecation_message` | string | Reason or alternative for deprecation. |
+| `minimum_scooter_version` | string | Minimum Scooter version required. |
 
 ---
 
@@ -617,6 +649,10 @@ Additional metadata for attribution and maintenance.
   "tags": ["web-search", "privacy", "brave"],
   
   "icon": "/registry-logos/brave-search.svg",
+  "icon_background": {
+    "light": "#efeae7",
+    "dark": "#6a6a89"
+  },
   "color": "#FB542B",
   
   "about": "## Brave Search MCP\n\nSearch the web privately using the Brave Search API. Unlike other search engines, Brave doesn't track your searches or build a profile on you.\n\n### Features\n\n- **Web Search** - Full web search with snippets and metadata\n- **News Search** - Filter for recent news articles\n- **Freshness Filters** - Limit results by time period\n\n### Getting Started\n\n1. Get an API key at [brave.com/search/api](https://brave.com/search/api)\n2. Add this tool: `scout_add(\"brave-search\")`\n3. Enter your API key when prompted\n\n### Pricing\n\nBrave Search API offers 2,000 free queries/month. See [pricing](https://brave.com/search/api/#pricing) for details.",
@@ -663,6 +699,10 @@ Additional metadata for attribution and maintenance.
           }
         },
         "required": ["query"]
+      },
+      "sampleInput": {
+        "query": "Model Context Protocol",
+        "count": 5
       },
       "annotations": {
         "readOnlyHint": true,
@@ -735,6 +775,10 @@ Additional metadata for attribution and maintenance.
   "tags": ["google", "drive", "files", "cloud-storage"],
   
   "icon": "/registry-logos/google-drive.svg",
+  "icon_background": {
+    "light": "#efeae7",
+    "dark": "#6a6a89"
+  },
   "color": "#4285F4",
   
   "about": "## Google Drive MCP\n\nConnect your Google Drive to search, read, and manage files directly from your AI assistant.\n\n### Features\n\n- **Search Files** - Find documents by name, content, or metadata\n- **Read Files** - Access document contents (Docs, Sheets, PDFs)\n- **List Folders** - Browse your Drive hierarchy\n- **File Metadata** - Get sharing info, last modified, etc.\n\n### Permissions\n\nThis tool requests read-only access to your Drive. It cannot modify or delete files.\n\n### Setup\n\nWhen you add this tool, Scooter will open a browser window for Google sign-in. Authorize the requested permissions to connect your Drive.",
@@ -871,6 +915,10 @@ Additional metadata for attribution and maintenance.
   "tags": ["postgresql", "database", "sql", "data"],
   
   "icon": "/registry-logos/postgresql.svg",
+  "icon_background": {
+    "light": "#efeae7",
+    "dark": "#6a6a89"
+  },
   "color": "#336791",
   
   "about": "## PostgreSQL MCP\n\nConnect to PostgreSQL databases to explore schemas, run queries, and analyze data.\n\n### Features\n\n- **Schema Exploration** - List tables, columns, and relationships\n- **Query Execution** - Run SELECT queries safely\n- **Data Analysis** - Get row counts, sample data, statistics\n\n### Security\n\n⚠️ **Read-Only Mode**: By default, only SELECT queries are allowed.\n\n⚠️ **Connection Strings**: Your database credentials are stored securely in your system keychain.\n\n### Supported Versions\n\nPostgreSQL 12, 13, 14, 15, 16",
@@ -1062,7 +1110,7 @@ Every registry JSON must have:
 - [ ] `title` — Human-friendly display name
 - [ ] `description` — One-line summary
 - [ ] `category` — From taxonomy
-- [ ] `source` — `official`, `community`, `enterprise`, or `local`
+- [ ] `source` — `official`, `community`, `enterprise`, `local`, or `custom`
 - [ ] `authorization` — At minimum `{ "type": "none" }`
 - [ ] `tools` — At least one tool definition
 - [ ] `package` — Installation source

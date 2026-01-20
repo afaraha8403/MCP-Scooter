@@ -2,6 +2,48 @@
   "id": "zed",
   "name": "Zed",
   "icon": "/client-logos/zed_light.svg",
-  "description": "High-performance multiplayer code editor",
-  "manual_instructions": "### Manual Configuration for Zed\n\nTo manually connect Zed to MCP Scooter:\n\n1. Open your Zed settings (`settings.json`).\n2. Add the following to the `mcp_servers` section:\n\n```json\n{\n  \"mcp_servers\": {\n    \"mcp-scooter\": {\n      \"url\": \"http://localhost:6277/profiles/{profile}/sse\"\n    }\n  }\n}\n```"
+  "icon_dark": "/client-logos/zed_dark.svg",
+  "description": "High-performance multiplayer code editor with MCP and external agent support",
+  "version": "0.201+",
+  "developer": "Zed Industries",
+  "category": "Code Editor",
+  "tags": ["ide", "performance", "multiplayer", "rust", "acp"],
+  "about": "## Zed Editor\n\nZed is a high-performance, multiplayer code editor built in Rust, featuring native support for both MCP (Model Context Protocol) and ACP (Agent Client Protocol) for AI-powered development.\n\n### Key Capabilities\n\n- **Lightning Fast** - Written in Rust for maximum performance\n- **Real-time Collaboration** - Built-in multiplayer editing\n- **MCP Support** - Connect external context sources via MCP servers\n- **ACP Support** - Integrate full AI agents (Gemini CLI, Claude Code, Codex)\n\n### Protocol Support\n\n#### MCP (Model Context Protocol)\nConnect context servers for additional data sources. Configure via extensions or `settings.json` under `context_servers`.\n\n#### ACP (Agent Client Protocol)\nIntegrate external AI agents that can edit code, run commands, and more. Agents appear in Zed's Agent Panel with full editing capabilities.\n\n### Supported Agents (via ACP)\n\n- **Gemini CLI** - Google's agent with visual diff review (v0.201.5+)\n- **Claude Code** - Anthropic's agent via `acp-claude-code` bridge\n- **Codex** - OpenAI's open-source agent with official adapter\n\n### Recent Features (2025-2026)\n\n- **Gemini CLI Integration** - Real-time visualizations, multi-buffer review, patch workflows\n- **Claude Code Support** - Community bridge for Claude Code agent\n- **Codex Integration** - Official open-source adapter\n- **Token-Based Pricing** - Flexible AI usage billing\n\n### Agent Panel Features\n\n- Real-time edit visualizations\n- Multi-buffer review across files\n- Preview and accept/reject patches\n- Pull request-style workflows\n\n### Configuration\n\nAdd MCP servers in `settings.json`:\n```json\n{\n  \"context_servers\": {\n    \"mcp-scooter\": {\n      \"url\": \"http://127.0.0.1:6277/profiles/work/sse\"\n    }\n  }\n}\n```",
+  "homepage": "https://zed.dev",
+  "repository": "https://github.com/zed-industries/zed",
+  "documentation": "https://zed.dev/docs/ai/mcp",
+  "download_url": "https://zed.dev/download",
+  "platforms": ["macOS", "Linux"],
+  "mcp_support": {
+    "transports": ["stdio", "sse"],
+    "features": ["tools", "resources", "agent_client_protocol"],
+    "status": "stable"
+  },
+  "features": [
+    {
+      "name": "Blazing Performance",
+      "description": "Written in Rust for instant startup and smooth editing"
+    },
+    {
+      "name": "Agent Client Protocol",
+      "description": "Integrate full AI agents like Gemini CLI, Claude Code, and Codex"
+    },
+    {
+      "name": "Real-time Collaboration",
+      "description": "Built-in multiplayer editing with presence and cursors"
+    },
+    {
+      "name": "Visual Diff Review",
+      "description": "Preview and accept/reject AI-generated changes"
+    },
+    {
+      "name": "Multi-Buffer Editing",
+      "description": "Review AI changes across multiple files simultaneously"
+    }
+  ],
+  "metadata": {
+    "license": "GPL-3.0 / AGPL-3.0",
+    "pricing": "Free, AI features usage-based or BYOK"
+  },
+  "manual_instructions": "### Manual Configuration for Zed\n\nTo manually connect Zed to MCP Scooter:\n\n1. Open your Zed settings (`settings.json`).\n2. Add the following to the `context_servers` section:\n\n```json\n{\n  \"context_servers\": {\n    \"mcp-scooter\": {\n      \"url\": \"http://127.0.0.1:6277/profiles/{profile}/sse\"\n    }\n  }\n}\n```"
 }

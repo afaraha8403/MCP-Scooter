@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mcp-scooter/scooter/internal/domain/integration"
 	"github.com/mcp-scooter/scooter/internal/domain/registry"
 )
 
@@ -18,6 +19,15 @@ import (
 type ToolWorker interface {
 	Execute(stdin io.Reader, stdout io.Writer, env map[string]string) error
 	Close() error
+}
+
+// PersistentWorker extends ToolWorker for servers that stay running.
+type PersistentWorker interface {
+	ToolWorker
+	Start(env map[string]string) error
+	CallTool(name string, arguments map[string]interface{}) (*registry.JSONRPCResponse, error)
+	IsRunning() bool
+	GetTools() []registry.Tool
 }
 
 // ToolDefinition represents a metadata for an MCP tool.
@@ -43,17 +53,23 @@ type ToolDefinition struct {
 	Metadata      *registry.Metadata     `json:"metadata,omitempty"`
 }
 
+// CleanupCallback is called when a tool is auto-unloaded due to inactivity.
+type CleanupCallback func(serverName string)
+
 // DiscoveryEngine manages tools for an MCP session.
 type DiscoveryEngine struct {
-	mu            sync.RWMutex
-	activeServers map[string]ToolWorker // name -> worker
-	toolToServer  map[string]string     // toolName -> serverName
-	lastUsed      map[string]time.Time
-	registry      []ToolDefinition
-	wasmDir       string
-	registryDir   string
-	env           map[string]string
-	ctx           context.Context
+	mu              sync.RWMutex
+	activeServers   map[string]ToolWorker // name -> worker
+	toolToServer    map[string]string     // toolName -> serverName
+	lastUsed        map[string]time.Time
+	registry        []ToolDefinition
+	wasmDir         string
+	registryDir     string
+	env             map[string]string
+	disabledTools   map[string]bool
+	ctx             context.Context
+	credentials     *integration.CredentialManager
+	cleanupCallback CleanupCallback
 }
 
 func NewDiscoveryEngine(ctx context.Context, wasmDir string, registryDir string) *DiscoveryEngine {
@@ -65,11 +81,56 @@ func NewDiscoveryEngine(ctx context.Context, wasmDir string, registryDir string)
 		wasmDir:       wasmDir,
 		registryDir:   registryDir,
 		env:           make(map[string]string),
+		disabledTools: make(map[string]bool),
 		ctx:           ctx,
+		credentials:   integration.NewCredentialManager(),
 	}
 	e.loadRegistry()
 	go e.monitor()
 	return e
+}
+
+// SetCleanupCallback sets the callback function called when tools are auto-unloaded.
+func (e *DiscoveryEngine) SetCleanupCallback(cb CleanupCallback) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.cleanupCallback = cb
+}
+
+// GetWorker returns the worker for a given server name.
+func (e *DiscoveryEngine) GetWorker(serverName string) (ToolWorker, bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	worker, ok := e.activeServers[serverName]
+	return worker, ok
+}
+
+// GetActiveToolsForServer returns the tools provided by an active server.
+func (e *DiscoveryEngine) GetActiveToolsForServer(serverName string) []registry.Tool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	worker, ok := e.activeServers[serverName]
+	if !ok {
+		return nil
+	}
+
+	if pw, ok := worker.(PersistentWorker); ok {
+		return pw.GetTools()
+	}
+
+	// Fall back to registry-defined tools for non-persistent workers
+	for _, td := range e.registry {
+		if td.Name == serverName {
+			return td.Tools
+		}
+	}
+	return nil
+}
+
+// GetCredentialManager returns the credential manager for external access.
+func (e *DiscoveryEngine) GetCredentialManager() *integration.CredentialManager {
+	return e.credentials
 }
 
 // SetEnv updates the environment variables for tools.
@@ -77,6 +138,23 @@ func (e *DiscoveryEngine) SetEnv(env map[string]string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.env = env
+}
+
+// SetDisabledTools updates the list of disabled system tools.
+func (e *DiscoveryEngine) SetDisabledTools(disabled []string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.disabledTools = make(map[string]bool)
+	for _, tool := range disabled {
+		e.disabledTools[tool] = true
+	}
+}
+
+// IsToolDisabled checks if a tool is in the disabled list.
+func (e *DiscoveryEngine) IsToolDisabled(name string) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.disabledTools[name]
 }
 
 func (e *DiscoveryEngine) loadRegistry() {
@@ -149,8 +227,22 @@ func (e *DiscoveryEngine) Find(query string) []ToolDefinition {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	// Simple mock filter for now
+	// Return all tools for management purposes
 	return e.registry
+}
+
+// ListTools returns tools available for the AI agent (filtering out disabled ones).
+func (e *DiscoveryEngine) ListTools() []ToolDefinition {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	filtered := make([]ToolDefinition, 0, len(e.registry))
+	for _, td := range e.registry {
+		if !e.disabledTools[td.Name] {
+			filtered = append(filtered, td)
+		}
+	}
+	return filtered
 }
 
 // Register adds a new tool definition to the registry.
@@ -206,9 +298,9 @@ func (e *DiscoveryEngine) Add(serverName string) error {
 
 	// Check if server exists in registry
 	var targetDef *ToolDefinition
-	for _, t := range e.registry {
-		if t.Name == serverName {
-			targetDef = &t
+	for i := range e.registry {
+		if e.registry[i].Name == serverName {
+			targetDef = &e.registry[i]
 			break
 		}
 	}
@@ -216,10 +308,52 @@ func (e *DiscoveryEngine) Add(serverName string) error {
 		return fmt.Errorf("server not found in registry: %s", serverName)
 	}
 
+	// Build environment with credentials from keychain
+	toolEnv := make(map[string]string)
+	
+	// Start with profile env
+	for k, v := range e.env {
+		toolEnv[k] = v
+	}
+	
+	// Layer in secure credentials from keychain
+	if e.credentials != nil && targetDef.Authorization != nil {
+		creds, err := e.credentials.GetCredentialsForTool(serverName, targetDef.Authorization)
+		if err != nil {
+			fmt.Printf("[Discovery] Warning: failed to get credentials for %s: %v\n", serverName, err)
+		} else {
+			for k, v := range creds {
+				toolEnv[k] = v
+				fmt.Printf("[Discovery] Injected credential %s for %s\n", k, serverName)
+			}
+		}
+	}
+
 	var worker ToolWorker
 	// Handle Stdio transport (e.g., npx, python, etc.)
 	if targetDef.Runtime != nil && targetDef.Runtime.Transport == registry.TransportStdio {
-		worker = NewStdioWorker(e.ctx, targetDef.Runtime.Command, targetDef.Runtime.Args)
+		stdioWorker := NewStdioWorker(e.ctx, targetDef.Runtime.Command, targetDef.Runtime.Args)
+		
+		// Start the persistent server process with initialize handshake
+		if err := stdioWorker.Start(toolEnv); err != nil {
+			return fmt.Errorf("failed to start MCP server %s: %w", serverName, err)
+		}
+		
+		// Update tool mappings from server's actual tools if available
+		serverTools := stdioWorker.GetTools()
+		if len(serverTools) > 0 {
+			fmt.Printf("[Discovery] Server %s reports %d tools\n", serverName, len(serverTools))
+			for _, tool := range serverTools {
+				e.toolToServer[tool.Name] = serverName
+			}
+		} else {
+			// Fall back to registry-defined tools
+			for _, tool := range targetDef.Tools {
+				e.toolToServer[tool.Name] = serverName
+			}
+		}
+		
+		worker = stdioWorker
 	} else {
 		// Default to WASM
 		wasmWorker := NewWASMWorker(e.ctx)
@@ -228,12 +362,15 @@ func (e *DiscoveryEngine) Add(serverName string) error {
 			return fmt.Errorf("failed to load wasm tool %s: %w", serverName, err)
 		}
 		worker = wasmWorker
+		
+		// Use registry-defined tools for WASM
+		for _, tool := range targetDef.Tools {
+			e.toolToServer[tool.Name] = serverName
+		}
 	}
 
 	e.activeServers[serverName] = worker
-	for _, tool := range targetDef.Tools {
-		e.toolToServer[tool.Name] = serverName
-	}
+	fmt.Printf("[Discovery] Activated server: %s\n", serverName)
 	return nil
 }
 
@@ -286,8 +423,28 @@ func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (
 
 	if active {
 		e.MarkUsed(serverName)
+		startTime := time.Now()
 
-		// Prepare JSON-RPC request for MCP 'tools/call'
+		// Check if this is a persistent worker (StdioWorker)
+		if persistentWorker, ok := worker.(PersistentWorker); ok {
+			// Use the direct CallTool method for persistent workers
+			resp, err := persistentWorker.CallTool(name, params)
+			duration := time.Since(startTime)
+
+			if err != nil {
+				fmt.Printf("[Discovery] Tool execution failed for '%s': %v\n", name, err)
+				return nil, fmt.Errorf("tool execution failed: %w", err)
+			}
+
+			if resp.Error != nil {
+				return nil, fmt.Errorf("tool error: %s (code: %d)", resp.Error.Message, resp.Error.Code)
+			}
+
+			fmt.Printf("[Discovery] Tool '%s' executed successfully in %v\n", name, duration)
+			return resp.Result, nil
+		}
+
+		// Fall back to Execute pattern for WASM workers
 		req := registry.JSONRPCRequest{
 			JSONRPC: "2.0",
 			ID:      time.Now().UnixNano(),
@@ -319,7 +476,8 @@ func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (
 			return nil, fmt.Errorf("tool execution failed: %w", err)
 		}
 
-		fmt.Printf("[Discovery] Tool '%s' response: %s\n", name, stdout.String())
+		duration := time.Since(startTime)
+		fmt.Printf("[Discovery] Tool '%s' response received in %v: %s\n", name, duration, stdout.String())
 
 		var resp registry.JSONRPCResponse
 		if err := json.Unmarshal(stdout.Bytes(), &resp); err != nil {
@@ -362,10 +520,11 @@ func (e *DiscoveryEngine) monitor() {
 
 func (e *DiscoveryEngine) cleanup() {
 	e.mu.Lock()
-	defer e.mu.Unlock()
-
+	
 	threshold := 10 * time.Minute // Auto-unload after 10 mins
 	now := time.Now()
+	
+	var unloadedServers []string
 
 	for name, lastUsed := range e.lastUsed {
 		if now.Sub(lastUsed) > threshold {
@@ -381,7 +540,19 @@ func (e *DiscoveryEngine) cleanup() {
 						delete(e.toolToServer, toolName)
 					}
 				}
+				
+				unloadedServers = append(unloadedServers, name)
 			}
+		}
+	}
+	
+	callback := e.cleanupCallback
+	e.mu.Unlock()
+	
+	// Call cleanup callback outside of lock to avoid deadlocks
+	if callback != nil {
+		for _, name := range unloadedServers {
+			callback(name)
 		}
 	}
 }

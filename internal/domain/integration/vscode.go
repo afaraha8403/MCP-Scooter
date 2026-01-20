@@ -35,9 +35,9 @@ func (v *VSCodeIntegration) Configure(port int, profileID string, apiKey string)
 	}
 
 	// Add or update MCP Scooter entry
-	url := fmt.Sprintf("http://localhost:%d/profiles/%s/sse", port, profileID)
+	url := fmt.Sprintf("http://127.0.0.1:%d/profiles/%s/sse", port, profileID)
 	if profileID == "work" {
-		url = fmt.Sprintf("http://localhost:%d/sse", port)
+		url = fmt.Sprintf("http://127.0.0.1:%d/sse", port)
 	}
 
 	serverConfig := map[string]interface{}{
