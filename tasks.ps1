@@ -132,7 +132,7 @@ switch ($Command) {
     "validate" {
         Write-Host "--- Validating MCP Registry ---" -ForegroundColor Cyan
         & ./tasks.ps1 build-validator
-        ./validate-registry.exe appdata/registry
+        ./validate-registry.exe appdata/registry/official
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✓ Registry is valid." -ForegroundColor Green
         } else {
@@ -142,7 +142,7 @@ switch ($Command) {
 
     "validate-strict" {
         & ./tasks.ps1 build-validator
-        ./validate-registry.exe -strict appdata/registry
+        ./validate-registry.exe -strict appdata/registry/official
     }
 
     "fmt" {

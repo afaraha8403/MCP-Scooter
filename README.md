@@ -70,15 +70,19 @@ If MCP is the "USB port" for AI, **MCP Scooter is the Universal Hub**.
 ## ✨ Features
 
 ### 🔍 Dynamic Tool Discovery
-No more hard-coding tool definitions. Scooter exposes three "primordial tools" to any AI client, enabling **"auto-choosing"** of tools based on the context of your question:
+No more hard-coding tool definitions. Scooter exposes "primordial tools" to any AI client, enabling **"auto-choosing"** of tools based on the context of your question:
 
-- **`scout_find`** — Search for tools by capability
-- **`scout_add`** — Install and enable tools on-demand  
-- **`scout_remove`** — Unload tools to free context space
+- **`scooter_find`** — Search for tools by capability
+- **`scooter_add`** — Install and enable tools on-demand  
+- **`scooter_remove`** — Unload tools to free context space
+- **`scooter_list_active`** — List currently active tools and servers
+- **`scooter_code_interpreter`** — Execute sandboxed JavaScript
+- **`scooter_filesystem`** — Safe, scoped file operations
+- **`scooter_fetch`** — Local-first HTTP client
 
 **How it works:** Your LLM taps into the Scooter discovery tool → It gets a list of available capabilities → It auto-chooses the right tool for your specific question → Scooter loads only what's needed. This avoids loading the entire toolset and keeps your context window clean.
 
-Your agent asks for "database tools" → Scooter finds them → Agent installs what it needs → Done.
+Your agent asks for "database tools" → Scooter finds them using `scooter_find` → Agent installs what it needs via `scooter_add` → Done.
 
 ### 👤 Profile-Based Identity Management
 Create isolated environments for different contexts:
