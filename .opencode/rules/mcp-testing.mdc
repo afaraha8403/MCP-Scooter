@@ -1,0 +1,124 @@
+# MCP Testing Workflow
+
+When the user asks to "test the [NAME] MCP server", follow these steps strictly:
+
+## 0. Pre-flight Checks
+- **Verify registry file exists:** `appdata/registry/[NAME].json`
+- **Validate against schema:** Run `go run cmd/validate-registry/main.go appdata/registry/[NAME].json`
+- **Check Go environment:** Ensure `go version` succeeds
+- **Verify discovery package compiles:** `go build ./internal/domain/discovery/...`
+
+**On failure:** Report the specific error and stop. Do not proceed with broken prerequisites.
+
+## 1. Registry Inspection
+- Read `appdata/registry/[NAME].json`.
+- Extract and document:
+  - `runtime.transport`: `stdio` | `wasm` | `sse`
+  - `runtime.command` and `runtime.args`
+  - `authorization.type`: `none` | `api_key` | `oauth2` | `bearer_token` | `custom`
+  - All required `env_var` values (may be multiple for `custom` auth)
+  - `tools[]` array: list tool names and identify the primary read-only tool for testing
+- **Primary tool selection:** Prefer a tool with `readOnlyHint: true` for safe testing.
+
+## 2. Environment Setup (profiles.yaml)
+- **Locate profiles.yaml:**
+  - Windows: `%AppData%\Roaming\mcp-scooter\profiles.yaml`
+  - macOS: `~/Library/Application Support/mcp-scooter/profiles.yaml`
+  - Linux: `~/.config/mcp-scooter/profiles.yaml`
+  - Fallback: workspace root `profiles.yaml`
+- **If file doesn't exist:** Create it with a default profile structure.
+- **Check all required env vars** from the registry's `authorization` section.
+- **Constraint:** If ANY required `env_var` is missing:
+  1. List all missing variables with their `display_name` and `help_url`
+  2. Ask the user for each value
+  3. Do NOT proceed until all are provided
+- **Action:** Update the profile's `env` map with provided values.
+- **Security:** Never log or echo API keys/secrets in output.
+
+## 3. Implementation Verification
+Based on `runtime.transport`:
+
+### For `stdio`:
+- Check `internal/domain/discovery/stdio.go` exists and implements:
+  - Process spawning via `os/exec`
+  - JSON-RPC message framing (newline-delimited)
+  - Stdin/stdout pipe management
+  - Process lifecycle (start, health check, graceful shutdown)
+- If missing, implement using `os/exec.Command` pattern.
+
+### For `wasm`:
+- Check `internal/domain/discovery/wasm.go` exists and implements:
+  - Wazero runtime initialization
+  - WASI support for filesystem/network access
+  - Module loading and instantiation
+- If missing, implement using `wazero` runtime.
+
+### For `sse`:
+- Check `internal/domain/discovery/sse.go` exists and implements:
+  - HTTP client with SSE support
+  - Event stream parsing
+  - Reconnection logic
+- If missing, implement using standard `net/http` with SSE handling.
+
+**On missing implementation:** Implement the transport before proceeding, or report as blocker.
+
+## 4. Execution & Verification
+- Create integration test file: `internal/domain/discovery/[NAME]_integration_test.go`
+- **Use build tag:** `//go:build integration` at top of file
+- Test structure:
+  ```go
+  func Test[NAME]Integration(t *testing.T) {
+      ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+      defer cancel()
+
+      // 1. Initialize engine
+      // 2. Add("[NAME]") - verify no error
+      // 3. ListTools() - verify tools match registry
+      // 4. CallTool("[PRIMARY_TOOL]", testParams) - verify response
+      // 5. Remove("[NAME]") - verify cleanup
+  }
+  ```
+- **Run command:** `go test -v -tags=integration -timeout=120s ./internal/domain/discovery/ -run Test[NAME]Integration`
+- **Capture output:** Save both stdout and stderr for debugging.
+
+**On test failure:**
+1. Check stderr for MCP server errors
+2. Verify environment variables are correctly passed
+3. Check network connectivity for remote services
+4. Report specific failure point and error message
+
+## 5. Cleanup & Reporting
+- **Always remove** the temporary test file, even on failure
+- **Report format:**
+  ```
+  ## MCP Test: [NAME]
+
+  | Step | Status | Details |
+  |------|--------|---------|
+  | Pre-flight | ✅/❌ | ... |
+  | Registry | ✅/❌ | ... |
+  | Environment | ✅/❌ | ... |
+  | Implementation | ✅/❌ | ... |
+  | Execution | ✅/❌ | ... |
+
+  ### Tools Discovered
+  - tool_name_1
+  - tool_name_2
+
+  ### Test Output
+  [JSON response or error message]
+
+  ### Overall: ✅ PASS / ❌ FAIL
+  ```
+
+## Error Recovery
+
+| Error | Recovery Action |
+|-------|-----------------|
+| Registry file not found | Check spelling, list available MCPs in `appdata/registry/` |
+| Schema validation failed | Fix registry JSON before proceeding |
+| Missing env var | Prompt user, provide help_url |
+| Transport not implemented | Implement or report as blocker |
+| MCP process crash | Check command/args, capture stderr |
+| Tool call timeout | Increase timeout, check network |
+| Auth failure (401/403) | Verify API key is valid and has required permissions |

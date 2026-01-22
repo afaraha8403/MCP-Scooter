@@ -1,0 +1,215 @@
+# MCP Scooter Registry Rules
+
+## Project Overview
+
+MCP Scooter is a lightweight desktop application that acts as the universal "Operating System" for the Model Context Protocol (MCP). It manages MCP tools through a registry system with strict JSON schema validation.
+
+## Registry JSON Schema
+
+All MCP registry entries in `appdata/registry/` MUST follow this schema:
+
+### Required Fields
+
+| Field | Type | Rules |
+|-------|------|-------|
+| `name` | string | Lowercase letters, numbers, hyphens only. Pattern: `^[a-z][a-z0-9-]*$`. 2-64 chars. |
+| `version` | string | Semantic version. Pattern: `^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$` |
+| `title` | string | Human-friendly display name. Max 64 chars. |
+| `description` | string | One-line summary. 10-200 chars. |
+| `category` | enum | One of: `development`, `database`, `productivity`, `communication`, `search`, `cloud`, `analytics`, `ai`, `utility`, `custom` |
+| `source` | enum | One of: `official`, `community`, `enterprise`, `local`, `custom` |
+| `authorization` | object | Auth configuration (see below) |
+| `tools` | array | At least one tool definition |
+| `package` | object | Installation configuration |
+
+### Authorization Types
+
+#### Type: `none`
+```json
+{
+  "authorization": {
+    "type": "none"
+  }
+}
+```
+
+#### Type: `api_key`
+```json
+{
+  "authorization": {
+    "type": "api_key",
+    "required": true,
+    "env_var": "UPPERCASE_ENV_VAR",
+    "display_name": "Human Friendly Name",
+    "description": "Help text for the user",
+    "help_url": "https://where-to-get-the-key.com"
+  }
+}
+```
+
+#### Type: `oauth2`
+```json
+{
+  "authorization": {
+    "type": "oauth2",
+    "required": true,
+    "provider": "google|github|slack|microsoft|custom",
+    "display_name": "Provider Account",
+    "oauth": {
+      "authorization_url": "https://...",
+      "token_url": "https://...",
+      "scopes": ["scope1", "scope2"],
+      "pkce_required": true,
+      "token_env": "TOKEN_ENV_VAR"
+    }
+  }
+}
+```
+
+#### Type: `bearer_token`
+```json
+{
+  "authorization": {
+    "type": "bearer_token",
+    "required": true,
+    "env_var": "TOKEN_ENV_VAR",
+    "display_name": "Personal Access Token",
+    "help_url": "https://where-to-get-token.com",
+    "scopes": ["scope1"]
+  }
+}
+```
+
+#### Type: `custom`
+```json
+{
+  "authorization": {
+    "type": "custom",
+    "display_name": "Connection Details",
+    "env_vars": [
+      {
+        "name": "ENV_VAR_NAME",
+        "display_name": "Field Label",
+        "description": "Help text",
+        "secret": true,
+        "required": true
+      }
+    ]
+  }
+}
+```
+
+### Tool Definition Schema
+
+```json
+{
+  "name": "snake_case_name",
+  "title": "Human Title",
+  "description": "Clear description of what this tool does (min 10 chars, max 500)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "param_name": {
+        "type": "string|integer|boolean|array|object",
+        "description": "Parameter description"
+      }
+    },
+    "required": ["param_name"]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true,
+    "requiresApproval": false,
+    "rateLimit": "100 requests/minute",
+    "costPerCall": "$0.001"
+  }
+}
+```
+
+**Annotation Reference:**
+
+| Annotation | Type | Description |
+|------------|------|-------------|
+| `readOnlyHint` | boolean | True if tool only reads data |
+| `destructiveHint` | boolean | True if tool can delete/modify data |
+| `idempotentHint` | boolean | True if repeated calls produce same result |
+| `openWorldHint` | boolean | True if tool accesses external services |
+| `requiresApproval` | boolean | True if Scooter should prompt for Human-in-the-Loop approval |
+| `rateLimit` | string | Human-readable rate limit info (e.g., "100 requests/minute") |
+| `costPerCall` | string | Estimated cost per invocation (e.g., "$0.001") |
+
+### Package Types
+
+- `npm`: Requires `name` field (e.g., `@scope/package`)
+- `pypi`: Requires `name` field
+- `cargo`: Requires `name` field (Rust crate)
+- `wasm`: Requires `url` or `local_path`
+- `docker`: Requires `image` field
+- `binary`: Requires `platforms` object with platform-specific URLs
+
+### Runtime Configuration
+
+The `runtime` object defines how Scooter communicates with the MCP server:
+
+```json
+{
+  "runtime": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@scope/package"],
+    "env": { "EXTRA_VAR": "value" },
+    "cwd": null,
+    "timeout": 30000
+  }
+}
+```
+
+**Transport Types:**
+
+| Transport | Description |
+|-----------|-------------|
+| `stdio` | Communicate via stdin/stdout (most common) |
+| `http` | HTTP-based JSON-RPC |
+| `sse` | Server-Sent Events |
+| `streamable-http` | HTTP with streaming support |
+
+### Icon Requirements
+
+- Icons MUST be stored in `desktop/public/registry-logos/`
+- Format: SVG preferred
+- Naming: Match the MCP `name` field (e.g., `brave-search.svg`)
+- Reference in JSON as: `/registry-logos/{name}.svg`
+
+## Validation
+
+Run validation before committing:
+
+```bash
+# Validate all registry files
+make validate
+
+# Validate a single file
+go run cmd/validate-registry/main.go appdata/registry/{name}.json
+
+# Validate entire directory
+go run cmd/validate-registry/main.go appdata/registry/
+```
+
+## File Naming
+
+- Registry JSON files: `{name}.json` in `appdata/registry/`
+- Name must match the `name` field inside the JSON
+
+## Code Style
+
+### Go Code
+- Use the types in `internal/domain/registry/types.go`
+- Validate using `registry.Validate(&entry)`
+- All validation errors go to `ValidationResult.Errors`
+
+### JSON
+- Use 2-space indentation
+- Include `$schema` reference: `"../schemas/mcp-registry.schema.json"`
+- Always include the `about` field with markdown documentation
