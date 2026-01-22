@@ -304,7 +304,7 @@ func (w *StdioWorker) sendRequest(req registry.JSONRPCRequest) (*registry.JSONRP
 		duration := time.Since(startTime)
 		logger.AddLog("ERROR", fmt.Sprintf("[%s] Error reading response for %v after %v: %v", w.command, req.ID, duration, err))
 		return nil, err
-	case <-time.After(30 * time.Second):
+	case <-time.After(10 * time.Second):
 		duration := time.Since(startTime)
 		logger.AddLog("ERROR", fmt.Sprintf("[%s] Timeout waiting for response for %v (%s) after %v", w.command, req.ID, req.Method, duration))
 		return nil, fmt.Errorf("timeout waiting for response")

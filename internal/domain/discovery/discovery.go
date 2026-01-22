@@ -257,13 +257,16 @@ func (e *DiscoveryEngine) ReloadRegistry() error {
 
 	// Refresh tools from running persistent servers (e.g., stdio MCP servers)
 	refreshedServers := 0
+	failedServers := 0
 	for serverName, worker := range e.activeServers {
 		if persistentWorker, ok := worker.(PersistentWorker); ok && persistentWorker.IsRunning() {
 			logger.AddLog("INFO", fmt.Sprintf("[Discovery] Refreshing tools from running server '%s'", serverName))
 
 			// Refresh tools from the server
 			if err := persistentWorker.RefreshTools(); err != nil {
-				logger.AddLog("WARN", fmt.Sprintf("[Discovery] Failed to refresh tools from server '%s': %v", serverName, err))
+				logger.AddLog("WARN", fmt.Sprintf("[Discovery] Failed to refresh tools from server '%s': %v (keeping cached tools)", serverName, err))
+				failedServers++
+				// Don't fail the entire refresh - continue with other servers
 				continue
 			}
 
@@ -290,6 +293,11 @@ func (e *DiscoveryEngine) ReloadRegistry() error {
 				refreshedServers++
 			}
 		}
+	}
+
+	// Log summary of server refresh results
+	if failedServers > 0 {
+		logger.AddLog("WARN", fmt.Sprintf("[Discovery] Failed to refresh %d server(s) (keeping cached tools)", failedServers))
 	}
 
 	if refreshedServers > 0 {

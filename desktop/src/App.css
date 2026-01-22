@@ -1382,3 +1382,13 @@ button.secondary:hover {
   border-color: var(--status-ok-border);
   opacity: 1;
 }
+
+/* Refresh icon spin animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

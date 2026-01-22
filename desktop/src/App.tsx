@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { FluentProvider, webLightTheme, webDarkTheme } from "@fluentui/react-components";
-import { 
-  EyeRegular, 
-  EyeOffRegular, 
-  EditRegular, 
-  CheckmarkRegular, 
+import {
+  EyeRegular,
+  EyeOffRegular,
+  EditRegular,
+  CheckmarkRegular,
   DismissRegular,
   CheckmarkCircleRegular,
   ErrorCircleRegular,
@@ -33,7 +33,8 @@ import {
   PhoneRegular,
   GlobeRegular,
   DeleteRegular,
-  FolderOpenRegular
+  FolderOpenRegular,
+  ArrowClockwiseRegular
 } from "@fluentui/react-icons";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -283,6 +284,7 @@ function App() {
 
   const [logSearchQuery, setLogSearchQuery] = useState("");
   const [logLevelFilter, setLogLevelFilter] = useState<"ALL" | "INFO" | "WARN" | "ERROR">("ALL");
+  const [refreshingTools, setRefreshingTools] = useState(false);
 
   // Load saved tool params on mount
   useEffect(() => {
@@ -853,6 +855,53 @@ function App() {
       }
     } catch (err) {
       addLog(`Error updating profile tools: ${err}`, "ERROR");
+    }
+  };
+
+  const refreshTools = async () => {
+    setRefreshingTools(true);
+    try {
+      addLog("Refreshing tool registry...", "INFO");
+      addLog(`Connecting to backend at ${CONTROL_API}/tools/refresh`, "INFO");
+
+      // Add timeout to prevent infinite hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        addLog("Refresh request timed out (backend not responding)", "ERROR");
+      }, 60000); // 60 second timeout - allow time for multiple MCP servers
+
+      const res = await fetch(`${CONTROL_API}/tools/refresh`, {
+        method: "POST",
+        signal: controller.signal,
+      }).catch(err => {
+        if (err.name === 'AbortError') {
+          throw new Error("Request timed out - backend may not be responding");
+        }
+        throw err;
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res) {
+        addLog("No response from backend", "ERROR");
+        return;
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        addLog(data.message || "Tools refreshed successfully", "INFO");
+        fetchAllTools();
+      } else {
+        const errorText = await res.text();
+        addLog(`Failed to refresh tools: ${res.status} ${res.statusText} - ${errorText}`, "ERROR");
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      addLog(`Error refreshing tools: ${errorMsg}`, "ERROR");
+      addLog(`Check if backend is running on port ${appSettings.control_port}`, "INFO");
+    } finally {
+      setRefreshingTools(false);
     }
   };
 
@@ -1635,7 +1684,37 @@ function App() {
                     <div className="detail-section">
                       <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>Capabilities</span>
-                        {selectedTool.tools && selectedTool.tools.length > 0 && (
+                        {selectedTool?.tools && selectedTool.tools.length > 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              refreshTools();
+                            }}
+                            disabled={refreshingTools}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              background: 'var(--background-subtle)',
+                              border: '1px solid var(--border-subtle)',
+                              borderRadius: '4px',
+                              cursor: refreshingTools ? 'wait' : 'pointer',
+                              fontSize: '10px',
+                              color: 'var(--text-secondary)',
+                              outline: 'none',
+                              opacity: refreshingTools ? 0.7 : 1
+                            }}
+                            title="Refresh tool registry"
+                          >
+                            {refreshingTools ? (
+                              <ArrowClockwiseRegular style={{ fontSize: '12px', animation: 'spin 1s linear infinite' }} />
+                            ) : (
+                              <ArrowClockwiseRegular style={{ fontSize: '12px' }} />
+                            )}
+                          </button>
+                        )}
+                        {selectedTool?.tools && selectedTool.tools.length > 0 && (
                           <span style={{ fontSize: '11px', opacity: 0.6, background: 'var(--background-card)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                             {selectedTool.tools.length} {selectedTool.tools.length === 1 ? 'tool' : 'tools'}
                           </span>

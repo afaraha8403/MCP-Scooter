@@ -12,16 +12,25 @@ import (
 	"sync"
 	"time"
 
+	"crypto/rand"
+	"encoding/hex"
+	"os/exec"
+	"runtime"
 	"github.com/mcp-scooter/scooter/internal/domain/discovery"
 	"github.com/mcp-scooter/scooter/internal/domain/integration"
 	"github.com/mcp-scooter/scooter/internal/domain/profile"
 	"github.com/mcp-scooter/scooter/internal/domain/registry"
 	"github.com/mcp-scooter/scooter/internal/logger"
-	"crypto/rand"
-	"encoding/hex"
-	"os/exec"
-	"runtime"
 )
+
+// Helper function to extract tool names from tools
+func getToolNames(tools []registry.Tool) []string {
+	names := make([]string, len(tools))
+	for i, tool := range tools {
+		names[i] = tool.Name
+	}
+	return names
+}
 
 // ControlServer handles management requests (CRUD for profiles).
 type ControlServer struct {
@@ -56,7 +65,9 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("POST /api/reset", s.handleReset)
 	s.mux.HandleFunc("GET /api/tools", s.handleGetTools)
 	s.mux.HandleFunc("POST /api/tools", s.handleRegisterTool)
+	s.mux.HandleFunc("POST /api/tools/refresh", s.handleRefreshTools)
 	s.mux.HandleFunc("DELETE /api/tools", s.handleDeleteTool)
+	s.mux.HandleFunc("GET /api/health", s.handleHealth)
 	s.mux.HandleFunc("GET /api/clients", s.handleGetClients)
 	s.mux.HandleFunc("GET /api/settings", s.handleGetSettings)
 	s.mux.HandleFunc("PUT /api/settings", s.handleUpdateSettings)
@@ -80,6 +91,15 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("DELETE /api/credentials/ai-primary", s.handleDeletePrimaryAIKey)
 	s.mux.HandleFunc("DELETE /api/credentials/ai-fallback", s.handleDeleteFallbackAIKey)
 	s.mux.HandleFunc("GET /api/status", s.handleGetStatus)
+}
+
+func (s *ControlServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+		"timestamp": time.Now().Unix(),
+	})
 }
 
 func (s *ControlServer) handleGetStatus(w http.ResponseWriter, r *http.Request) {
@@ -484,7 +504,7 @@ func (s *ControlServer) handleReset(w http.ResponseWriter, r *http.Request) {
 
 func (s *ControlServer) handleGetTools(w http.ResponseWriter, r *http.Request) {
 	engine := discovery.NewDiscoveryEngine(context.Background(), s.manager.wasmDir, s.manager.registryDir)
-	
+
 	s.manager.mu.RLock()
 	for _, td := range s.manager.customTools {
 		engine.Register(td)
@@ -496,6 +516,51 @@ func (s *ControlServer) handleGetTools(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"tools": tools,
+	})
+}
+
+func (s *ControlServer) handleRefreshTools(w http.ResponseWriter, r *http.Request) {
+	// Refresh tools by reloading the registry for all engines
+	s.manager.mu.RLock()
+	engines := s.manager.engines
+	profileIDs := make([]string, 0, len(engines))
+	for id := range engines {
+		profileIDs = append(profileIDs, id)
+	}
+	s.manager.mu.RUnlock()
+
+	logger.AddLog("INFO", fmt.Sprintf("Refreshing tools for %d profile(s): %v", len(profileIDs), profileIDs))
+
+	if len(engines) == 0 {
+		logger.AddLog("WARN", "No active engines found - nothing to refresh")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Refreshed 0 engines (no profiles active)",
+		})
+		return
+	}
+
+	refreshedCount := 0
+	for profileID, engine := range engines {
+		logger.AddLog("INFO", fmt.Sprintf("Refreshing registry for profile '%s'", profileID))
+		if err := engine.ReloadRegistry(); err != nil {
+			logger.AddLog("ERROR", fmt.Sprintf("Failed to refresh registry for profile '%s': %v", profileID, err))
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		refreshedCount++
+		logger.AddLog("INFO", fmt.Sprintf("Successfully refreshed registry for profile '%s'", profileID))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Successfully refreshed %d profile engine(s)", refreshedCount),
 	})
 }
 
@@ -632,14 +697,14 @@ func (s *ControlServer) handleRegisterTool(w http.ResponseWriter, r *http.Reques
 	if s.manager.registryDir != "" {
 		customDir := filepath.Join(s.manager.registryDir, "custom")
 		os.MkdirAll(customDir, 0755)
-		
+
 		filePath := filepath.Join(customDir, fmt.Sprintf("%s.json", td.Name))
 		data, err := json.MarshalIndent(td, "", "  ")
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to serialize tool: %v", err), http.StatusInternalServerError)
 			return
 		}
-		
+
 		if err := os.WriteFile(filePath, data, 0644); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save tool file: %v", err), http.StatusInternalServerError)
 			return
@@ -710,7 +775,7 @@ func (s *ControlServer) handleCheckCredentials(w http.ResponseWriter, r *http.Re
 	// Get tool definition to check authorization requirements
 	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
 	tools := engine.Find("")
-	
+
 	var toolDef *discovery.ToolDefinition
 	for i := range tools {
 		if tools[i].Name == toolName {
@@ -769,7 +834,7 @@ func (s *ControlServer) handleDeleteTool(w http.ResponseWriter, r *http.Request)
 func (s *ControlServer) handleDeleteCredential(w http.ResponseWriter, r *http.Request) {
 	toolName := r.URL.Query().Get("tool_name")
 	envVar := r.URL.Query().Get("env_var")
-	
+
 	if toolName == "" || envVar == "" {
 		http.Error(w, "tool_name and env_var are required", http.StatusBadRequest)
 		return
@@ -858,7 +923,7 @@ func (s *ControlServer) handleCheckAICredentials(w http.ResponseWriter, r *http.
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"primary_configured": hasPrimary && s.settings.PrimaryAIProvider != "",
+		"primary_configured":  hasPrimary && s.settings.PrimaryAIProvider != "",
 		"fallback_configured": hasFallback && s.settings.FallbackAIProvider != "",
 	})
 }
@@ -1040,7 +1105,7 @@ func NewMcpGateway(manager *ProfileManager, settings profile.Settings) *McpGatew
 		sseSessions: make(map[string]chan string),
 	}
 	g.routes()
-	
+
 	// Set up cleanup callbacks for all engines to notify SSE clients when tools are auto-unloaded
 	for _, p := range manager.GetProfiles() {
 		if engine, ok := manager.GetEngine(p.ID); ok {
@@ -1051,7 +1116,7 @@ func NewMcpGateway(manager *ProfileManager, settings profile.Settings) *McpGatew
 			})
 		}
 	}
-	
+
 	return g
 }
 
@@ -1063,7 +1128,7 @@ func (g *McpGateway) NotifyToolsChanged(profileID string) {
 	g.sseClientsMu.RUnlock()
 
 	notification := `{"jsonrpc":"2.0","method":"notifications/tools/list_changed"}`
-	
+
 	for _, ch := range clients {
 		select {
 		case ch <- notification:
@@ -1072,7 +1137,7 @@ func (g *McpGateway) NotifyToolsChanged(profileID string) {
 			// Channel full, skip (client will catch up on next poll)
 		}
 	}
-	
+
 	if len(clients) > 0 {
 		logger.AddLog("INFO", fmt.Sprintf("Sent tools/list_changed to %d SSE clients for profile '%s'", len(clients), profileID))
 	}
@@ -1083,7 +1148,7 @@ func (g *McpGateway) routes() {
 	g.mux.HandleFunc("GET /profiles/{id}/sse", g.handleSSE)
 	g.mux.HandleFunc("POST /profiles/{id}/sse", g.handleMessage) // Streamable HTTP: POST to same endpoint
 	g.mux.HandleFunc("POST /profiles/{id}/message", g.handleMessage)
-	
+
 	// Default routes for "work" profile (compatibility)
 	g.mux.HandleFunc("GET /sse", func(w http.ResponseWriter, r *http.Request) {
 		r.SetPathValue("id", "work")
@@ -1268,9 +1333,9 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		if ok {
 			engine.SetDisabledTools(p.DisabledSystemTools)
 		}
-		
+
 		var mcpTools []registry.Tool
-		
+
 		// 1. Always include builtin (primordial) tools - these are the "meta-layer"
 		//    that allows agents to discover and activate other tools dynamically.
 		for _, td := range discovery.PrimordialTools() {
@@ -1278,12 +1343,15 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 				mcpTools = append(mcpTools, td.Tools...)
 			}
 		}
-		
+
 		// 2. Include tools ONLY from active servers (not all allowed tools).
 		//    This is the "Docker MCP Toolkit" pattern - tools must be explicitly
 		//    activated via scooter_add before they appear in the tool list.
-		for _, serverName := range engine.ListActive() {
+		activeServers := engine.ListActive()
+		logger.AddLog("DEBUG", fmt.Sprintf("Active servers: %v", activeServers))
+		for _, serverName := range activeServers {
 			serverTools := engine.GetActiveToolsForServer(serverName)
+			logger.AddLog("DEBUG", fmt.Sprintf("Server '%s' provides %d tools: %v", serverName, len(serverTools), getToolNames(serverTools)))
 			mcpTools = append(mcpTools, serverTools...)
 		}
 
@@ -1341,7 +1409,7 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 			if toolToAdd != "" && profileOk {
 				isInternal := r.Header.Get("X-Scooter-Internal") == "true"
 				isAllowed := isInternal
-				
+
 				if !isAllowed {
 					for _, allowed := range p.AllowTools {
 						if allowed == toolToAdd {
@@ -1350,7 +1418,7 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-				
+
 				if !isAllowed {
 					msg := fmt.Sprintf("Tool '%s' is not allowed for this profile. Add it to AllowTools in your profile configuration before using scooter_add.", toolToAdd)
 					logger.AddLog("ERROR", msg)
@@ -1382,30 +1450,43 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 
 			if !isActive {
 				// Tool exists but server is not active - NO auto-loading (Docker MCP Toolkit pattern)
-				// Check if it's even allowed for this profile
-				isAllowed := false
-				isInternal := r.Header.Get("X-Scooter-Internal") == "true"
+				// Check if it's an internal request (tool testing) - internal requests bypass activation requirement
+				internalHeaderValue := r.Header.Get("X-Scooter-Internal")
+				isInternal := internalHeaderValue == "true"
+				logger.AddLog("DEBUG", fmt.Sprintf("Tool '%s': isActive=%v, internalHeaderValue='%s', isInternal=%v", params.Name, isActive, internalHeaderValue, isInternal))
 				if isInternal {
-					isAllowed = true
-				} else if profileOk {
-					for _, allowed := range p.AllowTools {
-						if allowed == serverName {
-							isAllowed = true
-							break
+					// For internal requests (tool testing), temporarily activate the tool
+					logger.AddLog("DEBUG", fmt.Sprintf("Tool '%s': Internal request detected, temporarily activating server '%s'", params.Name, serverName))
+					err := engine.Add(serverName)
+					if err != nil {
+						logger.AddLog("ERROR", fmt.Sprintf("Failed to temporarily activate server '%s' for internal request: %v", serverName, err))
+						resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, fmt.Sprintf("Tool error: Failed to activate server '%s': %v", serverName, err))
+						break
+					}
+					logger.AddLog("DEBUG", fmt.Sprintf("Tool '%s': Server '%s' temporarily activated for testing", params.Name, serverName))
+				} else {
+					// For external requests, check if tool is allowed for this profile
+					isAllowed := false
+					if profileOk {
+						for _, allowed := range p.AllowTools {
+							if allowed == serverName {
+								isAllowed = true
+								break
+							}
 						}
 					}
-				}
 
-				if isAllowed {
-					msg := fmt.Sprintf("Tool '%s' is not active. Use scooter_add('%s') to enable it first.", params.Name, serverName)
-					logger.AddLog("ERROR", msg)
-					resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, msg)
-				} else {
-					msg := fmt.Sprintf("Tool '%s' is not allowed for this profile. Add '%s' to AllowTools in your profile configuration.", params.Name, serverName)
-					logger.AddLog("ERROR", msg)
-					resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, msg)
+					if isAllowed {
+						msg := fmt.Sprintf("Tool '%s' is not active. Use scooter_add('%s') to enable it first.", params.Name, serverName)
+						logger.AddLog("ERROR", msg)
+						resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, msg)
+					} else {
+						msg := fmt.Sprintf("Tool '%s' is not allowed for this profile. Add '%s' to AllowTools in your profile configuration.", params.Name, serverName)
+						logger.AddLog("ERROR", msg)
+						resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, msg)
+					}
+					break
 				}
-				break
 			}
 		}
 
@@ -1424,7 +1505,7 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 			if params.Name == "scooter_add" || params.Name == "scooter_remove" {
 				g.NotifyToolsChanged(id)
 			}
-			
+
 			// If result is already a map with "content", use it directly
 			if resMap, ok := result.(map[string]interface{}); ok {
 				if _, hasContent := resMap["content"]; hasContent {
