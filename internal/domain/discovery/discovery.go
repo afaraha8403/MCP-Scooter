@@ -8,12 +8,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/mcp-scooter/scooter/internal/domain/integration"
 	"github.com/mcp-scooter/scooter/internal/domain/profile"
 	"github.com/mcp-scooter/scooter/internal/domain/registry"
+	"github.com/mcp-scooter/scooter/internal/logger"
 )
 
 // ToolWorker defines the interface for executing MCP tools.
@@ -29,6 +31,7 @@ type PersistentWorker interface {
 	CallTool(name string, arguments map[string]interface{}) (*registry.JSONRPCResponse, error)
 	IsRunning() bool
 	GetTools() []registry.Tool
+	RefreshTools() error
 }
 
 // ToolDefinition represents a metadata for an MCP tool.
@@ -85,7 +88,7 @@ func NewDiscoveryEngine(ctx context.Context, wasmDir string, registryDir string)
 		env:           make(map[string]string),
 		disabledTools: make(map[string]bool),
 		ctx:           ctx,
-		credentials:   integration.NewCredentialManager(),
+			credentials:   integration.NewCredentialManager(),
 	}
 	e.loadRegistry()
 	go e.monitor()
@@ -231,6 +234,71 @@ func (e *DiscoveryEngine) loadRegistry() {
 	}
 }
 
+// ReloadRegistry reloads the tool definitions from disk and refreshes running servers.
+// This is useful when tool definitions are updated at runtime.
+func (e *DiscoveryEngine) ReloadRegistry() error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	logger.AddLog("INFO", "[Discovery] Reloading tool registry from disk...")
+	e.loadRegistry()
+
+	// Count and log loaded tools
+	officialCount := 0
+	customCount := 0
+	for _, td := range e.registry {
+		if td.Source == "official" {
+			officialCount++
+		} else if td.Source == "custom" {
+			customCount++
+		}
+	}
+	logger.AddLog("INFO", fmt.Sprintf("[Discovery] Registry reloaded: %d official tools, %d custom tools", officialCount, customCount))
+
+	// Refresh tools from running persistent servers (e.g., stdio MCP servers)
+	refreshedServers := 0
+	for serverName, worker := range e.activeServers {
+		if persistentWorker, ok := worker.(PersistentWorker); ok && persistentWorker.IsRunning() {
+			logger.AddLog("INFO", fmt.Sprintf("[Discovery] Refreshing tools from running server '%s'", serverName))
+
+			// Refresh tools from the server
+			if err := persistentWorker.RefreshTools(); err != nil {
+				logger.AddLog("WARN", fmt.Sprintf("[Discovery] Failed to refresh tools from server '%s': %v", serverName, err))
+				continue
+			}
+
+			// Get fresh tools from the running server
+			serverTools := persistentWorker.GetTools()
+			if len(serverTools) > 0 {
+				// Remove old tool mappings for this server
+				for toolName, mappedServer := range e.toolToServer {
+					if mappedServer == serverName {
+						delete(e.toolToServer, toolName)
+					}
+				}
+
+				// Add fresh tool mappings
+				for _, tool := range serverTools {
+					// Normalize tool name: convert dashes to underscores to match registry definition format
+					normalizedName := strings.ReplaceAll(tool.Name, "-", "_")
+					logger.AddLog("INFO", fmt.Sprintf("[Discovery] Remapping tool '%s' (normalized: '%s') -> server '%s'", tool.Name, normalizedName, serverName))
+					e.toolToServer[normalizedName] = serverName
+					// Also map with original name for compatibility
+					e.toolToServer[tool.Name] = serverName
+				}
+				logger.AddLog("INFO", fmt.Sprintf("[Discovery] Server '%s' now provides %d tools", serverName, len(serverTools)))
+				refreshedServers++
+			}
+		}
+	}
+
+	if refreshedServers > 0 {
+		logger.AddLog("INFO", fmt.Sprintf("[Discovery] Refreshed tools from %d running server(s)", refreshedServers))
+	}
+
+	return nil
+}
+
 // Find searches for tools in the registry.
 func (e *DiscoveryEngine) Find(query string) []ToolDefinition {
 	e.mu.RLock()
@@ -353,11 +421,17 @@ func (e *DiscoveryEngine) Add(serverName string) error {
 		if len(serverTools) > 0 {
 			fmt.Printf("[Discovery] Server %s reports %d tools\n", serverName, len(serverTools))
 			for _, tool := range serverTools {
+				// Normalize tool name: convert dashes to underscores to match registry definition format
+				normalizedName := strings.ReplaceAll(tool.Name, "-", "_")
+				fmt.Printf("[Discovery] Mapping tool '%s' (normalized: '%s') -> server '%s'\n", tool.Name, normalizedName, serverName)
+				e.toolToServer[normalizedName] = serverName
+				// Also map with original name for compatibility
 				e.toolToServer[tool.Name] = serverName
 			}
 		} else {
 			// Fall back to registry-defined tools
 			for _, tool := range targetDef.Tools {
+				fmt.Printf("[Discovery] Mapping registry tool '%s' -> server '%s'\n", tool.Name, serverName)
 				e.toolToServer[tool.Name] = serverName
 			}
 		}
@@ -372,14 +446,16 @@ func (e *DiscoveryEngine) Add(serverName string) error {
 		}
 		worker = wasmWorker
 		
-		// Use registry-defined tools for WASM
-		for _, tool := range targetDef.Tools {
-			e.toolToServer[tool.Name] = serverName
-		}
+	// Use registry-defined tools for WASM
+	for _, tool := range targetDef.Tools {
+		fmt.Printf("[Discovery] Mapping WASM tool '%s' -> server '%s'\n", tool.Name, serverName)
+		e.toolToServer[tool.Name] = serverName
 	}
+}
 
 	e.activeServers[serverName] = worker
 	fmt.Printf("[Discovery] Activated server: %s\n", serverName)
+	fmt.Printf("[Discovery] Current toolToServer mappings: %v\n", e.toolToServer)
 	return nil
 }
 
@@ -425,10 +501,23 @@ func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (
 	}
 
 	// 2. Try active servers
+	// Normalize incoming tool name (convert underscores to dashes) for lookup
+	normalizedName := strings.ReplaceAll(name, "_", "-")
 	e.mu.RLock()
-	serverName := e.toolToServer[name]
+	serverName, hasMapping := e.toolToServer[normalizedName]
 	worker, active := e.activeServers[serverName]
 	e.mu.RUnlock()
+
+	// Debug logging
+	if !hasMapping {
+		fmt.Printf("[Discovery] Tool '%s' (normalized: '%s') not found in toolToServer mapping\n", name, normalizedName)
+		fmt.Printf("[Discovery] Current mappings: %v\n", e.toolToServer)
+		return nil, fmt.Errorf("tool not found: %s", name)
+	}
+
+	if !active {
+		return nil, fmt.Errorf("tool not found: %s", name)
+	}
 
 	if active {
 		e.MarkUsed(serverName)

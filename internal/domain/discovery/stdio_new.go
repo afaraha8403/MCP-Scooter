@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -171,7 +172,7 @@ func (w *StdioWorker) fetchTools() error {
 		resultBytes, _ := json.Marshal(resp.Result)
 		if err := json.Unmarshal(resultBytes, &result); err == nil {
 			w.tools = result.Tools
-			fmt.Printf("[StdioWorker] Discovered %d tools from server\n", len(w.tools))
+			logger.AddLog("INFO", fmt.Sprintf("[StdioWorker] Discovered %d tools from server", len(w.tools)))
 		}
 	}
 
@@ -183,6 +184,19 @@ func (w *StdioWorker) GetTools() []registry.Tool {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.tools
+}
+
+// RefreshTools re-fetches the list of tools from the running MCP server.
+func (w *StdioWorker) RefreshTools() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if !w.initialized || w.cmd == nil || w.cmd.Process == nil {
+		return fmt.Errorf("server not running")
+	}
+
+	logger.AddLog("INFO", fmt.Sprintf("[StdioWorker] Refreshing tools from %s...", w.command))
+	return w.fetchTools()
 }
 
 // Execute sends a tools/call request to the running MCP server.
@@ -227,6 +241,9 @@ func (w *StdioWorker) CallTool(name string, arguments map[string]interface{}) (*
 		return nil, fmt.Errorf("server not initialized")
 	}
 
+	// Normalize tool name: convert underscores to dashes to match MCP server convention
+	normalizedName := strings.ReplaceAll(name, "_", "-")
+
 	req := registry.JSONRPCRequest{
 		JSONRPC: "2.0",
 		ID:      w.nextID(),
@@ -236,11 +253,10 @@ func (w *StdioWorker) CallTool(name string, arguments map[string]interface{}) (*
 		Name      string                 `json:"name"`
 		Arguments map[string]interface{} `json:"arguments"`
 	}{
-		Name:      name,
+		Name:      normalizedName,
 		Arguments: arguments,
 	}
 	req.Params, _ = json.Marshal(callParams)
-
 	return w.sendRequest(req)
 }
 
