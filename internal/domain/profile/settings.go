@@ -12,6 +12,11 @@ type Settings struct {
 	EnableBeta    bool   `yaml:"enable_beta" json:"enable_beta"`
 	GatewayAPIKey string `yaml:"gateway_api_key" json:"gateway_api_key"`
 	LastProfileID string `yaml:"last_profile_id,omitempty" json:"last_profile_id,omitempty"`
+	// AI routing configuration
+	PrimaryAIProvider   string `yaml:"primary_ai_provider" json:"primary_ai_provider"`
+	PrimaryAIModel      string `yaml:"primary_ai_model" json:"primary_ai_model"`
+	FallbackAIProvider string `yaml:"fallback_ai_provider" json:"fallback_ai_provider"`
+	FallbackAIModel    string `yaml:"fallback_ai_model" json:"fallback_ai_model"`
 }
 
 // DefaultSettings returns the standard port configuration.

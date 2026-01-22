@@ -1,6 +1,8 @@
 package discovery
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mcp-scooter/scooter/internal/domain/registry"
+	"github.com/mcp-scooter/scooter/internal/logger"
 )
 
 // PrimordialTools returns the definitions for built-in MCP tools.
@@ -204,6 +207,30 @@ func PrimordialTools() []ToolDefinition {
 				},
 			},
 		},
+		{
+			Name:        "scooter_execute",
+			Title:       "AI Semantic Dispatcher",
+			Description: "AI-powered dispatcher for automatic tool routing. Use this when you are unsure which tool handles your intent or cannot route a tool call. This uses an internal LLM to match your intent to available tools.",
+			Category:    "system",
+			Source:      "builtin",
+			Installed:   true,
+			Tools: []registry.Tool{
+				{
+					Name:        "scooter_execute",
+					Description: "Automatically routes your intent to appropriate tool using semantic understanding. Use when you are unsure which tool to call for your task.",
+					InputSchema: &registry.JSONSchema{
+						Type: "object",
+						Properties: map[string]registry.PropertySchema{
+							"intent": {
+								Type:        "string",
+								Description: "Your intent or task description in natural language (e.g., 'search the web for latest AI news', 'create a GitHub issue')",
+							},
+						},
+						Required: []string{"intent"},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -268,12 +295,12 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 			for _, t := range availableTools {
 				toolNames = append(toolNames, t.Name)
 			}
-			return map[string]interface{}{
-				"status":          "already_active",
-				"server":          tool,
-				"available_tools": toolNames,
-				"message":         fmt.Sprintf("Server '%s' is already active. Available tools: %v", tool, toolNames),
-			}, nil
+		return map[string]interface{}{
+			"status":          "already_active",
+			"server":          tool,
+			"available_tools": toolNames,
+			"message":         fmt.Sprintf("Server '%s' is already active. Available tools: %v.\n\n--- ROUTING INSTRUCTION ---\nAll tools listed above are managed exclusively by the 'mcp-scooter' gateway. Even if their names (e.g., starting with '%s_') suggest they belong to another server, you MUST execute them through the 'mcp-scooter' connection. If direct execution fails, use the 'scooter_execute' tool.", tool, toolNames, strings.Split(tool, "-")[0]),
+		}, nil
 		}
 
 		err := e.Add(tool)
@@ -351,6 +378,12 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 		return handleFilesystem(params)
 	case "scooter_fetch":
 		return handleFetch(params)
+	case "scooter_execute":
+		intent, ok := params["intent"].(string)
+		if !ok || intent == "" {
+			return nil, fmt.Errorf("intent is required")
+		}
+		return e.handleSemanticDispatch(intent)
 	default:
 		return nil, fmt.Errorf("unknown builtin tool: %s", name)
 	}
@@ -546,5 +579,234 @@ func handleFetch(params map[string]interface{}) (interface{}, error) {
 		"body":        string(respBody),
 		"contentType": resp.Header.Get("Content-Type"),
 		"size":        len(respBody),
+	}, nil
+}
+
+// getAIRoutingCredentials retrieves AI routing credentials from keychain.
+func (e *DiscoveryEngine) getAIRoutingCredentials() (provider, model, key string, isFallback bool) {
+	// Try primary first
+	primaryKey, err := e.credentials.GetCredential("mcp-scooter:ai_primary", "MCP_SCOOTER_PRIMARY_AI_KEY")
+	if err == nil && e.settings.PrimaryAIProvider != "" {
+		return e.settings.PrimaryAIProvider, e.settings.PrimaryAIModel, primaryKey, false
+	}
+
+	// Try fallback
+	fallbackKey, err := e.credentials.GetCredential("mcp-scooter:ai_fallback", "MCP_SCOOTER_FALLBACK_AI_KEY")
+	if err == nil && e.settings.FallbackAIProvider != "" {
+		return e.settings.FallbackAIProvider, e.settings.FallbackAIModel, fallbackKey, true
+	}
+
+	return "", "", "", false
+}
+
+// callInternalAI calls the appropriate AI provider.
+func (e *DiscoveryEngine) callInternalAI(provider, model, key, prompt string) (map[string]interface{}, error) {
+	var response map[string]interface{}
+	var err error
+
+	switch provider {
+	case "gemini":
+		response, err = e.callGemini(model, key, prompt)
+	case "openrouter":
+		response, err = e.callOpenRouter(model, key, prompt)
+	default:
+		return nil, fmt.Errorf("unsupported AI provider: %s", provider)
+	}
+
+	return response, err
+}
+
+// callGemini calls the Gemini API.
+func (e *DiscoveryEngine) callGemini(model, key, prompt string) (map[string]interface{}, error) {
+	// Build request payload for Gemini API
+	reqBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{"text": prompt},
+				},
+			},
+		},
+	}
+
+	jsonData, _ := json.Marshal(reqBody)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, key)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Post(url, "application/json", bytes.NewReader(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("Gemini API call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Gemini API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var geminiResp map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode Gemini response: %w", err)
+	}
+
+	return geminiResp, nil
+}
+
+// callOpenRouter calls the OpenRouter API (OpenAI-compatible).
+func (e *DiscoveryEngine) callOpenRouter(model, key, prompt string) (map[string]interface{}, error) {
+	// Build request payload for OpenAI-compatible API
+	reqBody := map[string]interface{}{
+		"model": model,
+		"messages": []map[string]interface{}{
+			{"role": "system", "content": "You are a JSON-only tool router. Return only valid JSON objects."},
+			{"role": "user", "content": prompt},
+		},
+	}
+
+	jsonData, _ := json.Marshal(reqBody)
+	url := "https://openrouter.ai/api/v1/chat/completions"
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, _ := http.NewRequest("POST", url, bytes.NewReader(jsonData))
+	req.Header.Set("Authorization", "Bearer "+key)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("OpenRouter API call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("OpenRouter API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var orResp map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&orResp); err != nil {
+		return nil, fmt.Errorf("failed to decode OpenRouter response: %w", err)
+	}
+
+	return orResp, nil
+}
+
+// handleSemanticDispatch uses AI to route user intent to appropriate tool.
+func (e *DiscoveryEngine) handleSemanticDispatch(intent string) (interface{}, error) {
+	// Get AI routing credentials
+	provider, model, key, isFallback := e.getAIRoutingCredentials()
+	if key == "" {
+		return nil, fmt.Errorf("AI routing credentials not configured. Please configure AI routing settings in MCP Scooter settings.")
+	}
+
+	// Build list of active tools
+	activeTools := e.ListActive()
+	toolsList := make([]string, 0, len(activeTools))
+	for _, name := range activeTools {
+		serverTools := e.GetActiveToolsForServer(name)
+		for _, t := range serverTools {
+			toolsList = append(toolsList, fmt.Sprintf("%s: %s", name, t.Name))
+		}
+	}
+
+	// Build system prompt
+	prompt := fmt.Sprintf(
+		"You are the internal Router for MCP Scooter. The user wants to achieve this intent: '%s'.\n"+
+			"Based on these active tools: [%s], return only a JSON object:\n"+
+			"{ \"tool_name\": \"name\", \"arguments\": { ... } }.\n"+
+			"Return NO other text. If no tool matches, return { \"error\": \"no_matching_tool\" }.",
+		intent, strings.Join(toolsList, ", "),
+	)
+
+	// Try primary provider first
+	response, err := e.callInternalAI(provider, model, key, prompt)
+	if err != nil {
+		// Try fallback if primary fails
+		logger.AddLog("ERROR", fmt.Sprintf("Primary AI provider failed: %v, trying fallback", err))
+		provider, model, key, _ = e.getAIRoutingCredentials()
+		if key != "" {
+			response, err = e.callInternalAI(provider, model, key, prompt)
+			if err != nil {
+				return nil, fmt.Errorf("both primary and fallback AI providers failed: %w", err)
+			}
+		}
+	}
+
+	// Parse JSON response from AI
+	var routingDecision map[string]interface{}
+
+	// Handle different response formats
+	var jsonText string
+	if provider == "openrouter" {
+		// OpenRouter returns { "choices": [ { "message": { "content": "..." } } ] }
+		if choices, ok := response["choices"].([]interface{}); ok && len(choices) > 0 {
+			if choice, ok := choices[0].(map[string]interface{}); ok {
+				if message, ok := choice["message"].(map[string]interface{}); ok {
+					if content, ok := message["content"].(string); ok {
+						jsonText = content
+					}
+				}
+			}
+		}
+	} else {
+		// Gemini returns { "candidates": [ { "content": { "parts": [ { "text": "..." } ] } } ] }
+		if candidates, ok := response["candidates"].([]interface{}); ok && len(candidates) > 0 {
+			if candidate, ok := candidates[0].(map[string]interface{}); ok {
+				if content, ok := candidate["content"].(map[string]interface{}); ok {
+					if parts, ok := content["parts"].([]interface{}); ok && len(parts) > 0 {
+						if part, ok := parts[0].(map[string]interface{}); ok {
+							if text, ok := part["text"].(string); ok {
+								jsonText = text
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if jsonText == "" {
+		return nil, fmt.Errorf("failed to extract JSON response from AI provider")
+	}
+
+	if err := json.Unmarshal([]byte(jsonText), &routingDecision); err != nil {
+		return nil, fmt.Errorf("failed to parse routing decision: %w", err)
+	}
+
+	// Check for routing error
+	if errMsg, ok := routingDecision["error"].(string); ok && errMsg != "" {
+		return map[string]interface{}{
+			"status":  "no_match",
+			"intent":  intent,
+			"message": fmt.Sprintf("No tool matches intent: %s", intent),
+		}, nil
+	}
+
+	// Execute routed tool
+	toolName, ok := routingDecision["tool_name"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid routing decision: missing tool_name")
+	}
+
+	arguments, _ := routingDecision["arguments"].(map[string]interface{})
+	if arguments == nil {
+		arguments = make(map[string]interface{})
+	}
+
+	logger.AddLog("INFO", fmt.Sprintf("AI routed intent to tool: %s (using %s: %s)", toolName, provider, model))
+
+	// Call tool
+	result, err := e.CallTool(toolName, arguments)
+	if err != nil {
+		return nil, fmt.Errorf("routed tool execution failed: %w", err)
+	}
+
+	return map[string]interface{}{
+		"status":       "success",
+		"routed_to":    toolName,
+		"intent":       intent,
+		"ai_provider":  provider,
+		"ai_model":     model,
+		"is_fallback":  isFallback,
+		"result":       result,
 	}, nil
 }

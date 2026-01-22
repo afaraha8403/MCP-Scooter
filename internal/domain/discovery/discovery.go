@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mcp-scooter/scooter/internal/domain/integration"
+	"github.com/mcp-scooter/scooter/internal/domain/profile"
 	"github.com/mcp-scooter/scooter/internal/domain/registry"
 )
 
@@ -70,6 +71,7 @@ type DiscoveryEngine struct {
 	ctx             context.Context
 	credentials     *integration.CredentialManager
 	cleanupCallback CleanupCallback
+	settings        profile.Settings // AI routing configuration
 }
 
 func NewDiscoveryEngine(ctx context.Context, wasmDir string, registryDir string) *DiscoveryEngine {
@@ -155,6 +157,13 @@ func (e *DiscoveryEngine) IsToolDisabled(name string) bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	return e.disabledTools[name]
+}
+
+// SetSettings updates the AI routing configuration.
+func (e *DiscoveryEngine) SetSettings(settings profile.Settings) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.settings = settings
 }
 
 func (e *DiscoveryEngine) loadRegistry() {

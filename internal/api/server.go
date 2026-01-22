@@ -73,6 +73,12 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("POST /api/credentials", s.handleSetCredential)
 	s.mux.HandleFunc("GET /api/credentials/check", s.handleCheckCredentials)
 	s.mux.HandleFunc("DELETE /api/credentials", s.handleDeleteCredential)
+	// AI routing credentials
+	s.mux.HandleFunc("POST /api/credentials/ai-primary", s.handleSetPrimaryAIKey)
+	s.mux.HandleFunc("POST /api/credentials/ai-fallback", s.handleSetFallbackAIKey)
+	s.mux.HandleFunc("GET /api/credentials/ai", s.handleCheckAICredentials)
+	s.mux.HandleFunc("DELETE /api/credentials/ai-primary", s.handleDeletePrimaryAIKey)
+	s.mux.HandleFunc("DELETE /api/credentials/ai-fallback", s.handleDeleteFallbackAIKey)
 	s.mux.HandleFunc("GET /api/status", s.handleGetStatus)
 }
 
@@ -781,6 +787,110 @@ func (s *ControlServer) handleDeleteCredential(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// handleSetPrimaryAIKey stores the primary AI routing API key.
+func (s *ControlServer) handleSetPrimaryAIKey(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Value string `json:"value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Value == "" {
+		http.Error(w, "value is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get credential manager from an active engine
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	credManager := engine.GetCredentialManager()
+
+	if err := credManager.SetCredential("mcp-scooter:ai_primary", "MCP_SCOOTER_PRIMARY_AI_KEY", req.Value); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to store primary AI key: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	logger.AddLog("INFO", "Stored primary AI routing credential")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "stored"})
+}
+
+// handleSetFallbackAIKey stores the fallback AI routing API key.
+func (s *ControlServer) handleSetFallbackAIKey(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Value string `json:"value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Value == "" {
+		http.Error(w, "value is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get credential manager from an active engine
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	credManager := engine.GetCredentialManager()
+
+	if err := credManager.SetCredential("mcp-scooter:ai_fallback", "MCP_SCOOTER_FALLBACK_AI_KEY", req.Value); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to store fallback AI key: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	logger.AddLog("INFO", "Stored fallback AI routing credential")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "stored"})
+}
+
+// handleCheckAICredentials checks if AI routing credentials are configured.
+func (s *ControlServer) handleCheckAICredentials(w http.ResponseWriter, r *http.Request) {
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	credManager := engine.GetCredentialManager()
+
+	primaryKey, err1 := credManager.GetCredential("mcp-scooter:ai_primary", "MCP_SCOOTER_PRIMARY_AI_KEY")
+	fallbackKey, err2 := credManager.GetCredential("mcp-scooter:ai_fallback", "MCP_SCOOTER_FALLBACK_AI_KEY")
+
+	hasPrimary := err1 == nil && primaryKey != ""
+	hasFallback := err2 == nil && fallbackKey != ""
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"primary_configured": hasPrimary && s.settings.PrimaryAIProvider != "",
+		"fallback_configured": hasFallback && s.settings.FallbackAIProvider != "",
+	})
+}
+
+// handleDeletePrimaryAIKey removes the primary AI routing API key.
+func (s *ControlServer) handleDeletePrimaryAIKey(w http.ResponseWriter, r *http.Request) {
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	credManager := engine.GetCredentialManager()
+
+	if err := credManager.DeleteCredential("mcp-scooter:ai_primary", "MCP_SCOOTER_PRIMARY_AI_KEY"); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to delete primary AI key: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	logger.AddLog("INFO", "Deleted primary AI routing credential")
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteFallbackAIKey removes the fallback AI routing API key.
+func (s *ControlServer) handleDeleteFallbackAIKey(w http.ResponseWriter, r *http.Request) {
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	credManager := engine.GetCredentialManager()
+
+	if err := credManager.DeleteCredential("mcp-scooter:ai_fallback", "MCP_SCOOTER_FALLBACK_AI_KEY"); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to delete fallback AI key: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	logger.AddLog("INFO", "Deleted fallback AI routing credential")
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *ControlServer) handleCreateProfile(w http.ResponseWriter, r *http.Request) {
 	var p profile.Profile
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
@@ -1213,6 +1323,7 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		if profileOk {
 			engine.SetEnv(p.Env)
 			engine.SetDisabledTools(p.DisabledSystemTools)
+			engine.SetSettings(g.settings)
 		}
 
 		// Check if this is a builtin tool (always allowed)

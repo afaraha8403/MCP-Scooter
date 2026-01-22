@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createJSONEditor } from 'vanilla-jsoneditor';
-import type { JSONEditor, JSONEditorPropsOptional, Content } from 'vanilla-jsoneditor';
+import type { JSONEditorPropsOptional, Content } from 'vanilla-jsoneditor';
 
 interface JsonEditorProps extends Omit<JSONEditorPropsOptional, 'content'> {
   content: Content;
@@ -21,7 +21,7 @@ export const JsonEditor = ({
   ...restProps 
 }: JsonEditorProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<JSONEditor | null>(null);
+  const editorRef = useRef<any>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;

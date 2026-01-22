@@ -41,6 +41,7 @@ import { SettingsModal } from "./components/SettingsModal";
 import { ProfileSelectionModal } from "./components/ProfileSelectionModal";
 import { JsonEditor } from "./components/JsonEditor";
 import "vanilla-jsoneditor/themes/jse-theme-dark.css";
+import { Mode } from "vanilla-jsoneditor";
 import { invoke } from "@tauri-apps/api/core";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import "./App.css";
@@ -60,6 +61,10 @@ interface Settings {
   enable_beta: boolean;
   gateway_api_key: string;
   last_profile_id?: string;
+  primary_ai_provider: string;
+  primary_ai_model: string;
+  fallback_ai_provider: string;
+  fallback_ai_model: string;
 }
 
 interface ProcessInfo {
@@ -247,7 +252,11 @@ function App() {
     control_port: 6200, 
     mcp_port: 6277, 
     enable_beta: false,
-    gateway_api_key: ""
+    gateway_api_key: "",
+    primary_ai_provider: "",
+    primary_ai_model: "",
+    fallback_ai_provider: "",
+    fallback_ai_model: ""
   });
   const [portConflicts, setPortConflicts] = useState<{ port: number; process: ProcessInfo }[]>([]);
 
@@ -2337,7 +2346,7 @@ function App() {
                     )}
                     
                     {/* User's Activated Tools */}
-                    {selectedProfile?.allow_tools?.length > 0 && (
+                    {selectedProfile?.allow_tools && selectedProfile.allow_tools.length > 0 && (
                       <div 
                         className="category-title" 
                         style={{ 
@@ -3201,7 +3210,7 @@ function App() {
                       }}
                       dark={theme === 'dark'}
                       height="240px"
-                      mode="text"
+                      mode={Mode.text}
                     />
                     <button 
                       className="primary" 
