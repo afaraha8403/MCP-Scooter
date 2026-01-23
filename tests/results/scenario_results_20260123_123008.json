@@ -1,0 +1,74 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 1.8035237789154053,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I do not have access to the information requested using the available tools. I attempted to use the `scooter_execute` tool to find the answer, but it is designed to route to other tools and doesn't have the capacity to answer general knowledge questions.",
+    "feedback": "The tools provided are useful for managing and using other tools, but there is no tool available for answering general knowledge questions. A tool that can access and search the internet would be beneficial for answering questions like this.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 4.644881725311279,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0015795230865478516
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0018661022186279297
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": "I initially attempted to use `scooter_find` to discover tools related to \"mcp-server\". This failed due to a serialization error. I then tried `scooter_execute` in hopes it could route my request to the appropriate tool, but this also failed because the tool was not found. Since the base tools are not working, I cannot proceed with the request.",
+    "feedback": "The tool names seem clear, but the errors I encountered suggest problems with the backend.\n- `scooter_find`: The error message \"Object of type TextContent is not JSON serializable\" suggests an issue with how the tool's response is being formatted. This needs to be fixed.\n- `scooter_execute`: The error message \"Tool error: tool not found: scooter_execute\" means that the tool can't be found, which is a major problem.\n\nI recommend prioritizing fixing these errors so that the tools can be used as intended.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 2.7731900215148926,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0018992424011230469
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": null,
+    "feedback": "The tool `scooter_find` failed when I tried to run it. The error message \"Object of type TextContent is not JSON serializable\" suggests that there may be an issue with how the tool's response is being formatted. It would be helpful if this tool could successfully return its output, as it is essential for discovering available tools.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 0.7152040004730225,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

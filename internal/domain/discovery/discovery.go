@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -546,7 +547,15 @@ func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (
 			}
 
 			if resp.Error != nil {
-				return nil, fmt.Errorf("tool error: %s (code: %d)", resp.Error.Message, resp.Error.Code)
+				// Enhance error message with schema hint for argument errors
+				errMsg := resp.Error.Message
+				if strings.Contains(strings.ToLower(errMsg), "invalid") || strings.Contains(strings.ToLower(errMsg), "argument") {
+					// Try to get the tool schema to help the agent
+					if toolSchema := e.getToolSchema(name); toolSchema != "" {
+						errMsg = fmt.Sprintf("%s. Expected arguments: %s", errMsg, toolSchema)
+					}
+				}
+				return nil, fmt.Errorf("tool error: %s (code: %d)", errMsg, resp.Error.Code)
 			}
 
 			fmt.Printf("[Discovery] Tool '%s' executed successfully in %v\n", name, duration)
@@ -610,6 +619,51 @@ func (e *DiscoveryEngine) MarkUsed(serverName string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.lastUsed[serverName] = time.Now()
+}
+
+// getToolSchema returns a human-readable schema hint for a tool.
+func (e *DiscoveryEngine) getToolSchema(toolName string) string {
+	e.mu.RLock()
+	serverName := e.toolToServer[toolName]
+	e.mu.RUnlock()
+
+	if serverName == "" {
+		return ""
+	}
+
+	// Check registry for tool definition
+	for _, td := range e.registry {
+		if td.Name == serverName {
+			for _, tool := range td.Tools {
+				if tool.Name == toolName {
+					if tool.InputSchema != nil {
+						// Build a simple schema hint
+						var parts []string
+						for propName, prop := range tool.InputSchema.Properties {
+							required := ""
+							for _, req := range tool.InputSchema.Required {
+								if req == propName {
+									required = " (required)"
+									break
+								}
+							}
+							parts = append(parts, fmt.Sprintf("%s: %s%s", propName, prop.Type, required))
+						}
+						if len(parts) > 0 {
+							return "{" + strings.Join(parts, ", ") + "}"
+						}
+					}
+					// Fall back to sampleInput if available
+					if tool.SampleInput != nil {
+						if sampleBytes, err := json.Marshal(tool.SampleInput); err == nil {
+							return string(sampleBytes)
+						}
+					}
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // monitor background cleanup for inactive tools.

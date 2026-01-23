@@ -1,0 +1,94 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": null,
+    "score": 0,
+    "total_duration": 6.018666982650757,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.002208709716796875,
+          0.0019910335540771484
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.002499818801879883
+        ]
+      },
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.0020186901092529297
+        ]
+      },
+      "scooter_add": {
+        "count": 1,
+        "durations": [
+          0.0019435882568359375
+        ]
+      }
+    },
+    "num_tool_calls": 5,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": null,
+    "score": 0,
+    "total_duration": 0.7743086814880371,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I am sorry, I cannot help you search for academic papers as I do not have a tool for that. However, I do have the following tools available: `scooter_find`, `scooter_add`, `scooter_remove`, `scooter_list_active`, `scooter_code_interpreter`, `scooter_filesystem`, `scooter_fetch`, and `scooter_execute`.",
+    "score": 0,
+    "total_duration": 2.828564167022705,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I still did not find any tools using `scooter_find`. I don't seem to have any tools that specifically search for academic papers. I will respond that I am unable to assist and list the tools I *do* have.",
+    "feedback": null,
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 4.894518852233887,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0032579898834228516,
+          0.001973867416381836
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0013654232025146484
+        ]
+      }
+    },
+    "num_tool_calls": 3,
+    "summary": null,
+    "feedback": "The `scooter_find` tool failed to execute a second time with the same error. This indicates a persistent issue with how the tool is implemented or how the response is being handled. The error message \"Object of type TextContent is not JSON serializable\" suggests that the tool is attempting to return data that cannot be directly converted into JSON format. This needs to be addressed by the developers of the tool.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

@@ -1,0 +1,131 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "Anthropic in November 2024",
+    "score": 0,
+    "total_duration": 14.4659743309021,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0020177364349365234
+        ]
+      },
+      "scooter_add": {
+        "count": 2,
+        "durations": [
+          0.001972675323486328,
+          1.5246825218200684
+        ]
+      },
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.0018439292907714844
+        ]
+      },
+      "brave_web_search": {
+        "count": 2,
+        "durations": [
+          0.002570629119873047,
+          0.817802906036377
+        ]
+      }
+    },
+    "num_tool_calls": 6,
+    "summary": "I successfully used the `brave_web_search` tool to find the answer to my question. The search results indicate that the Model Context Protocol (MCP) was created by Anthropic and announced in November 2024.",
+    "feedback": "- The tool names (`scooter_find`, `scooter_add`, `scooter_remove`, `scooter_list_active`, `scooter_code_interpreter`, `scooter_filesystem`, `scooter_fetch`, `scooter_execute`) are clear and descriptive.\n- The input parameters for the tools are well-documented. The distinction between required and optional parameters is clear.\n- The descriptions for the tools accurately describe their functionality.\n- I initially made a mistake when using `scooter_add` because I forgot to specify the `tool_name` parameter. It would be helpful if the error message was more specific about which parameter was missing.\n- The `brave-search` tool is a good resource for finding general information.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 8.17146372795105,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0018062591552734375
+        ]
+      },
+      "scooter_add": {
+        "count": 3,
+        "durations": [
+          0.0014927387237548828,
+          0.0020673274993896484,
+          0.002129793167114258
+        ]
+      },
+      "scooter_execute": {
+        "count": 2,
+        "durations": [
+          0.0015840530395507812,
+          0.002252817153930664
+        ]
+      }
+    },
+    "num_tool_calls": 6,
+    "summary": "I still seem to be struggling. It seem I don't have sufficient permission to use the tools I need to complete this task.",
+    "feedback": "- The tool names are relatively clear, but it's confusing that `scooter_add` and `scooter_execute` don't accept arguments directly. They seem to require arguments to be passed in a specific way that isn't obvious.\n- The error messages are not particularly helpful. \"Tool not found\" for `scooter_add` is misleading when the issue is actually with missing or incorrect arguments. The \"Tool 'github' is not allowed for this profile\" message is more helpful, but it would be better if I had some way to know in advance which tools are allowed.\n- The lack of clear documentation or examples for how to use these tools makes them difficult to use effectively. Providing example calls for each tool would significantly improve usability.\n- It would be helpful to have a tool that combines the functionality of `scooter_find` and `scooter_add` into a single step, making it easier to discover and enable tools.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I found several academic papers about large language models using the `brave_web_search` tool.",
+    "score": 0,
+    "total_duration": 10.3486008644104,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.003095388412475586
+        ]
+      },
+      "scooter_add": {
+        "count": 3,
+        "durations": [
+          0.001554250717163086,
+          0.003347635269165039,
+          0.0021114349365234375
+        ]
+      },
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.0015039443969726562
+        ]
+      },
+      "brave_web_search": {
+        "count": 2,
+        "durations": [
+          0.002520322799682617,
+          0.7771098613739014
+        ]
+      }
+    },
+    "num_tool_calls": 7,
+    "summary": "I used the `brave_web_search` tool to search for academic papers on large language models. The tool returned a number of relevant results including links to papers on ArXiv, IEEE, and Nature.",
+    "feedback": "- The tool names and descriptions are clear and helpful.\n- The input parameters are well-documented.\n- The tools executed without errors.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 1.3911166191101074,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I was asked to order a pepperoni pizza from Domino's. As I do not have the means to place orders, I cannot fulfill this request.",
+    "feedback": "The user request is outside the scope of the given tools. A tool for ordering food would be needed to complete the user's request.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

@@ -1,0 +1,90 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 5.80561637878418,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 3,
+        "durations": [
+          0.002711772918701172,
+          0.0016698837280273438,
+          0.002137422561645508
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.001692056655883789
+        ]
+      }
+    },
+    "num_tool_calls": 4,
+    "summary": null,
+    "feedback": "The `scooter_find` and `scooter_execute` tools are not working. I am unable to search for the information required to answer the question. The errors are not descriptive enough to know what the issue is.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 4.519907474517822,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0020318031311035156
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.004159450531005859
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": "I attempted to find a popular GitHub repository for 'mcp-server' and determine its primary language. I initially tried using `scooter_find` to discover relevant tools but encountered an error. Subsequently, I attempted to use `scooter_execute` with the same request, but that tool was not found. Due to these errors, I was unable to fulfill the request.",
+    "feedback": "The `scooter_find` tool returned an error, and the `scooter_execute` tool was not found. It would be helpful to have a functioning tool for searching and retrieving information about GitHub repositories, including details like the primary language used in a project. There is no feedback possible on parameters, since none of the tools worked.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 4.245509386062622,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0017142295837402344,
+          0.002259492874145508
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": null,
+    "feedback": "The scooter_find tool continues to fail with the same serialization error, which prevents me from discovering available tools. Since I cannot proceed with identifying tools for searching academic papers, I must respond that I cannot fulfill the request. The error message suggests an issue with the data returned by `scooter_find`, potentially due to complex data structures that are not JSON serializable. Resolution of this error is necessary to make the find tool viable.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 1.1869268417358398,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I do not have the functionality to order a pizza.",
+    "feedback": "I do not have the ability to order food. I need the ability to connect to external services to complete this task.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

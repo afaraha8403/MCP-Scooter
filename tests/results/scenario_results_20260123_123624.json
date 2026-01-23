@@ -1,0 +1,84 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 5.26750922203064,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0026619434356689453,
+          0.0015938282012939453
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0020384788513183594
+        ]
+      }
+    },
+    "num_tool_calls": 3,
+    "summary": null,
+    "feedback": "The fact that basic tools like `scooter_find` and `scooter_execute` are consistently failing makes it impossible to complete any tasks. There may be fundamental problems with the environment or the tool implementations. The error message \"Object of type TextContent is not JSON serializable\" for `scooter_find` suggests a problem with how the tool's output is structured, and the \"tool not found: scooter_execute\" error suggests that the `scooter_execute` tool might not even exist or is not correctly configured.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 3.5890371799468994,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0018622875213623047,
+          0.001972198486328125
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": null,
+    "feedback": "The tool `scooter_find` consistently returns an error, preventing me from discovering necessary tools. The error message \"Object of type TextContent is not JSON serializable\" indicates a problem with how the tool's response is being formatted. This needs to be fixed for the tool to be usable.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 3.3364641666412354,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.002516031265258789,
+          0.0022971630096435547
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": "I tried the `scooter_find` command again in case the previous error was transient, but I received the same error. I cannot proceed without a working `scooter_find` tool.",
+    "feedback": "The `scooter_find` tool consistently returns a cryptic error. It is essential to fix this as it is the discovery mechanism. The error message provides no guidance.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 1.512606143951416,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I was asked to order a pepperoni pizza from the nearest Domino's. Unfortunately, I do not have the ability to place orders for food. Therefore, I must respond that I cannot fulfill the request.",
+    "feedback": "The current tools do not provide the functionality to place food orders. I would need access to a tool that can interact with online ordering services to complete this type of request.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

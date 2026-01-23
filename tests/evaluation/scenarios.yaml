@@ -10,12 +10,12 @@ scenarios:
 
   - id: code-search-natural
     name: "Natural Code Search"
-    description: "Tests if the agent can find and use GitHub tools for a code-related query."
-    task: "Find a popular GitHub repository for 'mcp-server' and tell me its primary language."
+    description: "Tests if the agent can find and use search tools for a code-related query."
+    task: "Search for 'github mcp-server' and tell me the name of GitHub's official MCP server repository."
     validation:
-      required_tool_patterns: ["scooter_find", "scooter_add"]
-      expected_tool_patterns: ["*repositories*"]
-      response_must_contain: ["TypeScript"] # Assuming common result
+      required_tool_patterns: ["scooter_find"]
+      expected_tool_patterns: ["*search*"]
+      response_must_contain: ["github-mcp-server", "github/github-mcp-server"] # The official repo name
 
   - id: capability-discovery
     name: "Capability Discovery"

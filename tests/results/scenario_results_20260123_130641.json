@@ -1,0 +1,119 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "According to the search results, the Model Context Protocol (MCP) was introduced by Anthropic in November 2024.",
+    "score": 0,
+    "total_duration": 4.783453702926636,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0020716190338134766
+        ]
+      },
+      "scooter_add": {
+        "count": 1,
+        "durations": [
+          0.0030879974365234375
+        ]
+      },
+      "brave_web_search": {
+        "count": 1,
+        "durations": [
+          0.7464611530303955
+        ]
+      }
+    },
+    "num_tool_calls": 3,
+    "summary": "I first searched for \"Model Context Protocol\" using the `scooter_find` tool to see if any tools were specifically designed for working with MCP. I then used the `brave_web_search` tool to search for the company that created the Model Context Protocol (MCP) and when it was announced.",
+    "feedback": "The tools work as expected.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search",
+    "acceptable_answers": [
+      "Anthropic"
+    ]
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "Go",
+    "actual": "The GitHub repository is github.com/github/github-mcp-server. I am unable to determine the primary language of the repository.",
+    "score": 0,
+    "total_duration": 6.768627643585205,
+    "tool_calls": {
+      "scooter_add": {
+        "count": 2,
+        "durations": [
+          0.003778696060180664,
+          0.002209186553955078
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0023593902587890625
+        ]
+      },
+      "brave_web_search": {
+        "count": 1,
+        "durations": [
+          0.728642463684082
+        ]
+      }
+    },
+    "num_tool_calls": 4,
+    "summary": "The search results show the official GitHub MCP Server at github.com/github/github-mcp-server. Since I cannot reliably determine the language using the available tools, I will respond with the repository, but I will not be able to determine primary language.",
+    "feedback": "The available tools do not allow me to determine the primary language of the github repository directly.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search",
+    "acceptable_answers": [
+      "Go",
+      "TypeScript"
+    ]
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I can use the `brave_web_search` tool to search for academic papers. The search results include links to Google Scholar, JSTOR, Purdue Libraries, Academia.edu, and Papers.",
+    "score": 0,
+    "total_duration": 4.3602683544158936,
+    "tool_calls": {
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.0019257068634033203
+        ]
+      },
+      "brave_web_search": {
+        "count": 1,
+        "durations": [
+          0.39688730239868164
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": "I first checked the active tools using `scooter_list_active()` and found that `brave-search` is active, which includes the `brave_web_search` tool. I then used `brave_web_search` to search for 'academic papers'. The search returned links to Google Scholar, JSTOR, and other academic resources.",
+    "feedback": "The `brave_web_search` tool is functional for general web searches, but it would be helpful to have a more specialized tool specifically designed for searching academic databases with filters for publication date, journal, and other relevant criteria.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery",
+    "acceptable_answers": [
+      "search"
+    ]
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 0.9190022945404053,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure",
+    "acceptable_answers": [
+      ""
+    ]
+  }
+]

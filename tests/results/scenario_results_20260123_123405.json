@@ -1,0 +1,102 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 6.9427268505096436,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 3,
+        "durations": [
+          0.002300739288330078,
+          0.0009703636169433594,
+          0.0014019012451171875
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0018935203552246094
+        ]
+      },
+      "scooter_add": {
+        "count": 1,
+        "durations": [
+          0.001600027084350586
+        ]
+      }
+    },
+    "num_tool_calls": 5,
+    "summary": "I attempted to find a tool that could help me answer the user's question about the Model Context Protocol (MCP). First, I tried to use `scooter_find` to discover available tools but encountered an error. Then, I attempted to use `scooter_execute`, but it was not available. I also tried `scooter_add` but it was also unavailable. I was unable to proceed due to the errors with the tools.",
+    "feedback": "The tool `scooter_find` is experiencing issues, as it is not returning a proper JSON response. This prevents the discovery of available tools. The tools `scooter_execute` and `scooter_add` are also not working. I suggest investigating and resolving the errors in these tools to enable proper functionality.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 8.140254974365234,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0018582344055175781,
+          0.002668142318725586
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.002615213394165039
+        ]
+      },
+      "scooter_add": {
+        "count": 1,
+        "durations": [
+          0.0023169517517089844
+        ]
+      }
+    },
+    "num_tool_calls": 4,
+    "summary": null,
+    "feedback": "The tools `scooter_find` and `scooter_add` are not working correctly, returning errors when called. This prevents me from discovering available tools and adding them to my session. Without these core functionalities, I am unable to fulfill user requests that require external information or specific tool capabilities. The error message \"Object of type TextContent is not JSON serializable\" when using `scooter_find` suggests an issue with how the tool's response is being processed. The error \"tool not found: scooter_add\" suggests that the tool is not available or correctly registered within the system.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I am unable to search for tools at this time.",
+    "score": 0,
+    "total_duration": 2.620889663696289,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.001440286636352539
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": null,
+    "feedback": "The `scooter_find` tool failed to execute, returning a \"not JSON serializable\" error. This may be due to the way the tool's response is structured internally. To work around this, I'll try calling other tools directly. I need to know if I have any search-related tools. I'll try calling scooter_add without arguments to see if I get a list of available tools and their descriptions. The error message from scooter_find suggests I might have a problem getting the descriptions, but it's worth a try.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 1.614654302597046,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I was asked to order a pepperoni pizza from the nearest Domino's. I do not have the functionality to place orders, so I cannot fulfill this request.",
+    "feedback": "The user asked me to order a pizza, which I cannot do. I need a tool that can place orders, such as a pizza ordering tool. I should be able to use `scooter_find` to find such a tool and then `scooter_add` to enable it. Once enabled, I can use the tool to place the order.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

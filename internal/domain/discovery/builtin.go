@@ -261,16 +261,35 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 				toolNames = append(toolNames, t.Name)
 			}
 			
-			formatted = append(formatted, map[string]interface{}{
-				"name":        td.Name,
-				"title":       td.Title,
-				"description": td.Description,
-				"category":    td.Category,
+			// Ensure we don't return nil for toolNames to avoid serialization issues
+			if toolNames == nil {
+				toolNames = []string{}
+			}
+			
+			// Extract simple strings for title and description to avoid complex objects
+			title := string(td.Title)
+			description := string(td.Description)
+			
+			// Final safety: ensure everything is a simple type
+			entry := map[string]interface{}{
+				"name":        string(td.Name),
+				"title":       title,
+				"description": description,
+				"category":    string(td.Category),
 				"tools":       toolNames,
-				"source":      td.Source,
-			})
+				"source":      string(td.Source),
+			}
+			
+			// Log for debugging
+			logger.AddLog("DEBUG", fmt.Sprintf("scooter_find: adding tool %s", td.Name))
+			
+			formatted = append(formatted, entry)
 		}
-		return formatted, nil
+		
+		// Return as a map with a key to be more standard
+		return map[string]interface{}{
+			"tools": formatted,
+		}, nil
 		
 	case "scooter_add":
 		tool, ok := params["tool_name"].(string)

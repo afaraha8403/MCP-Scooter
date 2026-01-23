@@ -1,0 +1,133 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 16.063223600387573,
+    "tool_calls": {
+      "brave_web_search": {
+        "count": 3,
+        "durations": [
+          0.0027468204498291016,
+          0.002431154251098633,
+          0.010435104370117188
+        ]
+      },
+      "scooter_execute": {
+        "count": 2,
+        "durations": [
+          0.002062082290649414,
+          0.002322673797607422
+        ]
+      },
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.002012968063354492,
+          0.001338958740234375
+        ]
+      },
+      "scooter_add": {
+        "count": 4,
+        "durations": [
+          0.0021207332611083984,
+          0.0034258365631103516,
+          0.0016493797302246094,
+          0.002570629119873047
+        ]
+      },
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.002862691879272461
+        ]
+      }
+    },
+    "num_tool_calls": 12,
+    "summary": "I tried to find out who created the Model Context Protocol (MCP) and when it was announced. I began by using the `brave_web_search` tool, but it kept returning an error. I then tried to use the `scooter_execute` tool, but it was unavailable. I used `scooter_find` to list all available tools and tried adding available tools, but I didn't find the tool I needed. I then listed active tools. Since I was still unable to use `brave_web_search` or `scooter_execute`, I was unable to complete the request.",
+    "feedback": "The tools are difficult to use. The `brave_web_search` tool kept returning errors even though I believe I was calling it correctly. The `scooter_execute` tool was unavailable, and I was unable to add the `context7` and `github` tools. The error messages are not helpful. The tool descriptions are useful, but the instructions on how to use them are unclear. It would be helpful to have example usages for each tool. I would like the `scooter_execute` tool to be available.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 17.06779670715332,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0032563209533691406,
+          0.0030117034912109375
+        ]
+      },
+      "scooter_add": {
+        "count": 4,
+        "durations": [
+          0.0022559165954589844,
+          0.002927541732788086,
+          0.0017597675323486328,
+          0.0017116069793701172
+        ]
+      },
+      "scooter_execute": {
+        "count": 2,
+        "durations": [
+          0.0022089481353759766,
+          0.002199888229370117
+        ]
+      },
+      "brave_web_search": {
+        "count": 5,
+        "durations": [
+          0.0026285648345947266,
+          0.0026416778564453125,
+          0.001993417739868164,
+          0.001886129379272461,
+          0.004203319549560547
+        ]
+      }
+    },
+    "num_tool_calls": 13,
+    "summary": "I've tried several times to use the tools, and I can't seem to get the arguments right. I'm unable to complete this request.",
+    "feedback": "The tool usage is not intuitive. The error messages are not helpful for debugging, especially for figuring out the correct arguments. The `scooter_add` tool seems to have no way to specify which tool to add and fails silently. The `brave_web_search` tool consistently gives \"Error: Invalid arguments\" without specifying what arguments are expected. The `scooter_execute` tool also fails silently.\n\nRecommendations:\n\n*   **`scooter_add`**: This tool needs an argument to specify which tool to add. The error message should clearly state the required argument.\n*   **`brave_web_search`**: The error message \"Error: Invalid arguments\" is completely unhelpful. It should list the expected arguments and their types/descriptions.\n*   **`scooter_execute`**: This tool needs clear documentation on how to specify the intent and arguments.\n*   **Overall Tool Usage**: Provide example usages for each tool and function. This will help users understand the expected input format and arguments.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I can use Brave Search to search the web, which may help me find academic papers. However, I do not have a specialized tool for searching academic papers.",
+    "score": 0,
+    "total_duration": 3.103829860687256,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0015692710876464844
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": "I need to search for academic papers.\n1. I used `scooter_find()` to see what tools are available.\n2. The output of `scooter_find()` showed me that I have access to Brave Search, Context7 and Github.\n3. I determined that Brave Search is the most likely to be useful for finding academic papers, although it is a general web search tool and not specifically designed for academic papers.\n4. I don't have a specialized tool for academic paper search.",
+    "feedback": "The scooter_find tool is useful for discovering available tools and their descriptions. The descriptions are helpful to understand what kind of tasks the tools can solve. It would be helpful to have categories or tags associated with the tools to easily filter and find the tools relevant to certain tasks such as searching, development, data analysis etc.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 1.3923063278198242,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I received a request to order a pepperoni pizza from the nearest Domino's. I do not have the capability to place orders directly. Therefore, I cannot fulfill the request.",
+    "feedback": "The available tools do not include any ordering capabilities. A tool that allows users to place orders with restaurants or other businesses would be beneficial.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

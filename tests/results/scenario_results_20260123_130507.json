@@ -1,0 +1,127 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "The Model Context Protocol (MCP) was introduced by Anthropic in November 2024.",
+    "score": 0,
+    "total_duration": 7.242634057998657,
+    "tool_calls": {
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.003010988235473633
+        ]
+      },
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0016336441040039062
+        ]
+      },
+      "scooter_add": {
+        "count": 1,
+        "durations": [
+          1.3064494132995605
+        ]
+      },
+      "brave_web_search": {
+        "count": 1,
+        "durations": [
+          0.9008140563964844
+        ]
+      }
+    },
+    "num_tool_calls": 4,
+    "summary": "I first listed the active tools and found none were active. Then, I searched for tools to search for the answer to the question. I added the `brave-search` tool and used it to search for the Model Context Protocol's creator and announcement date.",
+    "feedback": "The tool `brave_web_search` worked well and gave me the information I needed.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "The primary language for github/github-mcp-server is Go.",
+    "score": 0,
+    "total_duration": 19.690916299819946,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 3,
+        "durations": [
+          0.001672506332397461,
+          0.0023202896118164062,
+          0.002347707748413086
+        ]
+      },
+      "scooter_add": {
+        "count": 4,
+        "durations": [
+          0.0020265579223632812,
+          0.0029761791229248047,
+          0.0014619827270507812,
+          0.0014810562133789062
+        ]
+      },
+      "scooter_execute": {
+        "count": 2,
+        "durations": [
+          0.001905202865600586,
+          0.002502918243408203
+        ]
+      },
+      "scooter_list_active": {
+        "count": 2,
+        "durations": [
+          0.002060413360595703,
+          0.0014185905456542969
+        ]
+      },
+      "brave_web_search": {
+        "count": 4,
+        "durations": [
+          0.769017219543457,
+          0.6217617988586426,
+          0.6503942012786865,
+          0.7193853855133057
+        ]
+      }
+    },
+    "num_tool_calls": 15,
+    "summary": "The search results indicate that the GitHub MCP server is written in Go. I found this information in this link: https://github.blog/changelog/2025-04-04-github-mcp-server-public-preview/\"",
+    "feedback": "I wish I could have used the github tool to directly search for the repository and its programming language. I believe the brave search tool was able to find the answer, but it took several tries.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I can use the `brave-search` tool to search for academic papers. I can also use the `github` tool to search for open-source research or code related to academic papers.",
+    "score": 0,
+    "total_duration": 3.6151931285858154,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0021979808807373047
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": "I used the `scooter_find` tool to search for tools that can be used for searching. The results show that I have access to `brave-search` and `github`, which could potentially be used for searching for academic papers depending on the specific query.",
+    "feedback": "The `scooter_find` tool is useful for discovering available tools, but it would be more helpful if it provided more specific information about the capabilities of each tool, particularly regarding academic paper searches.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 0.8906569480895996,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

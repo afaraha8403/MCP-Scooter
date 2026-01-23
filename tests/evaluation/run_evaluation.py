@@ -16,7 +16,55 @@ sys.path.append(str(Path(__file__).parent.parent.parent / ".agent" / "skills" / 
 
 from connections import create_connection
 
-EVALUATION_PROMPT = """You are an AI assistant with access to tools.
+EVALUATION_PROMPT = """You are an AI assistant with access to tools via the MCP Scooter gateway.
+
+Your primary goal is to solve the user's request using the available tools.
+
+## TOOL DISCOVERY WORKFLOW
+
+1. **Check active tools first**: Use `scooter_list_active` to see what's already available.
+2. **Search for tools**: Use `scooter_find` with a query like "search" or "github" to discover tools.
+3. **Add tools**: Use `scooter_add` with the SERVER NAME (e.g., "brave-search", NOT "brave_web_search").
+4. **Use tools**: Call the tool functions with the EXACT argument names from their schemas.
+
+## CRITICAL: TOOL ARGUMENT FORMATS
+
+When calling tools, you MUST use the exact argument names. Here are examples:
+
+### brave_web_search (from brave-search server)
+```json
+{"query": "your search query here", "count": 5}
+```
+- Required: `query` (string) - The search query
+- Optional: `count` (integer, 1-20) - Number of results
+
+### search_repositories (from github server)  
+```json
+{"query": "mcp-server language:typescript"}
+```
+- Required: `query` (string) - GitHub search query
+
+### scooter_find
+```json
+{"query": "search"}
+```
+- Optional: `query` (string) - Search term to filter tools
+
+### scooter_add
+```json
+{"tool_name": "brave-search"}
+```
+- Required: `tool_name` (string) - The SERVER name, not the function name
+
+## ERROR RECOVERY
+
+If a tool returns "Invalid arguments":
+1. Check the tool's inputSchema for required parameters
+2. Verify you're using the exact parameter names (case-sensitive)
+3. Ensure required parameters are provided
+4. Try with minimal required arguments first
+
+## OUTPUT FORMAT
 
 When given a task, you MUST:
 1. Use the available tools to complete the task
@@ -25,28 +73,15 @@ When given a task, you MUST:
 4. Provide your final response, wrapped in <response> tags
 
 Summary Requirements:
-- In your <summary> tags, you must explain:
-  - The steps you took to complete the task
-  - Which tools you used, in what order, and why
-  - The inputs you provided to each tool
-  - The outputs you received from each tool
-  - A summary for how you arrived at the response
+- In your <summary> tags, explain the steps you took, which tools you used, and why.
 
 Feedback Requirements:
-- In your <feedback> tags, provide constructive feedback on the tools:
-  - Comment on tool names: Are they clear and descriptive?
-  - Comment on input parameters: Are they well-documented? Are required vs optional parameters clear?
-  - Comment on descriptions: Do they accurately describe what the tool does?
-  - Comment on any errors encountered during tool usage: Did the tool fail to execute? Did the tool return too many tokens?
-  - Identify specific areas for improvement and explain WHY they would help
-  - Be specific and actionable in your suggestions
+- In your <feedback> tags, provide constructive feedback on tool usability.
 
 Response Requirements:
 - Your response should be concise and directly address what was asked
 - Always wrap your final response in <response> tags
 - If you cannot solve the task return <response>NOT_FOUND</response>
-- For numeric responses, provide just the number
-- For IDs, provide just the ID
 - For names or text, provide the exact text requested
 - Your response should go last"""
 
@@ -110,10 +145,16 @@ async def run_scenario_evaluation(scenarios_file, connection, model, results_dir
     for scenario in scenarios:
         print(f"🚀 Running Scenario: {scenario['name']}")
         
+        # Get acceptable answers (can be a list)
+        acceptable_answers = scenario.get('validation', {}).get('response_must_contain', [""])
+        if not isinstance(acceptable_answers, list):
+            acceptable_answers = [acceptable_answers]
+        
         # Adapt scenario to the format expected by evaluate_single_task
         qa_pair = {
             "question": scenario['task'],
-            "answer": scenario.get('validation', {}).get('response_must_contain', [""])[0]
+            "answer": acceptable_answers[0] if acceptable_answers else "",
+            "acceptable_answers": acceptable_answers  # Pass all acceptable answers
         }
         
         result = await evaluate_single_task(client, qa_pair, tools, connection, 0)
@@ -121,6 +162,7 @@ async def run_scenario_evaluation(scenarios_file, connection, model, results_dir
         # Add scenario metadata to result
         result['scenario_id'] = scenario['id']
         result['name'] = scenario['name']
+        result['acceptable_answers'] = acceptable_answers
         results.append(result)
         
     return results
@@ -172,12 +214,30 @@ async def main():
             
             # Generate a simple markdown summary
             summary_md = f"# Scenario Evaluation Report - {timestamp}\n\n"
+            passed_count = 0
             for r in results:
-                status = "✅" if r['score'] else "❌"
+                # Check if any acceptable answer is in the response
+                actual_lower = (r['actual'] or "").lower()
+                acceptable_answers = r.get('acceptable_answers', [r['expected']])
+                
+                # Special case for empty expected (like Graceful Failure)
+                if not acceptable_answers or acceptable_answers == [""]:
+                    passed = True
+                else:
+                    passed = any(ans.lower() in actual_lower for ans in acceptable_answers if ans)
+                
+                if passed:
+                    passed_count += 1
+                
+                status = "✅" if passed else "❌"
                 summary_md += f"## {r['name']} {status}\n"
                 summary_md += f"**Task**: {r['question']}\n\n"
                 summary_md += f"**Summary**: {r['summary']}\n\n"
                 summary_md += "---\n\n"
+            
+            # Add overall score
+            total = len(results)
+            summary_md += f"\n## Overall Score: {passed_count}/{total} ({100*passed_count//total}%)\n"
             
             report_file = args.output_dir / f"scenario_report_{timestamp}.md"
             report_file.write_text(summary_md, encoding="utf-8")

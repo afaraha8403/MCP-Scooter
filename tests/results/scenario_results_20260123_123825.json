@@ -1,0 +1,100 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 3.6636910438537598,
+    "tool_calls": {
+      "brave_web_search": {
+        "count": 2,
+        "durations": [
+          0.002255678176879883,
+          0.002046823501586914
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": "I attempted to answer the user's question using the `brave_web_search` tool but encountered an error and was unable to complete the task.",
+    "feedback": "The `brave_web_search` tool returned an error \"Error: Invalid arguments for brave_web_search\". The documentation does not specify which arguments are invalid. Please investigate and fix this issue.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 13.162414312362671,
+    "tool_calls": {
+      "brave_web_search": {
+        "count": 4,
+        "durations": [
+          0.002804994583129883,
+          0.0028488636016845703,
+          0.002424955368041992,
+          0.0026454925537109375
+        ]
+      },
+      "scooter_find": {
+        "count": 3,
+        "durations": [
+          0.0014824867248535156,
+          0.002772808074951172,
+          0.0016524791717529297
+        ]
+      },
+      "scooter_add": {
+        "count": 2,
+        "durations": [
+          0.001987457275390625,
+          0.0024530887603759766
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.002537965774536133
+        ]
+      }
+    },
+    "num_tool_calls": 10,
+    "summary": "I made a mistake and assumed that `scooter_execute` was available by default. It appears as though it is actually _not_ in the list. Since `brave_web_search` and `scooter_execute` are malfunctioning, and I do not have permissions to use the github tool, I cannot complete the user's request.",
+    "feedback": "The tools appear to be either malfunctioning or have insufficient documentation. The `brave_web_search` tool consistently returns an \"invalid arguments\" error even with a simple query. The `scooter_execute` tool seems intuitive, but it's not listed in the available tools.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I can use the `brave_web_search` tool to search the web for academic papers.",
+    "score": 0,
+    "total_duration": 2.7500789165496826,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0018393993377685547
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": "- I used the `scooter_find` tool to search for tools that can help me search for academic papers.\n- The `scooter_find` tool returned a list of tools, including `brave-search`.\n- I can use the `brave_web_search` tool to search the web for academic papers.",
+    "feedback": "The tool descriptions in `scooter_find` are useful. It would be good if `scooter_find` could accept search terms or filters to narrow down the results. For example, if I could search for tools with 'search' in the description, that would be helpful.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": null,
+    "score": 0,
+    "total_duration": 0.9371333122253418,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

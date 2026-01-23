@@ -1,0 +1,119 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "The Model Context Protocol (MCP) was created by Anthropic and announced in November 2024.",
+    "score": 0,
+    "total_duration": 3.7546961307525635,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0020551681518554688
+        ]
+      },
+      "scooter_add": {
+        "count": 1,
+        "durations": [
+          0.0024573802947998047
+        ]
+      },
+      "brave_web_search": {
+        "count": 1,
+        "durations": [
+          0.28778076171875
+        ]
+      }
+    },
+    "num_tool_calls": 3,
+    "summary": "I first searched for the Model Context Protocol amongst the available tools. Then, I added the brave-search tool to my active tools. I used Brave Search to find when the Model Context Protocol was announced. Based on the search results, Anthropic introduced the Model Context Protocol in November 2024.",
+    "feedback": "The tools are working as expected. The Brave Search tool gave me the information I needed to answer the user's question.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search",
+    "acceptable_answers": [
+      "Anthropic"
+    ]
+  },
+  {
+    "question": "Search for 'github mcp-server' and tell me the name of GitHub's official MCP server repository.",
+    "expected": "github-mcp-server",
+    "actual": "github/github-mcp-server",
+    "score": 0,
+    "total_duration": 6.664076328277588,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.002783060073852539
+        ]
+      },
+      "scooter_add": {
+        "count": 2,
+        "durations": [
+          0.0018432140350341797,
+          0.0035858154296875
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.001397848129272461
+        ]
+      },
+      "brave_web_search": {
+        "count": 1,
+        "durations": [
+          0.6223084926605225
+        ]
+      }
+    },
+    "num_tool_calls": 5,
+    "summary": "From the search results, I can see that the official GitHub MCP server repository is github/github-mcp-server.",
+    "feedback": "The tools are somewhat difficult to use, especially since I am not allowed to add the github tool. I think there needs to be more clarification on user profiles and why certain tools are not allowed. Also, the scooter_execute tool did not work, which would have been the best path.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search",
+    "acceptable_answers": [
+      "github-mcp-server",
+      "github/github-mcp-server"
+    ]
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I can help you search for academic papers using the brave_web_search tool. If you provide me with a query, I will search for relevant academic papers using that tool.",
+    "score": 0,
+    "total_duration": 3.3844196796417236,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.002136707305908203
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": "I used the `scooter_find` tool to search for tools that can help me with searching. The results show that I have access to \"brave-search\" and \"github\". \"brave-search\" includes the \"brave_web_search\" function, which I can use for general web searches. I'll use that since I don't have a dedicated academic search tool currently.",
+    "feedback": "The `scooter_find` tool is helpful for discovering available tools. It might be useful to categorize tools further (e.g., \"Academic Search\") to improve discoverability.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery",
+    "acceptable_answers": [
+      "search"
+    ]
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 0.860729455947876,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure",
+    "acceptable_answers": [
+      ""
+    ]
+  }
+]

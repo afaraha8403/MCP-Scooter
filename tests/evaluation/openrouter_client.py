@@ -29,12 +29,34 @@ class OpenRouterClient:
                 input_schema = getattr(tool, "inputSchema", tool.get("inputSchema"))
                 name = getattr(tool, "name", tool.get("name"))
                 description = getattr(tool, "description", tool.get("description"))
+                sample_input = getattr(tool, "sampleInput", tool.get("sampleInput"))
                 
+                # Ensure input_schema is a dict and has required fields for OpenAI format
+                if input_schema is None:
+                    input_schema = {"type": "object", "properties": {}}
+                
+                # If input_schema is a JSONSchema object, get its dict representation
+                if hasattr(input_schema, "to_dict"):
+                    input_schema = input_schema.to_dict()
+                
+                # Final safety check: if it's still not a dict, force it to be one
+                if not isinstance(input_schema, dict):
+                    input_schema = {"type": "object", "properties": {}}
+
+                # Enhance description with sample input if available
+                enhanced_description = description or ""
+                if sample_input:
+                    if isinstance(sample_input, dict):
+                        sample_json = json.dumps(sample_input)
+                    else:
+                        sample_json = str(sample_input)
+                    enhanced_description += f"\n\nExample usage: {sample_json}"
+
                 formatted_tools.append({
                     "type": "function",
                     "function": {
                         "name": name,
-                        "description": description,
+                        "description": enhanced_description,
                         "parameters": input_schema
                     }
                 })
@@ -80,9 +102,41 @@ async def agent_loop_openrouter(
             try:
                 print(f"  🛠️ Calling tool: {tool_name}")
                 tool_result = await connection.call_tool(tool_name, tool_args)
-                tool_response = json.dumps(tool_result) if isinstance(tool_result, (dict, list)) else str(tool_result)
+                
+                # The tool_result from mcp-builder connection might be a complex object
+                # or a list of TextContent objects. We need to extract the actual content.
+                
+                if hasattr(tool_result, "content"):
+                    # It's an MCP response object
+                    content_list = []
+                    for item in tool_result.content:
+                        if hasattr(item, "text"):
+                            content_list.append(item.text)
+                        elif isinstance(item, dict) and "text" in item:
+                            content_list.append(item["text"])
+                        else:
+                            content_list.append(str(item))
+                    tool_response = "\n".join(content_list)
+                elif isinstance(tool_result, list):
+                    # It might be a list of TextContent objects
+                    content_list = []
+                    for item in tool_result:
+                        if hasattr(item, "text"):
+                            content_list.append(item.text)
+                        elif isinstance(item, dict) and "text" in item:
+                            content_list.append(item["text"])
+                        else:
+                            content_list.append(str(item))
+                    tool_response = "\n".join(content_list)
+                elif isinstance(tool_result, (dict, list)):
+                    tool_response = json.dumps(tool_result)
+                else:
+                    tool_response = str(tool_result)
+                
+                print(f"  ✅ Tool {tool_name} returned: {tool_response[:100]}...")
             except Exception as e:
                 tool_response = f"Error executing tool {tool_name}: {str(e)}"
+                print(f"  ❌ Tool {tool_name} failed: {tool_response}")
             
             tool_duration = time.time() - tool_start_ts
             

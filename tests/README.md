@@ -5,9 +5,9 @@ This folder contains a comprehensive testing framework for validating MCP Scoote
 ## Prerequisites
 
 - **Go 1.24+**: For protocol and scenario tests.
-- **Python 3.10+**: For LLM evaluation.
-- **Scooter Binary**: Run `make build` in the root directory.
-- **Anthropic API Key**: Required for Layer 3 (LLM Evaluation). Set as `ANTHROPIC_API_KEY`.
+- **Python 3.12+**: For LLM evaluation.
+- **Scooter Running**: Start with `./dev.ps1` (Windows) or `make dev`.
+- **OpenRouter API Key**: Required for Layer 3 (LLM Evaluation). Set as `OPENROUTER_API_KEY`.
 
 ## Setup
 
@@ -19,8 +19,11 @@ This folder contains a comprehensive testing framework for validating MCP Scoote
 
 2. **Start MCP Scooter**:
    The tests require a running instance of Scooter.
-   ```bash
-   # In a separate terminal
+   ```powershell
+   # Windows (PowerShell)
+   ./dev.ps1
+   
+   # Unix/macOS
    make dev
    ```
 
@@ -30,8 +33,7 @@ You can run tests sequentially by layer or all at once.
 
 ### Layer 1: Protocol Tests (Go)
 Tests basic MCP protocol compliance (handshake, list tools, builtin calls).
-```bash
-# Set URL to your running Scooter instance (default port is often 6277 or 3001)
+```powershell
 $env:SCOOTER_URL="http://127.0.0.1:6277"
 cd tests
 go test ./protocol/... -v
@@ -39,28 +41,27 @@ go test ./protocol/... -v
 
 ### Layer 2: Scenario Tests (Go + YAML)
 Tests multi-step workflows defined in YAML using a Go runner.
-```bash
+```powershell
 $env:SCOOTER_URL="http://127.0.0.1:6277"
 cd tests
 go test ./scenarios/... -v
 ```
 
-### Layer 3: LLM Evaluation (Python + Claude)
-Tests real agent reasoning and multi-turn tool orchestration.
+### Layer 3: LLM Evaluation (Python + OpenRouter)
+Tests real agent reasoning and multi-turn tool orchestration using LLMs via OpenRouter.
 
-#### Option A: Natural Language Scenarios (Recommended)
-Tests if the agent can discover and use tools based on pure intent.
-```bash
+```powershell
 $env:SCOOTER_URL="http://127.0.0.1:6277"
+$env:OPENROUTER_API_KEY="your-api-key-here"
 cd tests
-python evaluation/run_evaluation.py --mode scenarios --profile work
+py -3 evaluation/run_evaluation.py --mode scenarios --profile work
 ```
 
-#### Option B: Fixed QA Pairs
-Tests specific tool outputs with hardcoded answers.
-```bash
-python evaluation/run_evaluation.py --mode qa --profile work
-```
+**Current Test Scenarios:**
+1. **Natural Web Search** - Agent discovers and uses search tools to find information
+2. **Natural Code Search** - Agent searches for GitHub repositories
+3. **Capability Discovery** - Agent reports available tools for a task
+4. **Graceful Failure** - Agent declines impossible tasks without hallucinating
 
 ### Run Everything via Makefile
 From the project root:
@@ -71,19 +72,42 @@ make test-agent-full
 ## Test Results
 
 Evaluation results are stored in the `tests/results/` directory:
-- **Markdown Reports**: Human-readable summaries of the evaluation (`scenario_report_*.md`).
-- **JSON Results**: Raw data for programmatic analysis (`scenario_results_*.json`).
+- **Markdown Reports**: Human-readable summaries (`scenario_report_*.md`)
+- **JSON Results**: Raw data for analysis (`scenario_results_*.json`)
+
+Example report output:
+```
+## Overall Score: 4/4 (100%)
+```
 
 ## Structure
 
-- `protocol/`: Go-based MCP HTTP/SSE client and protocol tests.
-- `scenarios/`: YAML-defined test scenarios and Go execution engine.
-- `evaluation/`: LLM-driven evaluation using Claude.
-- `fixtures/`: Mock MCP server and test registry entries.
-- `results/`: Output directory for evaluation reports.
+```
+tests/
+├── protocol/          # Go-based MCP protocol tests
+├── scenarios/         # YAML-defined test scenarios + Go runner
+│   └── definitions/   # Scenario YAML files
+├── evaluation/        # LLM-driven evaluation
+│   ├── run_evaluation.py
+│   ├── openrouter_client.py
+│   └── scenarios.yaml
+├── fixtures/          # Mock MCP server for testing
+└── results/           # Output directory for reports
+```
 
 ## Environment Variables
 
-- `SCOOTER_URL`: Base URL of the Scooter Gateway (default: `http://127.0.0.1:6277`)
-- `SCOOTER_API_KEY`: API key for the gateway (if required).
-- `ANTHROPIC_API_KEY`: Required for Layer 3.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SCOOTER_URL` | Base URL of the Scooter Gateway | `http://127.0.0.1:6277` |
+| `SCOOTER_API_KEY` | API key for the gateway (if required) | - |
+| `OPENROUTER_API_KEY` | Required for Layer 3 LLM evaluation | - |
+| `ANTHROPIC_API_KEY` | Fallback for Layer 3 (if OpenRouter not set) | - |
+
+## Troubleshooting
+
+**Tool argument errors**: Check `EVALUATION_PROMPT` in `evaluation/run_evaluation.py` for correct argument formats.
+
+**Profile restrictions**: If `scooter_add` fails with "not allowed", check `AllowTools` in your profile configuration.
+
+**Connection errors**: Ensure Scooter is running on the expected port (default: 6277).

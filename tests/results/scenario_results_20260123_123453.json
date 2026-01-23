@@ -1,0 +1,89 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 4.510601997375488,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0017850399017333984
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0020940303802490234
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": null,
+    "feedback": "The `scooter_execute` tool also failed to execute, with the error message \"tool not found: scooter_execute\". This suggests that there might be an issue with the tool setup or the environment. Since I cannot use the tools to find the answer, I will have to respond that I cannot find the information.\n\nThe tools seem unreliable. `scooter_find` should definitely work as it's the primary discovery method. Also, the error message from `scooter_find` is not helpful to debug the issue.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 6.524571657180786,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 3,
+        "durations": [
+          0.002054929733276367,
+          0.0018477439880371094,
+          0.00206756591796875
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0019860267639160156
+        ]
+      }
+    },
+    "num_tool_calls": 4,
+    "summary": "I am still unable to use `scooter_find`. Since I cannot find a tool to accomplish this task, I must respond with NOT_FOUND.",
+    "feedback": "The tools available do not seem adequate to accomplish the task. `scooter_find` is also returning an error that I don't understand. It would be helpful if there was a tool specifically designed to search for GitHub repositories and extract information such as the primary language.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 2.7796473503112793,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0018248558044433594
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": "I tried to use the `scooter_find` tool to search for tools that can help with academic paper searches and other search functionalities. However, I encountered an error while executing the tool, indicating that the response could not be serialized to JSON. This prevents me from listing the available tools. I will try again.",
+    "feedback": "The error message \"Object of type TextContent is not JSON serializable\" suggests that the `scooter_find` function is attempting to return data in a format that is incompatible with the JSON serialization process. This could be due to the presence of non-serializable objects (e.g., custom Python objects) in the response data. I recommend reviewing the implementation of the `scooter_find` function to ensure that it only returns data types that can be properly serialized to JSON. Specifically, check the types of the attributes of the TextContent object and ensure they are JSON serializable.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "I am sorry, I cannot order a pizza for you. I do not have the functionality to order food.",
+    "score": 0,
+    "total_duration": 1.3521625995635986,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I was asked to order a pizza. I do not have the capability to order food for the user, so I responded that I cannot fulfill the request.",
+    "feedback": "I don't have the tools necessary to fulfill this request. I need tools that can interface with food delivery services or directly with restaurants.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

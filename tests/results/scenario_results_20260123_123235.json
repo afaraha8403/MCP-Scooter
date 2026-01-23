@@ -1,0 +1,96 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": null,
+    "score": 0,
+    "total_duration": 3.050043821334839,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0014345645904541016
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 2.3568947315216064,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0022878646850585938
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": null,
+    "feedback": "The `scooter_find` tool returned an error message: \"Object of type TextContent is not JSON serializable\". This suggests that the tool is not functioning correctly or the output format is not as expected. The description of the tool says it returns a dictionary, so this is unexpected.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 4.396324634552002,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0019347667694091797,
+          0.0025365352630615234
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0013790130615234375
+        ]
+      }
+    },
+    "num_tool_calls": 3,
+    "summary": null,
+    "feedback": "The `scooter_find` command also failed to execute. Since all attempts to find a suitable tool have failed, I am unable to help the user with their request.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 5.115658521652222,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.002078533172607422,
+          0.0025246143341064453
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.0028083324432373047
+        ]
+      }
+    },
+    "num_tool_calls": 3,
+    "summary": "`scooter_execute` also failed. Since neither tool is working, I cannot fulfill this request.",
+    "feedback": "Both `scooter_find` and `scooter_execute` failed. I cannot proceed. The errors returned by these tools are not helpful for resolving the problem, and further debugging is needed on the tool side.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]

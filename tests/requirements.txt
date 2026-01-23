@@ -1,3 +1,13 @@
-anthropic
-requests
-pyyaml
+# MCP Scooter Test Dependencies
+
+# HTTP client for OpenRouter API
+requests>=2.31.0
+
+# YAML parsing for scenario definitions
+pyyaml>=6.0
+
+# MCP connection library (from mcp-builder skill)
+# Note: connections.py is loaded from .agent/skills/mcp-builder/scripts/
+
+# Optional: Anthropic SDK (fallback for evaluation)
+anthropic>=0.18.0

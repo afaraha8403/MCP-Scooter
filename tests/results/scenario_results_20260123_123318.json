@@ -1,0 +1,97 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 4.887780666351318,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0021681785583496094
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.002363920211791992
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": "I tried to use two tools to find information about the Model Context Protocol (MCP) and both returned errors. Since I am unable to find a tool that can answer the question about the Model Context Protocol (MCP) and when it was announced, I will respond that the information is not found.",
+    "feedback": "Both tools returned errors. It would be helpful if these tools were more stable or if there were other tools available that could use search to find information about the Model Context Protocol (MCP).",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search"
+  },
+  {
+    "question": "Find a popular GitHub repository for 'mcp-server' and tell me its primary language.",
+    "expected": "TypeScript",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 8.394371747970581,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 3,
+        "durations": [
+          0.0025687217712402344,
+          0.0019533634185791016,
+          0.002672433853149414
+        ]
+      },
+      "scooter_execute": {
+        "count": 1,
+        "durations": [
+          0.002044200897216797
+        ]
+      },
+      "scooter_add": {
+        "count": 2,
+        "durations": [
+          0.0017955303192138672,
+          0.0014796257019042969
+        ]
+      }
+    },
+    "num_tool_calls": 6,
+    "summary": "Trying to add the `github` tool failed because it is not found. It seems I cannot proceed without being able to use the `scooter_find` tool to discover the names of available tools.",
+    "feedback": "The biggest issue is that the `scooter_find` tool is consistently failing to provide a usable response. The error message indicates a serialization problem. This tool is crucial for discovering available tools, so it needs to be fixed. The `scooter_execute` tool also returned an error. Without being able to list or execute available tools, I am unable to proceed.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search"
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 3.0709750652313232,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0020165443420410156,
+          0.002060413360595703
+        ]
+      }
+    },
+    "num_tool_calls": 2,
+    "summary": "I tried to use the `scooter_find` tool to search for tools that can help me with searching for academic papers or list the available tools. However, I received an error message again. I suspect that the tool is not working proprely and I should not try it anymore. Instead, I will inform the user that I cannot fulfill the request.",
+    "feedback": "The tool `scooter_find` seems to be producing an error. It would be helpful to have more information about the error to debug it.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery"
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 1.5063812732696533,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": "I received a request to order a pepperoni pizza from the nearest Domino's. Since I cannot directly place orders, I will respond that I am unable to fulfill the request.",
+    "feedback": "The current tools do not have the capability to order food from restaurants, so I had to respond that I cannot fulfill the request. A tool that allows users to order food would be beneficial.",
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure"
+  }
+]
