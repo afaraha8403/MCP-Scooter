@@ -64,12 +64,17 @@ func run(serve bool) error {
 				targetPath := filepath.Join(registryDir, "official", f.Name())
 				
 				sourceData, _ := os.ReadFile(sourcePath)
-				targetData, _ := os.ReadFile(targetPath)
+				targetData, err := os.ReadFile(targetPath)
 				
-				// Overwrite if different or missing to ensure user has latest official tool definitions
-				if string(sourceData) != string(targetData) {
-					fmt.Printf("Updating official tool definition: %s\n", f.Name())
+				// Only copy if missing. We don't overwrite because verification metadata 
+				// is stored in the target file and would be lost.
+				if err != nil && os.IsNotExist(err) {
+					fmt.Printf("Installing official tool definition: %s\n", f.Name())
 					os.WriteFile(targetPath, sourceData, 0644)
+				} else if string(sourceData) != string(targetData) {
+					// If they are different, we might want to update, but we must be careful 
+					// not to overwrite verification data. For now, we'll just log it.
+					// logger.AddLog("DEBUG", fmt.Sprintf("Official tool %s differs from project source", f.Name()))
 				}
 			}
 		}

@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -55,6 +54,7 @@ type ToolDefinition struct {
 	Tools         []registry.Tool        `json:"tools,omitempty"`
 	Package       *registry.Package      `json:"package,omitempty"`
 	Metadata      *registry.Metadata     `json:"metadata,omitempty"`
+	VerifiedAt    string                 `json:"verified_at,omitempty"`
 }
 
 // CleanupCallback is called when a tool is auto-unloaded due to inactivity.
@@ -174,6 +174,9 @@ func (e *DiscoveryEngine) loadRegistry() {
 		return
 	}
 
+	// Reset toolToServer map to ensure fresh mappings from disk
+	e.toolToServer = make(map[string]string)
+
 	// Scan official and custom subdirectories
 	subdirs := []string{"official", "custom"}
 	for _, subdir := range subdirs {
@@ -228,10 +231,25 @@ func (e *DiscoveryEngine) loadRegistry() {
 					Package:       entry.Package,
 					Metadata:      entry.Metadata,
 				}
-				e.Register(td)
+				if entry.Metadata != nil {
+					td.VerifiedAt = entry.Metadata.VerifiedAt
+				}
+				e.registerUnlocked(td)
 			}
 		}
 	}
+}
+
+// registerUnlocked adds a new tool definition to the registry without taking the lock.
+func (e *DiscoveryEngine) registerUnlocked(td ToolDefinition) {
+	// Check for duplicates
+	for i, existing := range e.registry {
+		if existing.Name == td.Name {
+			e.registry[i] = td
+			return
+		}
+	}
+	e.registry = append(e.registry, td)
 }
 
 // ReloadRegistry reloads the tool definitions from disk and refreshes running servers.
@@ -282,11 +300,7 @@ func (e *DiscoveryEngine) ReloadRegistry() error {
 
 				// Add fresh tool mappings
 				for _, tool := range serverTools {
-					// Normalize tool name: convert dashes to underscores to match registry definition format
-					normalizedName := strings.ReplaceAll(tool.Name, "-", "_")
-					logger.AddLog("INFO", fmt.Sprintf("[Discovery] Remapping tool '%s' (normalized: '%s') -> server '%s'", tool.Name, normalizedName, serverName))
-					e.toolToServer[normalizedName] = serverName
-					// Also map with original name for compatibility
+					logger.AddLog("INFO", fmt.Sprintf("[Discovery] Mapping tool '%s' -> server '%s'", tool.Name, serverName))
 					e.toolToServer[tool.Name] = serverName
 				}
 				logger.AddLog("INFO", fmt.Sprintf("[Discovery] Server '%s' now provides %d tools", serverName, len(serverTools)))
@@ -334,15 +348,7 @@ func (e *DiscoveryEngine) ListTools() []ToolDefinition {
 func (e *DiscoveryEngine) Register(td ToolDefinition) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-
-	// Check for duplicates
-	for i, existing := range e.registry {
-		if existing.Name == td.Name {
-			e.registry[i] = td
-			return
-		}
-	}
-	e.registry = append(e.registry, td)
+	e.registerUnlocked(td)
 }
 
 // GetServerForTool finds which server provides the given tool name.
@@ -429,11 +435,7 @@ func (e *DiscoveryEngine) Add(serverName string) error {
 		if len(serverTools) > 0 {
 			fmt.Printf("[Discovery] Server %s reports %d tools\n", serverName, len(serverTools))
 			for _, tool := range serverTools {
-				// Normalize tool name: convert dashes to underscores to match registry definition format
-				normalizedName := strings.ReplaceAll(tool.Name, "-", "_")
-				fmt.Printf("[Discovery] Mapping tool '%s' (normalized: '%s') -> server '%s'\n", tool.Name, normalizedName, serverName)
-				e.toolToServer[normalizedName] = serverName
-				// Also map with original name for compatibility
+				fmt.Printf("[Discovery] Mapping tool '%s' -> server '%s'\n", tool.Name, serverName)
 				e.toolToServer[tool.Name] = serverName
 			}
 		} else {
@@ -509,16 +511,17 @@ func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (
 	}
 
 	// 2. Try active servers
-	// Normalize incoming tool name (convert underscores to dashes) for lookup
-	normalizedName := strings.ReplaceAll(name, "_", "-")
+	// We use exact name matching to avoid issues with normalization.
+	
 	e.mu.RLock()
-	serverName, hasMapping := e.toolToServer[normalizedName]
+	serverName, hasMapping := e.toolToServer[name]
+	
 	worker, active := e.activeServers[serverName]
 	e.mu.RUnlock()
 
 	// Debug logging
 	if !hasMapping {
-		fmt.Printf("[Discovery] Tool '%s' (normalized: '%s') not found in toolToServer mapping\n", name, normalizedName)
+		fmt.Printf("[Discovery] Tool '%s' not found in toolToServer mapping\n", name)
 		fmt.Printf("[Discovery] Current mappings: %v\n", e.toolToServer)
 		return nil, fmt.Errorf("tool not found: %s", name)
 	}
@@ -661,4 +664,65 @@ func (e *DiscoveryEngine) cleanup() {
 			callback(name)
 		}
 	}
+}
+
+// VerifyResult contains the results of verifying an MCP tool.
+type VerifyResult struct {
+	ServerInfo  map[string]interface{} `json:"server_info"`
+	ServerTools []registry.Tool        `json:"server_tools"`
+}
+
+// VerifyMCPTool starts an MCP server, performs the handshake, and returns the tools it reports.
+// This is used to verify that a tool's registry definition matches what the server actually provides.
+func VerifyMCPTool(ctx context.Context, toolDef *ToolDefinition, env map[string]string) (*VerifyResult, error) {
+	if toolDef.Runtime == nil {
+		return nil, fmt.Errorf("tool has no runtime configuration")
+	}
+
+	if toolDef.Runtime.Transport != registry.TransportStdio {
+		return nil, fmt.Errorf("only stdio transport is supported for verification (got: %s)", toolDef.Runtime.Transport)
+	}
+
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Creating temporary worker for '%s'", toolDef.Name))
+
+	// Create a temporary stdio worker
+	worker := NewStdioWorker(ctx, toolDef.Runtime.Command, toolDef.Runtime.Args)
+
+	// Start the server (this performs the initialize handshake)
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Starting server process..."))
+	if err := worker.Start(env); err != nil {
+		return nil, fmt.Errorf("failed to start server: %w", err)
+	}
+
+	// Ensure we clean up the worker when done
+	defer func() {
+		logger.AddLog("INFO", fmt.Sprintf("[Verify] Shutting down temporary server..."))
+		worker.Close()
+	}()
+
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Server started successfully, handshake complete"))
+
+	// Get the tools from the server
+	serverTools := worker.GetTools()
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Server reports %d tools", len(serverTools)))
+
+	for _, t := range serverTools {
+		logger.AddLog("INFO", fmt.Sprintf("[Verify]   - %s: %s", t.Name, truncateString(t.Description, 60)))
+	}
+
+	return &VerifyResult{
+		ServerInfo: map[string]interface{}{
+			"command": toolDef.Runtime.Command,
+			"args":    toolDef.Runtime.Args,
+		},
+		ServerTools: serverTools,
+	}, nil
+}
+
+// truncateString truncates a string to maxLen characters, adding "..." if truncated.
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
 }

@@ -1,0 +1,1 @@
+Brave Search MCP Server running on stdio

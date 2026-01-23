@@ -4,7 +4,8 @@
 .PHONY: all build test validate clean dev \
         test-unit test-registry test-discovery test-profile test-api test-integration \
         test-coverage test-protocol test-auth test-meta-mcp test-e2e \
-        test-fast test-all ci-full pre-commit test-run
+        test-fast test-all ci-full pre-commit test-run \
+        test-agent-protocol test-agent-scenarios test-agent-eval test-agent test-agent-full
 
 # Default target
 all: validate build
@@ -132,6 +133,22 @@ release-beta:
 	git push origin v$$VERSION
 	@echo "GitHub Action will now build and release v$$VERSION"
 
+# Agent Testing
+test-agent-protocol:
+	cd tests && go test ./protocol/... -v
+
+test-agent-scenarios:
+	cd tests && go test ./scenarios/... -v
+
+test-agent-eval:
+	cd tests && python evaluation/run_evaluation.py
+
+test-agent: test-agent-protocol test-agent-scenarios
+	@echo "Agent tests passed!"
+
+test-agent-full: test-agent test-agent-eval
+	@echo "Full agent test suite passed!"
+
 # Help
 help:
 	@echo "MCP Scooter Build & Test Commands"
@@ -159,6 +176,13 @@ help:
 	@echo "  make test-auth    - Keychain/OAuth tests (placeholder)"
 	@echo "  make test-meta-mcp - Meta-MCP lifecycle tests"
 	@echo "  make test-e2e     - End-to-end tests (placeholder)"
+	@echo ""
+	@echo "Agent Testing (New Framework):"
+	@echo "  make test-agent-protocol  - Run Layer 1 Protocol tests"
+	@echo "  make test-agent-scenarios - Run Layer 2 Scenario tests"
+	@echo "  make test-agent-eval      - Run Layer 3 LLM Evaluation"
+	@echo "  make test-agent           - Run Layer 1 & 2"
+	@echo "  make test-agent-full      - Run all agent test layers"
 	@echo ""
 	@echo "Validation:"
 	@echo "  make validate     - Validate registry JSON files"

@@ -229,4 +229,5 @@ type Metadata struct {
 	Deprecated         bool     `json:"deprecated,omitempty"`
 	DeprecationMessage *string  `json:"deprecation_message,omitempty"`
 	MinScooterVersion  string   `json:"minimum_scooter_version,omitempty"`
+	VerifiedAt         string   `json:"verified_at,omitempty"`
 }

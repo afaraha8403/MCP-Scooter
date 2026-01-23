@@ -1,0 +1,18 @@
+<evaluation>
+  <qa_pair>
+    <question>Use scooter_find to search for "search" tools. 
+    How many tools are found? Answer with just the number.</question>
+    <answer>1</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>List all active tools using scooter_list_active. 
+    Before adding any tools, how many are active? 
+    Answer with just the number.</question>
+    <answer>0</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Use scooter_find to find the "github" tool. 
+    What is the exact name of the tool found?</question>
+    <answer>github</answer>
+  </qa_pair>
+</evaluation>

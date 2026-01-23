@@ -66,6 +66,7 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("GET /api/tools", s.handleGetTools)
 	s.mux.HandleFunc("POST /api/tools", s.handleRegisterTool)
 	s.mux.HandleFunc("POST /api/tools/refresh", s.handleRefreshTools)
+	s.mux.HandleFunc("POST /api/tools/verify", s.handleVerifyTool)
 	s.mux.HandleFunc("DELETE /api/tools", s.handleDeleteTool)
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
 	s.mux.HandleFunc("GET /api/clients", s.handleGetClients)
@@ -562,6 +563,265 @@ func (s *ControlServer) handleRefreshTools(w http.ResponseWriter, r *http.Reques
 		"success": true,
 		"message": fmt.Sprintf("Successfully refreshed %d profile engine(s)", refreshedCount),
 	})
+}
+
+// handleVerifyTool verifies a specific MCP tool by starting its server,
+// performing the handshake, fetching actual tools, and updating the registry if needed.
+func (s *ControlServer) handleVerifyTool(w http.ResponseWriter, r *http.Request) {
+	body, _ := io.ReadAll(r.Body)
+	var req struct {
+		ToolName string `json:"tool_name"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Invalid request: %v", err),
+		})
+		return
+	}
+
+	if req.ToolName == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "tool_name is required",
+		})
+		return
+	}
+
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Starting verification for tool: %s", req.ToolName))
+
+	// Step 1: Find the tool definition in the registry
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Step 1: Looking up tool '%s' in registry...", req.ToolName))
+	
+	engine := discovery.NewDiscoveryEngine(r.Context(), s.manager.wasmDir, s.manager.registryDir)
+	tools := engine.Find("")
+	
+	var toolDef *discovery.ToolDefinition
+	for i := range tools {
+		if tools[i].Name == req.ToolName {
+			toolDef = &tools[i]
+			break
+		}
+	}
+
+	if toolDef == nil {
+		logger.AddLog("ERROR", fmt.Sprintf("[Verify] Tool '%s' not found in registry", req.ToolName))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Tool '%s' not found in registry", req.ToolName),
+		})
+		return
+	}
+
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Found tool '%s' in registry (source: %s)", req.ToolName, toolDef.Source))
+
+	// Step 2: Check if the tool has a runtime configuration
+	if toolDef.Runtime == nil {
+		logger.AddLog("ERROR", fmt.Sprintf("[Verify] Tool '%s' has no runtime configuration", req.ToolName))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Tool '%s' has no runtime configuration - cannot verify", req.ToolName),
+		})
+		return
+	}
+
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Step 2: Runtime config found - transport: %s, command: %s", toolDef.Runtime.Transport, toolDef.Runtime.Command))
+
+	// Step 3: Start the MCP server and perform handshake
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Step 3: Starting MCP server for '%s'...", req.ToolName))
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Command: %s %v", toolDef.Runtime.Command, toolDef.Runtime.Args))
+
+	// Get credentials for this tool
+	credManager := engine.GetCredentialManager()
+	toolEnv := make(map[string]string)
+	
+	// Check if we have credentials in the request (from the UI form)
+	var credReq struct {
+		Credentials map[string]string `json:"credentials"`
+	}
+	if err := json.Unmarshal(body, &credReq); err == nil && len(credReq.Credentials) > 0 {
+		for k, v := range credReq.Credentials {
+			toolEnv[k] = v
+			logger.AddLog("INFO", fmt.Sprintf("[Verify] Using provided credential: %s", k))
+		}
+	}
+
+	// Also layer in stored credentials if not provided in request
+	if toolDef.Authorization != nil {
+		creds, err := credManager.GetCredentialsForTool(req.ToolName, toolDef.Authorization)
+		if err == nil {
+			for k, v := range creds {
+				if _, exists := toolEnv[k]; !exists {
+					toolEnv[k] = v
+					logger.AddLog("INFO", fmt.Sprintf("[Verify] Injected stored credential: %s", k))
+				}
+			}
+		}
+	}
+
+	// Create a temporary stdio worker to verify the tool
+	verifyResult, err := discovery.VerifyMCPTool(r.Context(), toolDef, toolEnv)
+	if err != nil {
+		logger.AddLog("ERROR", fmt.Sprintf("[Verify] Failed to verify tool '%s': %v", req.ToolName, err))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Verification failed: %v", err),
+		})
+		return
+	}
+
+	// Step 4: Compare tools from server with registry
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Step 4: Comparing tools from server with registry..."))
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Registry has %d tools, server reported %d tools", len(toolDef.Tools), len(verifyResult.ServerTools)))
+
+	// Check for differences
+	registryToolNames := make(map[string]bool)
+	for _, t := range toolDef.Tools {
+		registryToolNames[t.Name] = true
+	}
+
+	serverToolNames := make(map[string]bool)
+	for _, t := range verifyResult.ServerTools {
+		serverToolNames[t.Name] = true
+	}
+
+	// Find tools in server but not in registry
+	var newTools []string
+	for name := range serverToolNames {
+		if !registryToolNames[name] {
+			newTools = append(newTools, name)
+		}
+	}
+
+	// Find tools in registry but not in server
+	var missingTools []string
+	for name := range registryToolNames {
+		if !serverToolNames[name] {
+			missingTools = append(missingTools, name)
+		}
+	}
+
+	toolsChanged := len(newTools) > 0 || len(missingTools) > 0
+
+	if len(newTools) > 0 {
+		logger.AddLog("INFO", fmt.Sprintf("[Verify] New tools from server: %v", newTools))
+	}
+	if len(missingTools) > 0 {
+		logger.AddLog("WARN", fmt.Sprintf("[Verify] Tools in registry but not in server: %v", missingTools))
+	}
+
+	// Step 5: Update registry
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Step 5: Updating registry JSON with %d tools and verification timestamp...", len(verifyResult.ServerTools)))
+	
+	err = s.updateRegistryTools(req.ToolName, verifyResult.ServerTools)
+	var registryUpdated bool
+	if err != nil {
+		logger.AddLog("ERROR", fmt.Sprintf("[Verify] Failed to update registry: %v", err))
+	} else {
+		registryUpdated = true
+		logger.AddLog("INFO", fmt.Sprintf("[Verify] Registry updated successfully"))
+		
+		// Step 5b: Reload the in-memory registry for all active profile engines
+		// This ensures the updated tool names are immediately available for invocation
+		logger.AddLog("INFO", "[Verify] Step 5b: Reloading in-memory registry for all active engines...")
+		s.manager.mu.RLock()
+		for profileID, profileEngine := range s.manager.engines {
+			logger.AddLog("INFO", fmt.Sprintf("[Verify] Reloading registry for profile '%s'", profileID))
+			if reloadErr := profileEngine.ReloadRegistry(); reloadErr != nil {
+				logger.AddLog("WARN", fmt.Sprintf("[Verify] Failed to reload registry for profile '%s': %v", profileID, reloadErr))
+			}
+		}
+		s.manager.mu.RUnlock()
+		logger.AddLog("INFO", "[Verify] In-memory registry reload complete")
+	}
+
+	// Build response
+	response := map[string]interface{}{
+		"success":          true,
+		"tool_name":        req.ToolName,
+		"server_info":      verifyResult.ServerInfo,
+		"registry_tools":   len(toolDef.Tools),
+		"server_tools":     len(verifyResult.ServerTools),
+		"new_tools":        newTools,
+		"missing_tools":    missingTools,
+		"tools_changed":    toolsChanged,
+		"registry_updated": registryUpdated,
+	}
+
+	// Include the actual tool definitions from server
+	serverToolDetails := make([]map[string]interface{}, 0, len(verifyResult.ServerTools))
+	for _, t := range verifyResult.ServerTools {
+		serverToolDetails = append(serverToolDetails, map[string]interface{}{
+			"name":        t.Name,
+			"description": t.Description,
+		})
+	}
+	response["server_tool_details"] = serverToolDetails
+
+	logger.AddLog("INFO", fmt.Sprintf("[Verify] Verification complete for '%s'", req.ToolName))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// updateRegistryTools updates the tools array in the registry JSON file for a specific tool.
+func (s *ControlServer) updateRegistryTools(toolName string, newTools []registry.Tool) error {
+	if s.manager.registryDir == "" {
+		return fmt.Errorf("registry directory not configured")
+	}
+
+	// Check both official and custom directories
+	subdirs := []string{"official", "custom"}
+	for _, subdir := range subdirs {
+		filePath := filepath.Join(s.manager.registryDir, subdir, fmt.Sprintf("%s.json", toolName))
+		
+		// Check if file exists
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			continue // Try next directory
+		}
+
+		logger.AddLog("INFO", fmt.Sprintf("[Verify] Found registry file: %s", filePath))
+
+		// Parse existing entry
+		var entry registry.MCPEntry
+		if err := json.Unmarshal(data, &entry); err != nil {
+			return fmt.Errorf("failed to parse registry file: %w", err)
+		}
+
+		// Update tools and verification timestamp
+		entry.Tools = newTools
+		if entry.Metadata == nil {
+			entry.Metadata = &registry.Metadata{}
+		}
+		now := time.Now().Format(time.RFC3339)
+		entry.Metadata.VerifiedAt = now
+
+		// Write back with pretty formatting
+		updatedData, err := json.MarshalIndent(entry, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to serialize updated entry: %w", err)
+		}
+
+		if err := os.WriteFile(filePath, updatedData, 0644); err != nil {
+			return fmt.Errorf("failed to write registry file: %w", err)
+		}
+
+		logger.AddLog("INFO", fmt.Sprintf("[Verify] Updated registry file: %s", filePath))
+		return nil
+	}
+
+	return fmt.Errorf("registry file not found for tool: %s", toolName)
 }
 
 type ClientDefinition struct {

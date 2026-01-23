@@ -225,7 +225,10 @@ async def run_evaluation(
     """Run evaluation with MCP server tools."""
     print("🚀 Starting Evaluation")
 
-    client = Anthropic()
+    client = Anthropic(
+        base_url=os.getenv("ANTHROPIC_BASE_URL", "https://api.anthropic.com/v1"),
+        api_key=os.getenv("ANTHROPIC_API_KEY")
+    )
 
     tools = await connection.list_tools()
     print(f"📋 Loaded {len(tools)} tools from MCP server")

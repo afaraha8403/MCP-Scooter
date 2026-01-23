@@ -1,6 +1,8 @@
-# Test MCP Server
+# Registry Unit Test (MCP Server)
 
-Test an MCP server from the registry to verify it works correctly with the discovery engine.
+Unit test a specific MCP server definition from the registry to verify its configuration and basic tool connectivity.
+
+**Note:** This tests a *single* MCP server in isolation. To test the entire MCP Scooter ecosystem (discovery, proxying, agent reasoning), use the `test-agent` command.
 
 ## Input
 

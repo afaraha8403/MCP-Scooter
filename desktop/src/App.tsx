@@ -34,7 +34,8 @@ import {
   GlobeRegular,
   DeleteRegular,
   FolderOpenRegular,
-  ArrowClockwiseRegular
+  ArrowClockwiseRegular,
+  InfoRegular
 } from "@fluentui/react-icons";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -132,6 +133,7 @@ interface ToolDefinition {
     author?: string;
     license?: string;
   };
+  verified_at?: string;
 }
 
 interface ClientDefinition {
@@ -243,6 +245,16 @@ function App() {
   const [configPath, setConfigPath] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [selectedTool, setSelectedTool] = useState<ToolDefinition | null>(null);
+
+  // Keep selectedTool in sync with allTools
+  useEffect(() => {
+    if (selectedTool) {
+      const updated = allTools.find(t => t.name === selectedTool.name);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(selectedTool)) {
+        setSelectedTool(updated);
+      }
+    }
+  }, [allTools, selectedTool?.name]);
   const [selectedClient, setSelectedClient] = useState<ClientDefinition | null>(null);
   const [drawer, setDrawer] = useState<{ type: string; data?: any } | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([
@@ -277,10 +289,12 @@ function App() {
   const [revealedAuthKeys, setRevealedAuthKeys] = useState<Record<string, boolean>>({});
   const [editingAuthKey, setEditingAuthKey] = useState<string | null>(null);
   const [editingAuthValue, setEditingAuthValue] = useState("");
+  const [copiedAuthKey, setCopiedAuthKey] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [savedToolParams, setSavedToolParams] = useState<Record<string, Record<string, any>>>({});
   const [optionalAuthExpanded, setOptionalAuthExpanded] = useState(false);
+  const [lastVerifiedTool, setLastVerifiedTool] = useState<string | null>(null);
 
   const [logSearchQuery, setLogSearchQuery] = useState("");
   const [logLevelFilter, setLogLevelFilter] = useState<"ALL" | "INFO" | "WARN" | "ERROR">("ALL");
@@ -290,7 +304,7 @@ function App() {
   useEffect(() => {
     const loadSavedParams = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:${appSettings.control_port}/api/tool-params`);
+        const res = await fetch(`http://localhost:${appSettings.control_port}/api/tool-params`);
         if (res.ok) {
           const data = await res.json();
           setSavedToolParams(data || {});
@@ -304,7 +318,7 @@ function App() {
     // Fetch initial logs
     const loadLogs = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:${appSettings.control_port}/api/logs`);
+        const res = await fetch(`http://localhost:${appSettings.control_port}/api/logs`);
         if (res.ok) {
           const data = await res.json();
           if (data.logs) {
@@ -318,7 +332,7 @@ function App() {
     loadLogs();
 
     // Subscribe to real-time logs
-    const eventSource = new EventSource(`http://127.0.0.1:${appSettings.control_port}/api/logs/stream`);
+    const eventSource = new EventSource(`http://localhost:${appSettings.control_port}/api/logs/stream`);
     
     eventSource.addEventListener('log', (event) => {
       try {
@@ -385,7 +399,7 @@ function App() {
   // Save tool params when modified
   const saveToolParams = async (functionName: string, params: Record<string, any>) => {
     try {
-      await fetch(`http://127.0.0.1:${appSettings.control_port}/api/tool-params`, {
+      await fetch(`http://localhost:${appSettings.control_port}/api/tool-params`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tool_name: functionName, parameters: params }),
@@ -463,7 +477,7 @@ function App() {
 
   const clearLogs = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:${appSettings.control_port}/api/logs`, {
+      const res = await fetch(`http://localhost:${appSettings.control_port}/api/logs`, {
         method: "DELETE"
       });
       if (res.ok) {
@@ -477,7 +491,7 @@ function App() {
 
   const revealLogs = async () => {
     try {
-      await fetch(`http://127.0.0.1:${appSettings.control_port}/api/logs/reveal`, {
+      await fetch(`http://localhost:${appSettings.control_port}/api/logs/reveal`, {
         method: "POST"
       });
     } catch (err) {
@@ -485,7 +499,7 @@ function App() {
     }
   };
 
-  const CONTROL_API = `http://127.0.0.1:${appSettings.control_port}/api`;
+  const CONTROL_API = `http://localhost:${appSettings.control_port}/api`;
 
   // Splash screen helper
   const splashLog = (message: string, type: string = 'normal', once: boolean = false) => {
@@ -712,6 +726,27 @@ function App() {
     }
   };
 
+  const selectedProfile = profiles.find(p => p.id === selectedProfileId);
+
+  useEffect(() => {
+    if (selectedTool?.name && selectedTool.name !== lastVerifiedTool && selectedProfile?.allow_tools?.includes(selectedTool.name)) {
+      // Check if required auth is missing
+      const auth = selectedTool.authorization;
+      if (auth && auth.type !== 'none' && auth.required !== false && !auth.recommended) {
+        const envVars = auth.type === 'custom' ? (auth.env_vars || []) : (auth.env_var ? [{ name: auth.env_var, required: true }] : []);
+        const missingRequired = envVars.filter(v => v.required && !selectedProfile.env?.[v.name]);
+        
+        if (missingRequired.length > 0) {
+          // Skip auto-verify if required auth is missing
+          return;
+        }
+      }
+
+      setLastVerifiedTool(selectedTool.name);
+      verifyTool(selectedTool.name);
+    }
+  }, [selectedTool?.name, selectedProfile?.allow_tools, selectedProfile?.env, lastVerifiedTool]);
+
   const fetchAllTools = async () => {
     try {
       const res = await fetch(`${CONTROL_API}/tools`);
@@ -748,7 +783,7 @@ function App() {
     console.log(`[${level}] ${message}`);
     // Only update local state if SSE is not active or for immediate feedback
     // But since SSE will push it back, we can just send it to the backend
-    fetch(`http://127.0.0.1:${appSettings.control_port}/api/logs`, {
+    fetch(`http://localhost:${appSettings.control_port}/api/logs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ level, message })
@@ -797,8 +832,6 @@ function App() {
     acc[cat].push(tool);
     return acc;
   }, {} as Record<string, ToolDefinition[]>);
-
-  const selectedProfile = profiles.find(p => p.id === selectedProfileId);
 
   const toggleTheme = () => setTheme(prev => prev === "light" ? "dark" : "light");
 
@@ -858,25 +891,51 @@ function App() {
     }
   };
 
-  const refreshTools = async () => {
+  // Verify a specific MCP tool by starting its server and comparing tools with registry
+  // Format relative time for tool verification
+  const formatRelativeTime = (dateStr: string | undefined) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hrs ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    
+    return date.toLocaleString(undefined, { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const verifyTool = async (toolName: string) => {
     setRefreshingTools(true);
     try {
-      addLog("Refreshing tool registry...", "INFO");
-      addLog(`Connecting to backend at ${CONTROL_API}/tools/refresh`, "INFO");
+      addLog(`[Verify] Starting verification for tool: ${toolName}`, "INFO");
+      addLog(`[Verify] Connecting to backend at ${CONTROL_API}/tools/verify`, "INFO");
 
-      // Add timeout to prevent infinite hanging
+      // Longer timeout for verification since it starts a server
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        addLog("Refresh request timed out (backend not responding)", "ERROR");
-      }, 60000); // 60 second timeout - allow time for multiple MCP servers
+        addLog("[Verify] Request timed out (server may be slow to start)", "ERROR");
+      }, 120000); // 2 minute timeout for verification
 
-      const res = await fetch(`${CONTROL_API}/tools/refresh`, {
+      const res = await fetch(`${CONTROL_API}/tools/verify`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          tool_name: toolName,
+          credentials: selectedProfile?.env || {}
+        }),
         signal: controller.signal,
       }).catch(err => {
         if (err.name === 'AbortError') {
-          throw new Error("Request timed out - backend may not be responding");
+          throw new Error("Verification timed out - server may be slow to start");
         }
         throw err;
       });
@@ -884,22 +943,34 @@ function App() {
       clearTimeout(timeoutId);
 
       if (!res) {
-        addLog("No response from backend", "ERROR");
+        addLog("[Verify] No response from backend", "ERROR");
         return;
       }
 
-      if (res.ok) {
-        const data = await res.json();
-        addLog(data.message || "Tools refreshed successfully", "INFO");
-        fetchAllTools();
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        addLog(`[Verify] Verification complete for '${toolName}'`, "INFO");
+        addLog(`[Verify] Registry tools: ${data.registry_tools}, Server tools: ${data.server_tools}`, "INFO");
+        
+        if (data.registry_updated) {
+          addLog(`[Verify] Registry JSON updated with ${data.server_tools} tools`, "INFO");
+          // Refresh the tools list to show updated tools
+          fetchAllTools();
+        }
+
+        // Log the actual tools from the server
+        if (data.server_tool_details && data.server_tool_details.length > 0) {
+          const toolNames = data.server_tool_details.map((t: any) => t.name).join(', ');
+          addLog(`[Verify] Server reported tools: ${toolNames}`, "INFO");
+        }
       } else {
-        const errorText = await res.text();
-        addLog(`Failed to refresh tools: ${res.status} ${res.statusText} - ${errorText}`, "ERROR");
+        addLog(`[Verify] Verification failed: ${data.error || 'Unknown error'}`, "ERROR");
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      addLog(`Error refreshing tools: ${errorMsg}`, "ERROR");
-      addLog(`Check if backend is running on port ${appSettings.control_port}`, "INFO");
+      addLog(`[Verify] Error: ${errorMsg}`, "ERROR");
+      addLog(`[Verify] Check if backend is running on port ${appSettings.control_port}`, "INFO");
     } finally {
       setRefreshingTools(false);
     }
@@ -991,7 +1062,7 @@ function App() {
       addLog(`Invoking ${selectedFunctionName}...`, "INFO");
       
       // Use the unified gateway port and include profile ID in path
-      const url = `http://127.0.0.1:${appSettings.mcp_port}/profiles/${selectedProfile.id}/message`;
+      const url = `http://localhost:${appSettings.mcp_port}/profiles/${selectedProfile.id}/message`;
       
       const res = await fetch(url, {
         method: "POST",
@@ -1684,41 +1755,59 @@ function App() {
                     <div className="detail-section">
                       <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>Capabilities</span>
-                        {selectedTool?.tools && selectedTool.tools.length > 0 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              refreshTools();
-                            }}
-                            disabled={refreshingTools}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 8px',
-                              background: 'var(--background-subtle)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '4px',
-                              cursor: refreshingTools ? 'wait' : 'pointer',
-                              fontSize: '10px',
-                              color: 'var(--text-secondary)',
-                              outline: 'none',
-                              opacity: refreshingTools ? 0.7 : 1
-                            }}
-                            title="Refresh tool registry"
-                          >
-                            {refreshingTools ? (
-                              <ArrowClockwiseRegular style={{ fontSize: '12px', animation: 'spin 1s linear infinite' }} />
-                            ) : (
-                              <ArrowClockwiseRegular style={{ fontSize: '12px' }} />
-                            )}
-                          </button>
-                        )}
-                        {selectedTool?.tools && selectedTool.tools.length > 0 && (
-                          <span style={{ fontSize: '11px', opacity: 0.6, background: 'var(--background-card)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                            {selectedTool.tools.length} {selectedTool.tools.length === 1 ? 'tool' : 'tools'}
-                          </span>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {selectedTool?.runtime && (
+                            (() => {
+                              const auth = selectedTool.authorization;
+                              const isRequired = auth && auth.type !== 'none' && auth.required !== false && !auth.recommended;
+                              const envVars = auth?.type === 'custom' ? (auth.env_vars || []) : (auth?.env_var ? [{ name: auth.env_var, required: true }] : []);
+                              const missingRequired = isRequired ? envVars.filter(v => v.required && !selectedProfile?.env?.[v.name]) : [];
+                              const isDisabled = refreshingTools || missingRequired.length > 0;
+
+                              return (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    verifyTool(selectedTool.name);
+                                  }}
+                                  disabled={isDisabled}
+                                  className={`auth-btn ${missingRequired.length > 0 ? '' : 'recommended'}`}
+                                  style={{
+                                    height: '24px',
+                                    padding: '0 8px',
+                                    fontSize: '10px',
+                                    cursor: isDisabled ? (refreshingTools ? 'wait' : 'not-allowed') : 'pointer',
+                                    opacity: isDisabled ? 0.6 : 1,
+                                    background: missingRequired.length > 0 ? 'var(--background-card)' : undefined,
+                                    border: missingRequired.length > 0 ? '1px solid var(--border-subtle)' : undefined,
+                                    color: missingRequired.length > 0 ? 'var(--text-secondary)' : undefined
+                                  }}
+                                  title={missingRequired.length > 0 
+                                    ? `Missing required auth: ${missingRequired.map(v => v.name).join(', ')}` 
+                                    : "Verify MCP tool - starts the server and compares tools with registry"}
+                                >
+                                  {refreshingTools ? (
+                                    <ArrowClockwiseRegular className="auth-btn-icon" style={{ fontSize: '14px', animation: 'spin 1s linear infinite' }} />
+                                  ) : (
+                                    <ArrowClockwiseRegular className="auth-btn-icon" style={{ fontSize: '14px' }} />
+                                  )}
+                                  <span>
+                                    {missingRequired.length > 0 
+                                      ? 'Configure Auth' 
+                                      : selectedTool?.verified_at 
+                                        ? `Verified ${formatRelativeTime(selectedTool.verified_at)}` 
+                                        : 'Verify'}
+                                  </span>
+                                </button>
+                              );
+                            })()
+                          )}
+                          {selectedTool?.tools && selectedTool.tools.length > 0 && (
+                            <span style={{ fontSize: '11px', opacity: 0.6, background: 'var(--background-card)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--border-subtle)', textTransform: 'uppercase' }}>
+                              VERIFIED {selectedTool.tools.length} {selectedTool.tools.length === 1 ? 'TOOL' : 'TOOLS'}
+                            </span>
+                          )}
+                        </div>
                       </h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {selectedTool.tools && selectedTool.tools.length > 0 ? (
@@ -2869,7 +2958,7 @@ function App() {
                       </button>
                     </div>
                     
-                    <div className="log-stream" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+                    <div className="log-stream" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', userSelect: 'text' }}>
                       {filteredLogs.map((log, i) => (
                         <div key={i} style={{ 
                           fontFamily: "Google Sans Code, JetBrains Mono, monospace", 
@@ -3031,6 +3120,21 @@ function App() {
                                   <code style={{ flex: 1, fontSize: '12px', color: 'var(--accent-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {revealedAuthKeys[v.name] ? selectedProfile.env[v.name] : '••••••••••••'}
                                   </code>
+                                  <button 
+                                    className="icon-btn" 
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(selectedProfile.env[v.name]);
+                                      setCopiedAuthKey(v.name);
+                                      setTimeout(() => setCopiedAuthKey(null), 2000);
+                                    }}
+                                    title="Copy"
+                                  >
+                                    {copiedAuthKey === v.name ? (
+                                      <CheckmarkRegular style={{ fontSize: '16px', color: 'var(--accent-primary)' }} />
+                                    ) : (
+                                      <CopyRegular style={{ fontSize: '16px' }} />
+                                    )}
+                                  </button>
                                   <button 
                                     className="icon-btn" 
                                     onClick={() => setRevealedAuthKeys({ ...revealedAuthKeys, [v.name]: !revealedAuthKeys[v.name] })}
@@ -3295,10 +3399,56 @@ function App() {
                       className="primary" 
                       style={{ marginTop: "12px", padding: '10px', fontSize: '14px', position: 'relative' }} 
                       onClick={invokeTool}
-                      disabled={!selectedFunctionName || testResult?.status === 'loading'}
+                      disabled={!selectedFunctionName || testResult?.status === 'loading' || refreshingTools || (!tool?.verified_at && (!tool?.tools || tool.tools.length === 0))}
                     >
-                      {testResult?.status === 'loading' ? 'Invoking...' : 'Invoke Tool'}
+                      {testResult?.status === 'loading' ? 'Invoking...' : refreshingTools ? 'Verifying...' : (!tool?.verified_at && (!tool?.tools || tool.tools.length === 0)) ? 'Verify Tool First' : 'Invoke Tool'}
                     </button>
+                    {!tool?.verified_at && (!tool?.tools || tool.tools.length === 0) && (
+                      <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(255, 204, 0, 0.05)', border: '1px solid rgba(255, 204, 0, 0.2)', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '12px', color: '#b38600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <WarningRegular style={{ fontSize: '16px' }} />
+                          <span>This tool must be verified before it can be invoked.</span>
+                        </div>
+                        <button 
+                          className="secondary" 
+                          style={{ padding: '6px 12px', fontSize: '12px', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px' }}
+                          onClick={() => tool && verifyTool(tool.name)}
+                          disabled={refreshingTools}
+                        >
+                          <ArrowClockwiseRegular 
+                            style={{ 
+                              fontSize: '14px', 
+                              animation: refreshingTools ? 'spin 1s linear infinite' : 'none' 
+                            }} 
+                          />
+                          <span>Verify Now</span>
+                        </button>
+                      </div>
+                    )}
+                    {tool?.tools && tool.tools.length > 0 && (
+                      <div style={{ marginTop: '12px', padding: '12px', background: 'var(--background-card)', border: '1px solid var(--border-subtle)', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <InfoRegular style={{ fontSize: '14px' }} />
+                            <span>{tool?.verified_at ? `Tool last verified ${formatRelativeTime(tool.verified_at)}.` : 'Verification recommended to ensure tool names are up to date.'}</span>
+                          </div>
+                          <button 
+                            className="secondary" 
+                            style={{ padding: '6px 12px', fontSize: '12px', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            onClick={() => tool && verifyTool(tool.name)}
+                            disabled={refreshingTools}
+                          >
+                            <ArrowClockwiseRegular 
+                              style={{ 
+                                fontSize: '14px', 
+                                animation: refreshingTools ? 'spin 1s linear infinite' : 'none' 
+                              }} 
+                            />
+                            <span>{tool?.verified_at ? 'Re-verify Tool' : 'Verify Now'}</span>
+                          </button>
+                        </>
+                      </div>
+                    )}
                   </div>
 
                   {testResult && (

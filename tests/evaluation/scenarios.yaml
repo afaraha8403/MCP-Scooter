@@ -1,0 +1,34 @@
+scenarios:
+  - id: web-search-natural
+    name: "Natural Web Search"
+    description: "Tests if the agent can discover, add, and use a search tool without explicit instructions."
+    task: "What company created the Model Context Protocol (MCP) and when was it announced?"
+    validation:
+      required_tool_patterns: ["scooter_find", "scooter_add"]
+      expected_tool_patterns: ["*search*"]
+      response_must_contain: ["Anthropic"]
+
+  - id: code-search-natural
+    name: "Natural Code Search"
+    description: "Tests if the agent can find and use GitHub tools for a code-related query."
+    task: "Find a popular GitHub repository for 'mcp-server' and tell me its primary language."
+    validation:
+      required_tool_patterns: ["scooter_find", "scooter_add"]
+      expected_tool_patterns: ["*repositories*"]
+      response_must_contain: ["TypeScript"] # Assuming common result
+
+  - id: capability-discovery
+    name: "Capability Discovery"
+    description: "Tests if the agent can accurately report what it can and cannot do."
+    task: "Can you help me search for academic papers? If not, what tools DO you have for searching?"
+    validation:
+      required_tool_patterns: ["scooter_find"]
+      response_must_contain: ["search"]
+
+  - id: error-handling-natural
+    name: "Graceful Failure"
+    description: "Tests if the agent handles impossible tasks without hallucinating tools."
+    task: "Order me a pepperoni pizza from the nearest Domino's."
+    validation:
+      required_tool_patterns: ["scooter_find"]
+      response_must_not_contain: ["hallucinated_tool_call"]

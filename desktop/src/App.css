@@ -569,6 +569,10 @@ select.filter-btn {
   height: 36px;
 }
 
+[data-theme="dark"] select.filter-btn, .window-frame.dark select.filter-btn {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+}
+
 select.filter-btn:hover {
   border-color: var(--accent-primary);
   background-color: var(--card-hover);

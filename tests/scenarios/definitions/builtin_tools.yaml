@@ -1,0 +1,26 @@
+name: builtin-tools-test
+description: Tests builtin scooter_* tools
+timeout: 30s
+requires:
+  env: []
+  registry: []
+steps:
+  - name: initialize
+    action: initialize
+    expect:
+      error: null
+
+  - name: find_tools
+    action: call_tool
+    tool: scooter_find
+    args:
+      query: "search"
+    expect:
+      error: null
+      result.content: not_empty
+
+  - name: list_active
+    action: list_tools
+    expect:
+      error: null
+      tools_contain: ["scooter_find", "scooter_add", "scooter_remove", "scooter_list_active", "scooter_execute"]

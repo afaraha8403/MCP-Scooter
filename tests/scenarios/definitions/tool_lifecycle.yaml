@@ -1,0 +1,38 @@
+name: tool-lifecycle-test
+description: Tests add/remove/list cycle
+timeout: 60s
+requires:
+  env: []
+  registry: ["github"]
+steps:
+  - name: initialize
+    action: initialize
+    expect:
+      error: null
+
+  - name: add_github
+    action: call_tool
+    tool: scooter_add
+    args:
+      tool_name: "github"
+    expect:
+      error: null
+
+  - name: verify_github_added
+    action: list_tools
+    expect:
+      tools_contain: ["search_repositories"]
+
+  - name: remove_github
+    action: call_tool
+    tool: scooter_remove
+    args:
+      tool_name: "github"
+    expect:
+      error: null
+
+  - name: verify_github_removed
+    action: list_tools
+    expect:
+      error: null
+      # Note: We'd need a way to expect tools_NOT_contain in the runner
