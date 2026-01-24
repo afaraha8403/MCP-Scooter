@@ -70,19 +70,16 @@ If MCP is the "USB port" for AI, **MCP Scooter is the Universal Hub**.
 ## ✨ Features
 
 ### 🔍 Dynamic Tool Discovery
-No more hard-coding tool definitions. Scooter exposes "primordial tools" to any AI client, enabling **"auto-choosing"** of tools based on the context of your question:
+No more hard-coding tool definitions. Scooter exposes just **2 primordial tools** to any AI client, enabling **"auto-choosing"** of tools based on the context of your question:
 
 - **`scooter_find`** — Search for tools by capability
-- **`scooter_add`** — Install and enable tools on-demand  
-- **`scooter_remove`** — Unload tools to free context space
-- **`scooter_list_active`** — List currently active tools and servers
-- **`scooter_code_interpreter`** — Execute sandboxed JavaScript
-- **`scooter_filesystem`** — Safe, scoped file operations
-- **`scooter_fetch`** — Local-first HTTP client
+- **`scooter_activate`** — Turn on a tool server for the current session
+
+**Why only 2 tools?** To minimize context window consumption. Each MCP tool schema can consume 500-2000 tokens. By exposing only 2 meta-tools (~50 tokens total), Scooter keeps your context lean while providing access to unlimited capabilities.
 
 **How it works:** Your LLM taps into the Scooter discovery tool → It gets a list of available capabilities → It auto-chooses the right tool for your specific question → Scooter loads only what's needed. This avoids loading the entire toolset and keeps your context window clean.
 
-Your agent asks for "database tools" → Scooter finds them using `scooter_find` → Agent installs what it needs via `scooter_add` → Done.
+Your agent asks for "database tools" → Scooter finds them using `scooter_find` → Agent activates what it needs via `scooter_activate` → Tool schemas are returned inline → Agent calls tools directly.
 
 ### 👤 Profile-Based Identity Management
 Create isolated environments for different contexts:
@@ -271,8 +268,8 @@ We're building the foundation. Here's what's done and what's next:
 | **Registry Schema** | ✅ Done | JSON Schema for MCP server definitions |
 | **Registry Validation** | ✅ Done | CLI tool to validate registry entries |
 | **Profile Management** | ✅ Done | Create, update, delete profiles with persistence |
-| **Discovery Engine** | ✅ Done | `scooter_find`, `scooter_add`, `scooter_remove`, `scooter_list_active` |
-| **Code Interpreter** | ✅ Done | `scooter_code_interpreter` with V8 sandbox |
+| **Discovery Engine** | ✅ Done | `scooter_find`, `scooter_activate` (2 primordial tools) |
+| **Code Interpreter** | ✅ Done | V8 sandbox via goja (available, not exposed as primordial tool) |
 | **MCP Gateway** | ✅ Done | SSE server handling JSON-RPC for all profiles |
 | **Client Integrations** | ✅ Done | Cursor, Claude Desktop, Claude Code, VS Code, Gemini CLI, Zed, Codex |
 | **Tauri Desktop Shell** | ✅ Done | Native window with React frontend |

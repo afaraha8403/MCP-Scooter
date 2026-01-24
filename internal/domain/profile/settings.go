@@ -12,6 +12,7 @@ type Settings struct {
 	EnableBeta    bool   `yaml:"enable_beta" json:"enable_beta"`
 	GatewayAPIKey string `yaml:"gateway_api_key" json:"gateway_api_key"`
 	LastProfileID string `yaml:"last_profile_id,omitempty" json:"last_profile_id,omitempty"`
+	VerboseLogging bool `yaml:"verbose_logging" json:"verbose_logging"`
 	// AI routing configuration
 	PrimaryAIProvider   string `yaml:"primary_ai_provider" json:"primary_ai_provider"`
 	PrimaryAIModel      string `yaml:"primary_ai_model" json:"primary_ai_model"`

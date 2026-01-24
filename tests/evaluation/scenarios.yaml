@@ -1,10 +1,10 @@
 scenarios:
   - id: web-search-natural
     name: "Natural Web Search"
-    description: "Tests if the agent can discover, add, and use a search tool without explicit instructions."
+    description: "Tests if the agent can discover, activate, and use a search tool without explicit instructions."
     task: "What company created the Model Context Protocol (MCP) and when was it announced?"
     validation:
-      required_tool_patterns: ["scooter_find", "scooter_add"]
+      required_tool_patterns: ["scooter_find", "scooter_activate"]
       expected_tool_patterns: ["*search*"]
       response_must_contain: ["Anthropic"]
 

@@ -25,11 +25,23 @@ Your primary goal is to solve the user's request using the available tools.
 1. **Check active tools first**: Use `scooter_list_active` to see what's already available.
 2. **Search for tools**: Use `scooter_find` with a query like "search" or "github" to discover tools.
 3. **Add tools**: Use `scooter_add` with the SERVER NAME (e.g., "brave-search", NOT "brave_web_search").
-4. **Use tools**: Call the tool functions with the EXACT argument names from their schemas.
+4. **Use tools via scooter_call**: After adding, you MUST use `scooter_call` to invoke the tool:
+   ```json
+   {"tool": "brave_web_search", "arguments": {"query": "your search"}}
+   ```
 
-## CRITICAL: TOOL ARGUMENT FORMATS
+## CRITICAL: USING scooter_call
 
-When calling tools, you MUST use the exact argument names. Here are examples:
+After activating a server with `scooter_add`, you MUST use `scooter_call` to invoke its tools:
+
+### scooter_call (ALWAYS use this for activated tools)
+```json
+{"tool": "brave_web_search", "arguments": {"query": "AI news", "count": 5}}
+```
+- Required: `tool` (string) - The tool name to call
+- Optional: `arguments` (object) - Arguments for the tool
+
+## TOOL ARGUMENT FORMATS (Legacy - prefer scooter_call)
 
 ### brave_web_search (from brave-search server)
 ```json

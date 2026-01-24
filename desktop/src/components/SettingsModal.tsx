@@ -6,7 +6,9 @@ interface Settings {
   control_port: number;
   mcp_port: number;
   enable_beta: boolean;
+  verbose_logging: boolean;
   gateway_api_key: string;
+  // AI routing configuration
   primary_ai_provider: string;
   primary_ai_model: string;
   fallback_ai_provider: string;
@@ -160,6 +162,18 @@ export function SettingsModal({ isOpen, onClose, settings, onUpdateSettings, onR
               <label htmlFor="enable_beta" style={{ marginBottom: 0 }}>Include Beta Releases</label>
             </div>
             <span className="input-hint">Early access to new features (may be unstable)</span>
+
+            <div className="form-field" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input 
+                type="checkbox" 
+                id="verbose_logging"
+                checked={settings.verbose_logging} 
+                onChange={e => onUpdateSettings({ ...settings, verbose_logging: e.target.checked })}
+                style={{ width: 'auto' }}
+              />
+              <label htmlFor="verbose_logging" style={{ marginBottom: 0 }}>Verbose Logging</label>
+            </div>
+            <span className="input-hint">Enable detailed TRACE-level logs for debugging (may affect performance)</span>
           </div>
 
           <div className="settings-section">
@@ -310,112 +324,6 @@ export function SettingsModal({ isOpen, onClose, settings, onUpdateSettings, onR
               </div>
               <span className="input-hint">Stored securely in system keychain</span>
             </div>
-          </div>
-
-          <div className="settings-section">
-            <h3>AI Routing & Dispatching</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-              Configure AI providers for automatic semantic tool routing. These keys enable intelligent tool selection when using scooter_execute.
-            </p>
-
-            <div className="form-field">
-              <label>Primary AI Provider</label>
-              <select
-                value={settings.primary_ai_provider || ''}
-                onChange={e => onUpdateSettings({ ...settings, primary_ai_provider: e.target.value })}
-                style={{ width: '100%', padding: '8px' }}
-              >
-                <option value="">Select provider</option>
-                <option value="gemini">Gemini</option>
-                <option value="openrouter">OpenRouter</option>
-              </select>
-              <span className="input-hint">Primary provider for semantic routing (Gemini or OpenRouter)</span>
-            </div>
-
-            <div className="form-field" style={{ marginTop: '12px' }}>
-              <label>Primary AI Model</label>
-              <input
-                type="text"
-                value={settings.primary_ai_model || ''}
-                onChange={e => onUpdateSettings({ ...settings, primary_ai_model: e.target.value })}
-                placeholder="e.g., gemini-2.0-flash-exp or openai/gpt-4o-mini"
-              />
-              <span className="input-hint">Enter your preferred model name (no defaults configured)</span>
-            </div>
-
-            <div className="form-field" style={{ marginTop: '12px' }}>
-              <label>Primary AI Key</label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="password"
-                  value={""}
-                  onChange={e => handleAIKeyChange('primary', e.target.value)}
-                  placeholder="Enter API key"
-                  style={{ flex: 1, fontFamily: 'monospace', fontSize: '12px' }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button
-                  className="secondary-btn"
-                  style={{ flex: 1, padding: '6px' }}
-                  onClick={() => handleAIKeyDelete('primary')}
-                  disabled={!settings.primary_ai_provider}
-                >
-                  Remove Key
-                </button>
-              </div>
-              <span className="input-hint">Stored securely in system keychain</span>
-            </div>
-
-            <div className="form-field" style={{ marginTop: '16px' }}>
-              <label>Fallback AI Provider</label>
-              <select
-                value={settings.fallback_ai_provider || ''}
-                onChange={e => onUpdateSettings({ ...settings, fallback_ai_provider: e.target.value })}
-                style={{ width: '100%', padding: '8px' }}
-              >
-                <option value="">Select provider</option>
-                <option value="gemini">Gemini</option>
-                <option value="openrouter">OpenRouter</option>
-              </select>
-              <span className="input-hint">Fallback provider if primary fails</span>
-            </div>
-
-            <div className="form-field" style={{ marginTop: '12px' }}>
-              <label>Fallback AI Model</label>
-              <input
-                type="text"
-                value={settings.fallback_ai_model || ''}
-                onChange={e => onUpdateSettings({ ...settings, fallback_ai_model: e.target.value })}
-                placeholder="e.g., gemini-2.5-pro-exp or openai/gpt-4o"
-              />
-              <span className="input-hint">Enter your preferred model name</span>
-            </div>
-
-            <div className="form-field" style={{ marginTop: '12px' }}>
-              <label>Fallback AI Key</label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="password"
-                  value={""}
-                  onChange={e => handleAIKeyChange('fallback', e.target.value)}
-                  placeholder="Enter API key"
-                  style={{ flex: 1, fontFamily: 'monospace', fontSize: '12px' }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button
-                  className="secondary-btn"
-                  style={{ flex: 1, padding: '6px' }}
-                  onClick={() => handleAIKeyDelete('fallback')}
-                  disabled={!settings.fallback_ai_provider}
-                >
-                  Remove Key
-                </button>
-              </div>
-              <span className="input-hint">Stored securely in system keychain</span>
-            </div>
-
           </div>
 
           <div className="settings-section danger-zone">

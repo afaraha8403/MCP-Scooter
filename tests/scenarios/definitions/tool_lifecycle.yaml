@@ -1,5 +1,5 @@
 name: tool-lifecycle-test
-description: Tests add/remove/list cycle
+description: Tests activate and use cycle (simplified - no deactivate in core tools)
 timeout: 60s
 requires:
   env: []
@@ -10,29 +10,23 @@ steps:
     expect:
       error: null
 
-  - name: add_github
+  - name: activate_github
     action: call_tool
-    tool: scooter_add
+    tool: scooter_activate
     args:
       tool_name: "github"
     expect:
       error: null
 
-  - name: verify_github_added
+  - name: verify_github_on
     action: list_tools
     expect:
       tools_contain: ["search_repositories"]
 
-  - name: remove_github
+  - name: call_github_tool
     action: call_tool
-    tool: scooter_remove
+    tool: search_repositories
     args:
-      tool_name: "github"
+      query: "mcp"
     expect:
       error: null
-
-  - name: verify_github_removed
-    action: list_tools
-    expect:
-      error: null
-      # Note: We'd need a way to expect tools_NOT_contain in the runner

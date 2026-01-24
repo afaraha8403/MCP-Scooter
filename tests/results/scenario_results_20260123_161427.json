@@ -1,0 +1,95 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": null,
+    "score": 0,
+    "total_duration": 0.6884968280792236,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search",
+    "acceptable_answers": [
+      "Anthropic"
+    ]
+  },
+  {
+    "question": "Search for 'github mcp-server' and tell me the name of GitHub's official MCP server repository.",
+    "expected": "github-mcp-server",
+    "actual": "The name of GitHub's official MCP server repository is github/github-mcp-server.",
+    "score": 0,
+    "total_duration": 7.6628007888793945,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0027379989624023438,
+          0.002722501754760742
+        ]
+      },
+      "scooter_add": {
+        "count": 2,
+        "durations": [
+          0.0016481876373291016,
+          1.3136467933654785
+        ]
+      },
+      "brave_web_search": {
+        "count": 1,
+        "durations": [
+          0.6114852428436279
+        ]
+      }
+    },
+    "num_tool_calls": 5,
+    "summary": "I have found the github repo.",
+    "feedback": null,
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search",
+    "acceptable_answers": [
+      "github-mcp-server",
+      "github/github-mcp-server"
+    ]
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I can use the \"brave-search\" tool to search for academic papers.",
+    "score": 0,
+    "total_duration": 2.3777480125427246,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0025641918182373047
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": "I first used the `scooter_find` tool to see what search-related tools are available. The results show that I have access to \"brave-search\" which allows searching the web. While not specifically for academic papers, it can be used to search for them.",
+    "feedback": "The scooter_find tool is useful for discovering available tools. The search results could be improved by including more specific categories or tags to better filter tools, e.g. tags for academic search.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery",
+    "acceptable_answers": [
+      "search"
+    ]
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 0.7841415405273438,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure",
+    "acceptable_answers": [
+      ""
+    ]
+  }
+]

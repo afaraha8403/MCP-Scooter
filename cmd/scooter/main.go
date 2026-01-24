@@ -107,6 +107,9 @@ func run(serve bool) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
+	// Initialize Logger Verbosity from settings
+	logger.SetVerbose(settings.VerboseLogging)
+
 	onboardingRequired := len(profiles) == 0
 
 	// Initialize Profile Manager

@@ -1,0 +1,16 @@
+{
+  "$schema": "../../schemas/skill.schema.json",
+  "name": "brave-search",
+  "title": "Brave Search",
+  "description": "Search the web using Brave Search API for current information, news, and documentation",
+  "version": "1.0.0",
+  "category": "search",
+  "requires_tools": ["brave-search"],
+  "skill_type": "tool",
+  "mode": "hybrid",
+  "tags": ["search", "web", "research", "news", "documentation"],
+  "author": "MCP Scooter Team",
+  "homepage": "https://mcp-scooter.com/skills/brave-search",
+  "license": "MIT",
+  "skill_content": "# Brave Search Skill\n\nUse this skill when the user wants to search the web for current information, news, documentation, or any real-time data.\n\n## When to Use\n\n- Searching for current events or news\n- Looking up documentation or tutorials\n- Finding information that may have changed recently\n- Researching topics that require up-to-date information\n\n## CLI Usage (Recommended)\n\n### Web Search\n```bash\nscooter call brave-search.brave_web_search query=\"<search query>\"\n```\n\n**Parameters:**\n- `query` (required): The search query string\n- `count` (optional): Number of results (default: 10, max: 20)\n\n### Local Search\n```bash\nscooter call brave-search.brave_local_search query=\"<query>\" count=5\n```\n\n## Gateway Usage (MCP-native clients)\n\n1. Activate the tool:\n   ```\n   scooter_activate(\"brave-search\")\n   ```\n\n2. Call the tool directly:\n   ```\n   brave_web_search({query: \"your search query\"})\n   ```\n\n## Examples\n\n| User Request | Command |\n|--------------|----------|\n| \"Search for React 19 features\" | `scooter call brave-search.brave_web_search query=\"React 19 new features 2026\"` |\n| \"Find TypeScript tutorials\" | `scooter call brave-search.brave_web_search query=\"TypeScript tutorial beginners\"` |\n| \"Latest AI news\" | `scooter call brave-search.brave_web_search query=\"artificial intelligence news today\"` |\n\n## Tips\n\n- Use specific, detailed queries for better results\n- Include year or \"latest\" for time-sensitive information\n- Results include title, URL, description, and relevance score\n"
+}

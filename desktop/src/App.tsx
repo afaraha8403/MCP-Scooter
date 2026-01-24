@@ -61,8 +61,10 @@ interface Settings {
   control_port: number;
   mcp_port: number;
   enable_beta: boolean;
+  verbose_logging: boolean;
   gateway_api_key: string;
   last_profile_id?: string;
+  // AI routing configuration
   primary_ai_provider: string;
   primary_ai_model: string;
   fallback_ai_provider: string;
@@ -665,7 +667,6 @@ function App() {
       if (res.ok) {
         setAppSettings(newSettings);
         addLog("Global settings updated. Please restart the backend to apply changes.", "INFO");
-        setShowSettings(false);
       }
     } catch (err) {
       addLog(`Error updating settings: ${err}`, "ERROR");
@@ -1414,7 +1415,7 @@ function App() {
                         updateProfileTools(selectedProfile.id, tools);
                       }}
                     >
-                      Deactivate
+                      Turn Off
                     </button>
                   ) : (
                     <button 
@@ -1426,7 +1427,7 @@ function App() {
                         updateProfileTools(selectedProfile.id, tools);
                       }}
                     >
-                      Activate
+                      Turn On
                     </button>
                   )}
                 </div>
@@ -2320,7 +2321,7 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  <CheckmarkCircleRegular /> Enabled Tools
+                  <CheckmarkCircleRegular /> Tools On
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'catalog' ? 'active' : ''}`}
@@ -2358,7 +2359,7 @@ function App() {
               </div>
               <span className="badge">
                 {activeTab === 'active' 
-                  ? `${(selectedProfile?.allow_tools?.length || 0) + builtinTools.filter(t => !selectedProfile?.disabled_system_tools?.includes(t.name)).length} Enabled` 
+                  ? `${(selectedProfile?.allow_tools?.length || 0) + builtinTools.filter(t => !selectedProfile?.disabled_system_tools?.includes(t.name)).length} On` 
                   : activeTab === 'catalog'
                   ? `${(filteredTools || []).length} Available`
                   : activeTab === 'clients'
@@ -2513,7 +2514,7 @@ function App() {
                       </div>
                     )}
                     
-                    {/* User's Activated Tools */}
+                    {/* User's Tools (On) */}
                     {selectedProfile?.allow_tools && selectedProfile.allow_tools.length > 0 && (
                       <div 
                         className="category-title" 
@@ -2606,7 +2607,7 @@ function App() {
                                 updateProfileTools(selectedProfile.id, tools);
                               }}
                             >
-                              Deactivate
+                              Turn Off
                             </button>
                           </div>
                         </div>
@@ -2621,7 +2622,7 @@ function App() {
                         border: '1px dashed var(--border-subtle)'
                       }}>
                         <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                          No additional tools enabled for this profile.
+                          No additional tools are on for this profile.
                         </div>
                         <button 
                           className="primary"
@@ -2777,7 +2778,7 @@ function App() {
                                     </button>
                                   )}
                                   {isActive ? (
-                                    <button disabled style={{ opacity: 0.5 }} onClick={(e) => e.stopPropagation()}>Active</button>
+                                    <button disabled style={{ opacity: 0.5 }} onClick={(e) => e.stopPropagation()}>On</button>
                                   ) : (
                                     <button 
                                       className="primary"
@@ -2788,7 +2789,7 @@ function App() {
                                         updateProfileTools(selectedProfile.id, tools);
                                       }}
                                     >
-                                      Activate
+                                      Turn On
                                     </button>
                                   )}
                                 </div>
@@ -3475,7 +3476,7 @@ function App() {
                             {typeof testResult.data === 'string' ? testResult.data : JSON.stringify(testResult.data, null, 2)}
                             {testResult.data?.message === "tool not found: " + selectedFunctionName && (
                               <div style={{ marginTop: '8px', fontSize: '11px', opacity: 0.8 }}>
-                                Tip: Make sure this tool is <strong>Activated</strong> in your profile before testing.
+                                Tip: Make sure this tool is <strong>On</strong> in your profile before testing.
                               </div>
                             )}
                           </div>

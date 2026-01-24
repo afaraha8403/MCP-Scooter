@@ -361,6 +361,7 @@ func (s *ControlServer) handleUpdateSettings(w http.ResponseWriter, r *http.Requ
 	}
 
 	s.settings = settings
+	logger.SetVerbose(settings.VerboseLogging)
 	if s.store != nil {
 		if err := s.store.SaveSettings(s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1381,7 +1382,7 @@ func NewMcpGateway(manager *ProfileManager, settings profile.Settings) *McpGatew
 }
 
 // NotifyToolsChanged sends a tools/list_changed notification to all SSE clients for a profile.
-// This is called after scooter_add, scooter_remove, or auto-cleanup.
+// This is called after scooter_activate or auto-cleanup.
 func (g *McpGateway) NotifyToolsChanged(profileID string) {
 	g.sseClientsMu.RLock()
 	clients := g.sseClients[profileID]
@@ -1551,12 +1552,16 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Trace(fmt.Sprintf("[MCP] Raw request from profile %s: %s", id, logger.TruncateForLog(string(body), 2048)))
+
 	if err := json.Unmarshal(body, &req); err != nil {
 		logger.AddLog("ERROR", fmt.Sprintf("Failed to decode MCP request: %v. Body: %s", err, string(body)))
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(NewJSONRPCErrorResponse(nil, ParseError, "Parse error"))
 		return
 	}
+
+	logger.Trace(fmt.Sprintf("[MCP] Parsed request: method=%s, id=%v", req.Method, req.ID))
 
 	// Handle notifications (no ID)
 	if req.ID == nil {
@@ -1579,7 +1584,9 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
 			"protocolVersion": "2024-11-05",
 			"capabilities": map[string]interface{}{
-				"tools": map[string]interface{}{},
+				"tools": map[string]interface{}{
+					"listChanged": true, // Server will emit notifications/tools/list_changed when tools change
+				},
 			},
 			"serverInfo": map[string]string{
 				"name":    "mcp-scooter",
@@ -1615,6 +1622,13 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 			mcpTools = append(mcpTools, serverTools...)
 		}
 
+		// Log all tool names being returned for debugging
+		allToolNames := make([]string, 0, len(mcpTools))
+		for _, t := range mcpTools {
+			allToolNames = append(allToolNames, t.Name)
+		}
+		logger.Trace(fmt.Sprintf("[MCP] tools/list returning %d tools: %v", len(mcpTools), allToolNames))
+
 		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
 			"tools": mcpTools,
 		})
@@ -1630,6 +1644,12 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		logger.AddLog("INFO", "Handling 'prompts/list' request")
 		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
 			"prompts": []interface{}{},
+		})
+
+	case "resources/templates/list":
+		logger.AddLog("INFO", "Handling 'resources/templates/list' request")
+		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
+			"resourceTemplates": []interface{}{},
 		})
 
 	case "tools/call", "call_tool":
@@ -1691,6 +1711,7 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		if !isBuiltin {
 			// For non-builtin tools, check if the server is active
 			serverName, found := engine.GetServerForTool(params.Name)
+			logger.Trace(fmt.Sprintf("[MCP] Tool lookup: name=%s, serverName=%s, found=%v", params.Name, serverName, found))
 			if !found {
 				// Tool not found in registry at all
 				msg := fmt.Sprintf("Tool '%s' not found. Use scooter_find to discover available tools.", params.Name)
@@ -1714,6 +1735,20 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 				internalHeaderValue := r.Header.Get("X-Scooter-Internal")
 				isInternal := internalHeaderValue == "true"
 				logger.AddLog("DEBUG", fmt.Sprintf("Tool '%s': isActive=%v, internalHeaderValue='%s', isInternal=%v", params.Name, isActive, internalHeaderValue, isInternal))
+
+				// For external requests, check if tool is allowed for this profile
+				isAllowed := false
+				if profileOk {
+					for _, allowed := range p.AllowTools {
+						if allowed == serverName {
+							isAllowed = true
+							break
+						}
+					}
+				}
+
+	logger.Trace(fmt.Sprintf("[MCP] Activation check: tool=%s, isActive=%v, isInternal=%v, isAllowed=%v", params.Name, isActive, isInternal, isAllowed))
+
 				if isInternal {
 					// For internal requests (tool testing), temporarily activate the tool
 					logger.AddLog("DEBUG", fmt.Sprintf("Tool '%s': Internal request detected, temporarily activating server '%s'", params.Name, serverName))
@@ -1725,17 +1760,6 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 					}
 					logger.AddLog("DEBUG", fmt.Sprintf("Tool '%s': Server '%s' temporarily activated for testing", params.Name, serverName))
 				} else {
-					// For external requests, check if tool is allowed for this profile
-					isAllowed := false
-					if profileOk {
-						for _, allowed := range p.AllowTools {
-							if allowed == serverName {
-								isAllowed = true
-								break
-							}
-						}
-					}
-
 					if isAllowed {
 						msg := fmt.Sprintf("Tool '%s' is not active. Use scooter_add('%s') to enable it first.", params.Name, serverName)
 						logger.AddLog("ERROR", msg)
@@ -1761,8 +1785,8 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 			resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, fmt.Sprintf("Tool error: %v", err))
 		} else {
 			logger.AddLog("INFO", fmt.Sprintf("Tool '%s' executed successfully in %v", params.Name, duration))
-			// If scooter_add or scooter_remove succeeded, notify SSE clients to refresh tools
-			if params.Name == "scooter_add" || params.Name == "scooter_remove" {
+			// If scooter_activate succeeded, notify SSE clients to refresh tools
+			if params.Name == "scooter_activate" {
 				g.NotifyToolsChanged(id)
 			}
 
@@ -1771,16 +1795,26 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 				if _, hasContent := resMap["content"]; hasContent {
 					resp = NewJSONRPCResponse(req.ID, resMap)
 				} else {
+					// Serialize the result as JSON for better readability by AI agents
+					resultJSON, jsonErr := json.MarshalIndent(resMap, "", "  ")
+					if jsonErr != nil {
+						resultJSON = []byte(fmt.Sprintf("%v", result))
+					}
 					resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
 						"content": []map[string]interface{}{
-							{"type": "text", "text": fmt.Sprintf("%v", result)},
+							{"type": "text", "text": string(resultJSON)},
 						},
 					})
 				}
 			} else {
+				// Try to serialize as JSON if it's a serializable type
+				resultText := fmt.Sprintf("%v", result)
+				if jsonBytes, jsonErr := json.MarshalIndent(result, "", "  "); jsonErr == nil {
+					resultText = string(jsonBytes)
+				}
 				resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
 					"content": []map[string]interface{}{
-						{"type": "text", "text": fmt.Sprintf("%v", result)},
+						{"type": "text", "text": resultText},
 					},
 				})
 			}
@@ -1800,24 +1834,30 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 
 		if ok {
 			respData, _ := json.Marshal(resp)
+			logger.Trace(fmt.Sprintf("[MCP] Response for request %v: %s", req.ID, logger.TruncateForLog(string(respData), 2048)))
 			select {
 			case ch <- string(respData):
 				logger.AddLog("INFO", fmt.Sprintf("Sent response to SSE session %s", sessionId))
+				logger.Trace(fmt.Sprintf("[MCP] SSE delivery to session %s: success", sessionId))
 				w.WriteHeader(http.StatusAccepted)
 				return
 			case <-time.After(2 * time.Second):
 				logger.AddLog("ERROR", fmt.Sprintf("Timeout sending response to SSE session %s. Falling back to HTTP body.", sessionId))
+				logger.Trace(fmt.Sprintf("[MCP] SSE delivery to session %s: timeout", sessionId))
 				// Fallback to sending in body if channel is blocked
 			}
 		} else {
 			logger.AddLog("WARNING", fmt.Sprintf("Session %s not found for MCP message. Falling back to HTTP body.", sessionId))
+			logger.Trace(fmt.Sprintf("[MCP] SSE delivery to session %s: session-not-found", sessionId))
 		}
 	}
 
 	// Fallback/Legacy: send response in the HTTP body (Streamable HTTP style)
 	logger.AddLog("INFO", fmt.Sprintf("Sending MCP response in HTTP body (Profile: %s)", id))
+	respData, _ := json.Marshal(resp)
+	logger.Trace(fmt.Sprintf("[MCP] Response for request %v: %s", req.ID, logger.TruncateForLog(string(respData), 2048)))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	w.Write(respData)
 }
 
 // ProfileManager manages discovery engines for active profiles.

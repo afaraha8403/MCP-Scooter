@@ -1,0 +1,16 @@
+{
+  "$schema": "../../schemas/skill.schema.json",
+  "name": "context7",
+  "title": "Context7 Documentation",
+  "description": "Fetch up-to-date documentation for libraries and frameworks directly from their official sources",
+  "version": "1.0.0",
+  "category": "development",
+  "requires_tools": ["context7"],
+  "skill_type": "tool",
+  "mode": "hybrid",
+  "tags": ["documentation", "libraries", "frameworks", "development", "reference"],
+  "author": "MCP Scooter Team",
+  "homepage": "https://mcp-scooter.com/skills/context7",
+  "license": "MIT",
+  "skill_content": "# Context7 Documentation Skill\n\nUse this skill when you need to fetch official, up-to-date documentation for libraries, frameworks, or programming tools.\n\n## When to Use\n\n- Looking up API documentation for a library\n- Finding usage examples for a framework\n- Checking the latest syntax or features\n- Getting accurate, official documentation (not outdated training data)\n\n## CLI Usage (Recommended)\n\n### Step 1: Resolve Library ID\nFirst, find the Context7-compatible library ID:\n```bash\nscooter call context7.resolve-library-id libraryName=\"<library name>\"\n```\n\n**Example:**\n```bash\nscooter call context7.resolve-library-id libraryName=\"react\"\n# Returns: /websites/react_dev\n```\n\n### Step 2: Get Documentation\nFetch documentation for a specific topic:\n```bash\nscooter call context7.get-library-docs context7CompatibleLibraryID=\"<id>\" topic=\"<topic>\"\n```\n\n**Parameters:**\n- `context7CompatibleLibraryID` (required): The library ID from step 1\n- `topic` (optional): Specific topic to focus on (e.g., \"hooks\", \"routing\", \"state\")\n- `tokens` (optional): Maximum tokens to return (default: 5000)\n\n## Gateway Usage (MCP-native clients)\n\n1. Activate the tool:\n   ```\n   scooter_activate(\"context7\")\n   ```\n\n2. Resolve library:\n   ```\n   resolve-library-id({libraryName: \"react\"})\n   ```\n\n3. Get docs:\n   ```\n   get-library-docs({context7CompatibleLibraryID: \"/websites/react_dev\", topic: \"hooks\"})\n   ```\n\n## Examples\n\n| User Request | Commands |\n|--------------|----------|\n| \"How do React hooks work?\" | 1. `scooter call context7.resolve-library-id libraryName=\"react\"`<br>2. `scooter call context7.get-library-docs context7CompatibleLibraryID=\"/websites/react_dev\" topic=\"hooks\"` |\n| \"Next.js routing docs\" | 1. `scooter call context7.resolve-library-id libraryName=\"nextjs\"`<br>2. `scooter call context7.get-library-docs context7CompatibleLibraryID=\"/websites/nextjs_org\" topic=\"routing\"` |\n| \"Tailwind CSS utilities\" | 1. `scooter call context7.resolve-library-id libraryName=\"tailwindcss\"`<br>2. `scooter call context7.get-library-docs context7CompatibleLibraryID=\"/websites/tailwindcss_com\" topic=\"utilities\"` |\n\n## Supported Libraries\n\nContext7 supports most popular libraries and frameworks including:\n- React, Vue, Angular, Svelte\n- Next.js, Nuxt, Remix, Astro\n- Node.js, Deno, Bun\n- TypeScript, Python, Go, Rust\n- And many more...\n\n## Tips\n\n- Always resolve the library ID first before fetching docs\n- Use specific topics to get focused documentation\n- Increase `tokens` parameter if you need more comprehensive docs\n"
+}

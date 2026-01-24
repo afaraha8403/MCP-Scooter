@@ -510,6 +510,11 @@ func (e *DiscoveryEngine) CallTool(name string, params map[string]interface{}) (
 	if err == nil {
 		return result, nil
 	}
+	// If the error is NOT "unknown builtin tool", it means the builtin was found but failed
+	// In that case, return the actual error instead of falling through to server lookup
+	if !strings.Contains(err.Error(), "unknown builtin tool") {
+		return nil, err
+	}
 
 	// 2. Try active servers
 	// We use exact name matching to avoid issues with normalization.

@@ -32,7 +32,34 @@ var (
 
 	// Redaction regex for sk-scooter keys
 	scooterKeyRegex = regexp.MustCompile(`sk-scooter-[a-zA-Z0-9]+`)
+
+	verboseEnabled bool
 )
+
+// SetVerbose enables or disables TRACE-level logging.
+func SetVerbose(enabled bool) {
+	mu.Lock()
+	defer mu.Unlock()
+	verboseEnabled = enabled
+}
+
+// Trace adds a log entry if verbose logging is enabled.
+func Trace(message string) {
+	mu.RLock()
+	enabled := verboseEnabled
+	mu.RUnlock()
+	if enabled {
+		AddLog("TRACE", message)
+	}
+}
+
+// TruncateForLog limits a string to maxLen and adds a truncation suffix if needed.
+func TruncateForLog(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "... [truncated]"
+}
 
 // Init initializes the logging system.
 func Init(appDir string) error {

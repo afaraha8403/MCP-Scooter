@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mcp-scooter.com/schemas/skill.schema.json",
+  "title": "MCP Scooter Skill Definition",
+  "description": "Schema for defining skills in MCP Scooter's Skills Catalog",
+  "type": "object",
+  "required": ["name", "title", "description", "version", "skill_content"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Unique identifier for the skill (lowercase, hyphens allowed)",
+      "examples": ["brave-search", "full-stack-dev", "data-analyst"]
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title for the skill",
+      "examples": ["Brave Search", "Full Stack Developer"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of what the skill provides",
+      "maxLength": 500
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the skill",
+      "examples": ["1.0.0", "2.1.3"]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "search",
+        "development",
+        "productivity",
+        "data",
+        "communication",
+        "devops",
+        "ai",
+        "media",
+        "finance",
+        "other"
+      ],
+      "description": "Category for organizing skills in the catalog"
+    },
+    "requires_tools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of MCP server names required by this skill",
+      "examples": [["brave-search"], ["github", "postgres", "browser-mcp"]]
+    },
+    "skill_content": {
+      "type": "string",
+      "description": "The actual skill content in Markdown format. This is what gets written to SKILL.md"
+    },
+    "system_prompt_addition": {
+      "type": "string",
+      "description": "Optional text to add to the system prompt when this skill is active"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for search and discovery",
+      "examples": [["search", "web", "research"]]
+    },
+    "author": {
+      "type": "string",
+      "description": "Author or organization that created the skill"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the skill's homepage or documentation"
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the skill's source repository"
+    },
+    "license": {
+      "type": "string",
+      "description": "License under which the skill is distributed",
+      "examples": ["MIT", "Apache-2.0", "CC-BY-4.0"]
+    },
+    "skill_type": {
+      "type": "string",
+      "enum": ["tool", "composite", "custom"],
+      "default": "tool",
+      "description": "Type of skill: 'tool' (single MCP), 'composite' (multiple MCPs), 'custom' (user-defined)"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["cli", "gateway", "hybrid"],
+      "default": "hybrid",
+      "description": "How the skill instructs agents to use tools: 'cli' (scooter call), 'gateway' (MCP protocol), 'hybrid' (both)"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "downloads": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rating": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        }
+      },
+      "description": "Metadata about the skill (managed by the catalog)"
+    }
+  },
+  "additionalProperties": false
+}

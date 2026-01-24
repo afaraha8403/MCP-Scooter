@@ -24,7 +24,7 @@ $env:SCOOTER_URL="http://127.0.0.1:6277"; cd tests; go test ./protocol/... -v
 
 **Validation:**
 - Handshake returns correct protocol version.
-- Builtin tools (`scooter_*`) are listed and callable.
+- Builtin tools (`scooter_find`, `scooter_activate`) are listed and callable.
 </step>
 
 ### Step 2: Multi-Step Scenarios (Layer 2)
@@ -37,9 +37,8 @@ $env:SCOOTER_URL="http://127.0.0.1:6277"; cd tests; go test ./scenarios/... -v
 ```
 
 **Validation:**
-- Agent can add a tool (e.g., `github`).
+- Agent can activate a tool (e.g., `github`) using `scooter_activate`.
 - Proxied tools are correctly exposed after activation.
-- Tool removal cleans up the environment.
 </step>
 
 ### Step 3: Agent Reasoning Evaluation (Layer 3)
@@ -55,7 +54,8 @@ $env:PYTHONIOENCODING="utf-8"; $env:SCOOTER_URL="http://127.0.0.1:6277"; cd test
 
 **Validation:**
 - Agent uses `scooter_find` to discover capabilities.
-- Agent uses `scooter_add` to activate necessary tools.
+- Agent uses `scooter_activate` to turn on necessary tools.
+- Agent calls the activated tools directly (e.g., `brave_web_search`).
 - Agent completes the end-to-end task (e.g., search web, find repository).
 
 **Current Scenarios:**
@@ -73,7 +73,7 @@ Review the generated reports in `tests/results/`.
 1. **Read latest report:** `ls tests/results/scenario_report_*.md`
 2. **Check for failures:** Identify if the agent failed to reason correctly or if a tool returned an error.
 3. **Common failure causes:**
-   - Tool argument format errors (check `EVALUATION_PROMPT` in `run_evaluation.py`)
+   - Tool argument format errors
    - Profile restrictions blocking tool access (check `AllowTools` in profile config)
    - Missing tool schemas or descriptions
 4. **Suggest Fixes:** If reasoning failed, suggest prompt improvements or tool description updates.

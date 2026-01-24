@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,20 +15,26 @@ import (
 
 // PrimordialTools returns the definitions for built-in MCP tools.
 // These are the "meta-layer" tools that are always available to AI clients.
-// External tools (like brave-search) are NOT exposed until explicitly activated via scooter_add.
+// External tools (like brave-search) are NOT exposed until explicitly activated via scooter_activate.
+//
+// Simplified to just 2 core tools:
+// - scooter_find: Discover available tools in the registry
+// - scooter_activate: Turn on a tool server for the current session
+//
+// Note: scooter_ai (AI-powered intent routing) is planned for a future release.
 func PrimordialTools() []ToolDefinition {
 	return []ToolDefinition{
 		{
 			Name:        "scooter_find",
-			Title:       "Search Registry",
-			Description: "Searches the Local Registry and Community Catalog for MCP tools. Use this to discover available tools before adding them.",
+			Title:       "Find Tools",
+			Description: "Search the registry for available MCP tools.",
 			Category:    "system",
 			Source:      "builtin",
 			Installed:   true,
 			Tools: []registry.Tool{
 				{
 					Name:        "scooter_find",
-					Description: "Searches the Local Registry and Community Catalog for MCP tools. Returns tool names, descriptions, and available sub-tools. Use this to discover what tools can be added to your session.",
+					Description: "Search the Local Registry and Community Catalog for MCP tools. Returns tool names, descriptions, and available sub-tools. Use this to discover what tools can be activated.",
 					InputSchema: &registry.JSONSchema{
 						Type: "object",
 						Properties: map[string]registry.PropertySchema{
@@ -44,189 +48,25 @@ func PrimordialTools() []ToolDefinition {
 			},
 		},
 		{
-			Name:        "scooter_add",
-			Title:       "Enable Tool",
-			Description: "Installs and enables an MCP tool for the current session. After adding, the tool's functions become available.",
+			Name:        "scooter_activate",
+			Title:       "Activate Tool",
+			Description: "Turn on an MCP tool server. Once activated, its functions become available.",
 			Category:    "system",
 			Source:      "builtin",
 			Installed:   true,
 			Tools: []registry.Tool{
 				{
-					Name:        "scooter_add",
-					Description: "Activates an MCP tool server for the current session. Once added, the tool's functions become available for use. Use scooter_find first to discover available tools.",
+					Name:        "scooter_activate",
+					Description: "Turn on an MCP tool server for the current session. Once activated, the tool's functions become available for use. Use scooter_find first to discover available tools.",
 					InputSchema: &registry.JSONSchema{
 						Type: "object",
 						Properties: map[string]registry.PropertySchema{
 							"tool_name": {
 								Type:        "string",
-								Description: "The name of the tool/server to add (e.g., 'brave-search', 'github'). Use the server name, not individual function names.",
+								Description: "The name of the tool/server to activate (e.g., 'brave-search', 'github'). Use the server name, not individual function names.",
 							},
 						},
 						Required: []string{"tool_name"},
-					},
-				},
-			},
-		},
-		{
-			Name:        "scooter_remove",
-			Title:       "Disable Tool",
-			Description: "Unloads an MCP tool to free up context window space and system resources.",
-			Category:    "system",
-			Source:      "builtin",
-			Installed:   true,
-			Tools: []registry.Tool{
-				{
-					Name:        "scooter_remove",
-					Description: "Deactivates an MCP tool server, removing its functions from the session. Use this to free up resources when a tool is no longer needed.",
-					InputSchema: &registry.JSONSchema{
-						Type: "object",
-						Properties: map[string]registry.PropertySchema{
-							"tool_name": {
-								Type:        "string",
-								Description: "The name of the tool/server to remove (e.g., 'brave-search'). Use scooter_list_active to see currently active tools.",
-							},
-						},
-						Required: []string{"tool_name"},
-					},
-				},
-			},
-		},
-		{
-			Name:        "scooter_list_active",
-			Title:       "List Active",
-			Description: "Returns a list of currently active tool servers and their available functions.",
-			Category:    "system",
-			Source:      "builtin",
-			Installed:   true,
-			Tools: []registry.Tool{
-				{
-					Name:        "scooter_list_active",
-					Description: "Lists all currently active MCP tool servers and the functions they provide. Use this to see what tools are available in your current session.",
-					InputSchema: &registry.JSONSchema{
-						Type:       "object",
-						Properties: map[string]registry.PropertySchema{},
-					},
-				},
-			},
-		},
-		{
-			Name:        "scooter_code_interpreter",
-			Title:       "Code Interpreter",
-			Description: "Executes sandboxed JavaScript code. Can chain other tools using callTool(name, args).",
-			Category:    "system",
-			Source:      "builtin",
-			Installed:   true,
-			Tools: []registry.Tool{
-				{
-					Name:        "scooter_code_interpreter",
-					Description: "Executes JavaScript code in a secure sandbox. Use 'callTool(name, args)' within the script to chain other active tools. Results are returned without flooding the context window.",
-					InputSchema: &registry.JSONSchema{
-						Type: "object",
-						Properties: map[string]registry.PropertySchema{
-							"script": {
-								Type:        "string",
-								Description: "JavaScript code to execute. Use callTool('tool_name', {args}) to invoke other tools.",
-							},
-							"arguments": {
-								Type:        "object",
-								Description: "Optional arguments to pass to the script, accessible as 'args' variable.",
-							},
-						},
-						Required: []string{"script"},
-					},
-				},
-			},
-		},
-		{
-			Name:        "scooter_filesystem",
-			Title:       "Filesystem",
-			Description: "Safe file operations with strict path scoping. Supports read, write, list, delete, and exists.",
-			Category:    "system",
-			Source:      "builtin",
-			Installed:   true,
-			Tools: []registry.Tool{
-				{
-					Name:        "scooter_filesystem",
-					Description: "Performs safe file system operations with path validation. Supports read, write, list, delete, and exists operations.",
-					InputSchema: &registry.JSONSchema{
-						Type: "object",
-						Properties: map[string]registry.PropertySchema{
-							"operation": {
-								Type:        "string",
-								Description: "The operation to perform: 'read', 'write', 'list', 'delete', or 'exists'.",
-								Enum:        []string{"read", "write", "list", "delete", "exists"},
-							},
-							"path": {
-								Type:        "string",
-								Description: "The file or directory path to operate on.",
-							},
-							"content": {
-								Type:        "string",
-								Description: "Content to write (required for 'write' operation).",
-							},
-						},
-						Required: []string{"operation", "path"},
-					},
-				},
-			},
-		},
-		{
-			Name:        "scooter_fetch",
-			Title:       "HTTP Fetch",
-			Description: "Makes HTTP requests to retrieve web content. Supports GET, POST, and custom headers.",
-			Category:    "system",
-			Source:      "builtin",
-			Installed:   true,
-			Tools: []registry.Tool{
-				{
-					Name:        "scooter_fetch",
-					Description: "Makes HTTP requests to retrieve web content. Supports various methods and custom headers.",
-					InputSchema: &registry.JSONSchema{
-						Type: "object",
-						Properties: map[string]registry.PropertySchema{
-							"url": {
-								Type:        "string",
-								Description: "The URL to fetch.",
-							},
-							"method": {
-								Type:        "string",
-								Description: "HTTP method (GET, POST, PUT, DELETE, etc.). Defaults to GET.",
-								Enum:        []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"},
-							},
-							"headers": {
-								Type:        "object",
-								Description: "Optional HTTP headers as key-value pairs.",
-							},
-							"body": {
-								Type:        "string",
-								Description: "Request body for POST/PUT requests.",
-							},
-						},
-						Required: []string{"url"},
-					},
-				},
-			},
-		},
-		{
-			Name:        "scooter_execute",
-			Title:       "AI Semantic Dispatcher",
-			Description: "AI-powered dispatcher for automatic tool routing. Use this when you are unsure which tool handles your intent or cannot route a tool call. This uses an internal LLM to match your intent to available tools.",
-			Category:    "system",
-			Source:      "builtin",
-			Installed:   true,
-			Tools: []registry.Tool{
-				{
-					Name:        "scooter_execute",
-					Description: "Automatically routes your intent to appropriate tool using semantic understanding. Use when you are unsure which tool to call for your task.",
-					InputSchema: &registry.JSONSchema{
-						Type: "object",
-						Properties: map[string]registry.PropertySchema{
-							"intent": {
-								Type:        "string",
-								Description: "Your intent or task description in natural language (e.g., 'search the web for latest AI news', 'create a GitHub issue')",
-							},
-						},
-						Required: []string{"intent"},
 					},
 				},
 			},
@@ -235,6 +75,7 @@ func PrimordialTools() []ToolDefinition {
 }
 
 // HandleBuiltinTool handles calls to the primordial tools.
+// Simplified to just 2 core tools: scooter_find and scooter_activate
 func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]interface{}) (interface{}, error) {
 	e.mu.RLock()
 	isDisabled := e.disabledTools[name]
@@ -291,13 +132,13 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 			"tools": formatted,
 		}, nil
 		
-	case "scooter_add":
+	case "scooter_activate":
 		tool, ok := params["tool_name"].(string)
 		if !ok {
 			return nil, fmt.Errorf("tool_name is required")
 		}
 		
-		// Check if tool is already active
+		// Check if tool is already active (already "on")
 		activeServers := e.ListActive()
 		alreadyActive := false
 		for _, s := range activeServers {
@@ -311,14 +152,31 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 			// Get the tools that are already available
 			availableTools := e.GetActiveToolsForServer(tool)
 			toolNames := make([]string, 0, len(availableTools))
+			toolSchemas := make([]map[string]interface{}, 0, len(availableTools))
 			for _, t := range availableTools {
 				toolNames = append(toolNames, t.Name)
+				toolSchema := buildToolSchema(t)
+				toolSchemas = append(toolSchemas, toolSchema)
 			}
+			
+		// Build example call for the first tool
+		exampleTool := ""
+		exampleCall := ""
+		if len(toolNames) > 0 {
+			exampleTool = toolNames[0]
+			exampleCall = fmt.Sprintf(`{"server": "mcp-scooter", "tool": "%s", "arguments": {...}}`, exampleTool)
+		}
+		
 		return map[string]interface{}{
-			"status":          "already_active",
-			"server":          tool,
+			"status":          "already_on",
+			"server":          "mcp-scooter",  // Always mcp-scooter, not the original server
+			"activated_from":  tool,
 			"available_tools": toolNames,
-			"message":         fmt.Sprintf("Server '%s' is already active. Available tools: %v.\n\n--- ROUTING INSTRUCTION ---\nAll tools listed above are managed exclusively by the 'mcp-scooter' gateway. Even if their names (e.g., starting with '%s_') suggest they belong to another server, you MUST execute them through the 'mcp-scooter' connection. If direct execution fails, use the 'scooter_execute' tool.", tool, toolNames, strings.Split(tool, "-")[0]),
+			"tool_schemas":    toolSchemas,
+			"message":         fmt.Sprintf("Tools from '%s' are ready. Server name for ALL calls: mcp-scooter", tool),
+			"how_to_call":     fmt.Sprintf("Use server='mcp-scooter' with tool='%s' (or any tool listed above)", exampleTool),
+			"example":         exampleCall,
+			"warning":         "DO NOT use 'context7', 'brave-search', or any other server name. ONLY use 'mcp-scooter'.",
 		}, nil
 		}
 
@@ -330,276 +188,123 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 		// Get the tools that are now available from this server
 		availableTools := e.GetActiveToolsForServer(tool)
 		toolNames := make([]string, 0, len(availableTools))
+		toolSchemas := make([]map[string]interface{}, 0, len(availableTools))
 		for _, t := range availableTools {
 			toolNames = append(toolNames, t.Name)
+			toolSchema := buildToolSchema(t)
+			toolSchemas = append(toolSchemas, toolSchema)
+		}
+		
+		// Build example call for the first tool
+		exampleTool := ""
+		exampleCall := ""
+		if len(toolNames) > 0 {
+			exampleTool = toolNames[0]
+			exampleCall = fmt.Sprintf(`{"server": "mcp-scooter", "tool": "%s", "arguments": {...}}`, exampleTool)
 		}
 		
 		return map[string]interface{}{
-			"status":          "activated",
-			"server":          tool,
+			"status":          "on",
+			"server":          "mcp-scooter",  // Always mcp-scooter, not the original server
+			"activated_from":  tool,
 			"available_tools": toolNames,
-			"message":         fmt.Sprintf("Server '%s' is now active. You can now use: %v", tool, toolNames),
+			"tool_schemas":    toolSchemas,
+			"message":         fmt.Sprintf("Tools from '%s' are now ready. Server name for ALL calls: mcp-scooter", tool),
+			"how_to_call":     fmt.Sprintf("Use server='mcp-scooter' with tool='%s' (or any tool listed above)", exampleTool),
+			"example":         exampleCall,
+			"warning":         "DO NOT use 'context7', 'brave-search', or any other server name. ONLY use 'mcp-scooter'.",
 		}, nil
-		
-	case "scooter_remove":
-		tool, ok := params["tool_name"].(string)
-		if !ok {
-			return nil, fmt.Errorf("tool_name is required")
-		}
-		
-		// Get tools before removal for the response
-		removedTools := e.GetActiveToolsForServer(tool)
-		toolNames := make([]string, 0, len(removedTools))
-		for _, t := range removedTools {
-			toolNames = append(toolNames, t.Name)
-		}
-		
-		err := e.Remove(tool)
-		if err != nil {
-			return nil, err
-		}
-		
-		return map[string]interface{}{
-			"status":        "deactivated",
-			"server":        tool,
-			"removed_tools": toolNames,
-			"message":       fmt.Sprintf("Server '%s' has been deactivated. Tools no longer available: %v", tool, toolNames),
-		}, nil
-		
-	case "scooter_list_active":
-		activeServers := e.ListActive()
-		
-		// Build detailed response with tools per server
-		servers := make([]map[string]interface{}, 0, len(activeServers))
-		for _, serverName := range activeServers {
-			serverTools := e.GetActiveToolsForServer(serverName)
-			toolNames := make([]string, 0, len(serverTools))
-			for _, t := range serverTools {
-				toolNames = append(toolNames, t.Name)
-			}
-			
-			servers = append(servers, map[string]interface{}{
-				"name":  serverName,
-				"tools": toolNames,
-			})
-		}
-		
-		return map[string]interface{}{
-			"active_servers": servers,
-			"count":          len(activeServers),
-		}, nil
-	case "scooter_code_interpreter":
-		script, _ := params["script"].(string)
-		args, _ := params["arguments"].(map[string]interface{})
-		interpreter := NewCodeInterpreter(e.CallTool)
-		return interpreter.Execute(script, args)
-	case "scooter_filesystem":
-		return handleFilesystem(params)
-	case "scooter_fetch":
-		return handleFetch(params)
-	case "scooter_execute":
-		intent, ok := params["intent"].(string)
-		if !ok || intent == "" {
-			return nil, fmt.Errorf("intent is required")
-		}
-		return e.handleSemanticDispatch(intent)
+
 	default:
 		return nil, fmt.Errorf("unknown builtin tool: %s", name)
 	}
 }
 
-// handleFilesystem implements safe file operations with path scoping.
-func handleFilesystem(params map[string]interface{}) (interface{}, error) {
-	operation, _ := params["operation"].(string)
-	path, _ := params["path"].(string)
 
-	if operation == "" {
-		return nil, fmt.Errorf("operation is required (read, write, list, delete, exists)")
-	}
-	if path == "" {
-		return nil, fmt.Errorf("path is required")
+// buildToolSchema creates a comprehensive schema for a tool that agents can use to understand
+// how to call it correctly. This includes the full input schema with types, descriptions,
+// required fields, and constraints.
+func buildToolSchema(t registry.Tool) map[string]interface{} {
+	schema := map[string]interface{}{
+		"name":        t.Name,
+		"description": t.Description,
 	}
 
-	// Security: Normalize and validate path
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+	if t.Title != "" {
+		schema["title"] = t.Title
 	}
 
-	// Security: Scope to User Home Directory
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to determine home directory: %w", err)
-	}
-	
-	// Ensure homeDir is absolute for comparison
-	absHome, err := filepath.Abs(homeDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve home directory: %w", err)
-	}
-
-	// Calculate relative path to check if it's inside home
-	rel, err := filepath.Rel(absHome, absPath)
-	if err != nil {
-		// This usually happens on Windows if paths are on different drives
-		return nil, fmt.Errorf("access denied: path must be on the same drive as home directory")
-	}
-
-	// If relative path starts with ".." or is absolute (on different drive on unix), reject
-	if strings.HasPrefix(rel, "..") || rel == ".." || filepath.IsAbs(rel) {
-		return nil, fmt.Errorf("access denied: path must be within user home directory (%s)", absHome)
-	}
-
-	switch operation {
-	case "read":
-		content, err := os.ReadFile(absPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read file: %w", err)
+	if t.InputSchema != nil {
+		// Build a detailed parameters object
+		parameters := make([]map[string]interface{}, 0)
+		requiredSet := make(map[string]bool)
+		for _, req := range t.InputSchema.Required {
+			requiredSet[req] = true
 		}
-		return map[string]interface{}{
-			"content": string(content),
-			"path":    absPath,
-			"size":    len(content),
-		}, nil
 
-	case "write":
-		content, ok := params["content"].(string)
-		if !ok {
-			return nil, fmt.Errorf("content is required for write operation")
-		}
-		
-		// Create parent directories if needed
-		dir := filepath.Dir(absPath)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create directory: %w", err)
-		}
-		
-		if err := os.WriteFile(absPath, []byte(content), 0644); err != nil {
-			return nil, fmt.Errorf("failed to write file: %w", err)
-		}
-		return map[string]interface{}{
-			"status":  "written",
-			"path":    absPath,
-			"size":    len(content),
-		}, nil
-
-	case "list":
-		entries, err := os.ReadDir(absPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list directory: %w", err)
-		}
-		
-		files := make([]map[string]interface{}, 0, len(entries))
-		for _, entry := range entries {
-			info, _ := entry.Info()
-			fileInfo := map[string]interface{}{
-				"name":  entry.Name(),
-				"isDir": entry.IsDir(),
+		for propName, prop := range t.InputSchema.Properties {
+			param := map[string]interface{}{
+				"name":        propName,
+				"type":        prop.Type,
+				"required":    requiredSet[propName],
+				"description": prop.Description,
 			}
-			if info != nil {
-				fileInfo["size"] = info.Size()
-				fileInfo["modified"] = info.ModTime().Format(time.RFC3339)
+
+			// Include constraints if present
+			if prop.Default != nil {
+				param["default"] = prop.Default
 			}
-			files = append(files, fileInfo)
+			if len(prop.Enum) > 0 {
+				param["enum"] = prop.Enum
+			}
+			if prop.Minimum != nil {
+				param["minimum"] = *prop.Minimum
+			}
+			if prop.Maximum != nil {
+				param["maximum"] = *prop.Maximum
+			}
+			if prop.MinLength != nil {
+				param["minLength"] = *prop.MinLength
+			}
+			if prop.MaxLength != nil {
+				param["maxLength"] = *prop.MaxLength
+			}
+
+			parameters = append(parameters, param)
 		}
-		return map[string]interface{}{
-			"path":  absPath,
-			"files": files,
-			"count": len(files),
-		}, nil
 
-	case "delete":
-		if err := os.Remove(absPath); err != nil {
-			return nil, fmt.Errorf("failed to delete: %w", err)
-		}
-		return map[string]interface{}{
-			"status": "deleted",
-			"path":   absPath,
-		}, nil
-
-	case "exists":
-		_, err := os.Stat(absPath)
-		exists := err == nil
-		return map[string]interface{}{
-			"exists": exists,
-			"path":   absPath,
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("unknown operation: %s (supported: read, write, list, delete, exists)", operation)
+		schema["parameters"] = parameters
+		schema["required"] = t.InputSchema.Required
 	}
+
+	// Include sample input if available - this is gold for agents
+	if t.SampleInput != nil {
+		schema["example"] = t.SampleInput
+	}
+
+	// Include annotations if available
+	if t.Annotations != nil {
+		annotations := map[string]interface{}{}
+		if t.Annotations.ReadOnlyHint {
+			annotations["readOnly"] = true
+		}
+		if t.Annotations.DestructiveHint {
+			annotations["destructive"] = true
+		}
+		if len(annotations) > 0 {
+			schema["hints"] = annotations
+		}
+	}
+
+	return schema
 }
 
-// handleFetch implements HTTP request capabilities.
-func handleFetch(params map[string]interface{}) (interface{}, error) {
-	url, _ := params["url"].(string)
-	method, _ := params["method"].(string)
-	body, _ := params["body"].(string)
-	headersRaw, _ := params["headers"].(map[string]interface{})
 
-	if url == "" {
-		return nil, fmt.Errorf("url is required")
-	}
-	if method == "" {
-		method = "GET"
-	}
-
-	// Build request
-	var bodyReader io.Reader
-	if body != "" {
-		bodyReader = strings.NewReader(body)
-	}
-
-	req, err := http.NewRequest(method, url, bodyReader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Set headers
-	for key, val := range headersRaw {
-		if strVal, ok := val.(string); ok {
-			req.Header.Set(key, strVal)
-		}
-	}
-
-	// Set default User-Agent
-	if req.Header.Get("User-Agent") == "" {
-		req.Header.Set("User-Agent", "MCP-Scooter/1.0")
-	}
-
-	// Execute request with timeout
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Read response body (limit to 10MB)
-	limitedReader := io.LimitReader(resp.Body, 10*1024*1024)
-	respBody, err := io.ReadAll(limitedReader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	// Build response headers map
-	respHeaders := make(map[string]string)
-	for key := range resp.Header {
-		respHeaders[key] = resp.Header.Get(key)
-	}
-
-	return map[string]interface{}{
-		"status":      resp.StatusCode,
-		"statusText":  resp.Status,
-		"headers":     respHeaders,
-		"body":        string(respBody),
-		"contentType": resp.Header.Get("Content-Type"),
-		"size":        len(respBody),
-	}, nil
-}
+// =============================================================================
+// AI ROUTING (Reserved for future scooter_ai tool)
+// These functions implement AI-powered intent routing and will be exposed
+// as scooter_ai in a future release.
+// =============================================================================
 
 // getAIRoutingCredentials retrieves AI routing credentials from keychain.
 func (e *DiscoveryEngine) getAIRoutingCredentials() (provider, model, key string, isFallback bool) {

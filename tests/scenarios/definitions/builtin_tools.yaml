@@ -1,5 +1,5 @@
 name: builtin-tools-test
-description: Tests builtin scooter_* tools
+description: Tests builtin scooter_* tools (simplified to 2 core tools)
 timeout: 30s
 requires:
   env: []
@@ -23,4 +23,4 @@ steps:
     action: list_tools
     expect:
       error: null
-      tools_contain: ["scooter_find", "scooter_add", "scooter_remove", "scooter_list_active", "scooter_execute"]
+      tools_contain: ["scooter_find", "scooter_activate"]

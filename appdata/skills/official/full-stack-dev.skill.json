@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schemas/skill.schema.json",
+  "name": "full-stack-dev",
+  "title": "Full Stack Developer",
+  "description": "Complete toolkit for full-stack web development including GitHub, database, browser automation, and documentation",
+  "version": "1.0.0",
+  "category": "development",
+  "requires_tools": ["github", "context7", "brave-search"],
+  "skill_type": "composite",
+  "mode": "hybrid",
+  "tags": ["development", "fullstack", "web", "github", "database", "browser"],
+  "author": "MCP Scooter Team",
+  "homepage": "https://mcp-scooter.com/skills/full-stack-dev",
+  "license": "MIT",
+  "system_prompt_addition": "You are a full-stack developer with access to GitHub for code management, Context7 for documentation lookup, and Brave Search for finding solutions and tutorials.",
+  "skill_content": "# Full Stack Developer Skill\n\nThis composite skill bundles essential tools for full-stack web development.\n\n## Included Tools\n\n| Tool | Purpose |\n|------|----------|\n| **GitHub** | Repository management, issues, PRs, code search |\n| **Context7** | Official documentation for libraries and frameworks |\n| **Brave Search** | Web search for tutorials, solutions, and current info |\n\n## Quick Reference\n\n### GitHub Operations\n\n```bash\n# Search repositories\nscooter call github.search_repositories query=\"react typescript template\"\n\n# List issues\nscooter call github.list_issues owner=\"facebook\" repo=\"react\" state=\"open\"\n\n# Create issue\nscooter call github.create_issue owner=\"myorg\" repo=\"myrepo\" title=\"Bug: ...\" body=\"Description...\"\n\n# Get file contents\nscooter call github.get_file_contents owner=\"myorg\" repo=\"myrepo\" path=\"src/index.ts\"\n```\n\n### Documentation Lookup\n\n```bash\n# Get React docs\nscooter call context7.resolve-library-id libraryName=\"react\"\nscooter call context7.get-library-docs context7CompatibleLibraryID=\"/websites/react_dev\" topic=\"hooks\"\n\n# Get Next.js docs\nscooter call context7.resolve-library-id libraryName=\"nextjs\"\nscooter call context7.get-library-docs context7CompatibleLibraryID=\"/websites/nextjs_org\" topic=\"app-router\"\n```\n\n### Web Search\n\n```bash\n# Find tutorials\nscooter call brave-search.brave_web_search query=\"Next.js 14 authentication tutorial\"\n\n# Search for error solutions\nscooter call brave-search.brave_web_search query=\"TypeError cannot read property undefined React\"\n```\n\n## Common Workflows\n\n### 1. Starting a New Feature\n\n1. Check documentation for the relevant library\n2. Search for similar implementations or tutorials\n3. Create a GitHub issue to track the work\n4. Reference documentation as you implement\n\n### 2. Debugging an Error\n\n1. Search the web for the error message\n2. Check official documentation for correct usage\n3. Look at GitHub issues for known problems\n4. Create an issue if it's a bug\n\n### 3. Code Review\n\n1. Get file contents from GitHub\n2. Check documentation for best practices\n3. Search for security considerations\n4. Comment on the PR with findings\n\n## Tips\n\n- Use Context7 for official docs (more accurate than web search)\n- Use Brave Search for tutorials, blog posts, and community solutions\n- Use GitHub for code examples and issue tracking\n- Combine tools: search for a solution, then verify in official docs\n"
+}
