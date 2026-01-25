@@ -191,7 +191,8 @@ async fn check_for_updates(app: tauri::AppHandle, include_beta: bool) -> Result<
     
     // Create a custom updater with the appropriate endpoint
     let updater = app.updater_builder()
-        .endpoints(vec![endpoint.parse().map_err(|e| format!("Invalid URL: {}", e))?])
+        .endpoints(vec![endpoint.parse().map_err(|e: url::ParseError| format!("Invalid URL: {}", e))?])
+        .map_err(|e| format!("Failed to set endpoints: {}", e))?
         .build()
         .map_err(|e| format!("Failed to build updater: {}", e))?;
     
@@ -201,7 +202,7 @@ async fn check_for_updates(app: tauri::AppHandle, include_beta: bool) -> Result<
                 available: true,
                 version: Some(update.version.clone()),
                 notes: update.body.clone(),
-                date: update.date.map(|d| d.to_string()),
+                date: update.date.map(|d: time::OffsetDateTime| d.to_string()),
             })
         }
         Ok(None) => {
@@ -228,14 +229,18 @@ async fn install_update(app: tauri::AppHandle, include_beta: bool) -> Result<(),
     };
     
     let updater = app.updater_builder()
-        .endpoints(vec![endpoint.parse().map_err(|e| format!("Invalid URL: {}", e))?])
+        .endpoints(vec![endpoint.parse().map_err(|e: url::ParseError| format!("Invalid URL: {}", e))?])
+        .map_err(|e| format!("Failed to set endpoints: {}", e))?
         .build()
         .map_err(|e| format!("Failed to build updater: {}", e))?;
     
     match updater.check().await {
         Ok(Some(update)) => {
             // Download and install
-            update.download_and_install(|_, _| {}, || {})
+            update.download_and_install(
+                |_chunk_length: usize, _content_length: Option<u64>| {},
+                || {}
+            )
                 .await
                 .map_err(|e| format!("Failed to install update: {}", e))?;
             Ok(())

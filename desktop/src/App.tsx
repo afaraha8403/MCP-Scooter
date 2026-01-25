@@ -54,7 +54,7 @@ interface Profile {
   remote_server_url: string;
   env: Record<string, string>;
   allow_tools: string[];
-  disabled_system_tools?: string[];
+  disabled_system_tools: string[];
 }
 
 interface Settings {
@@ -64,6 +64,12 @@ interface Settings {
   verbose_logging: boolean;
   gateway_api_key: string;
   last_profile_id?: string;
+  // Tool lifecycle settings
+  auto_cleanup_enabled: boolean;
+  auto_cleanup_minutes: number;
+  cleanup_on_session: boolean;
+  max_active_servers: number;
+  quota_policy: 'block' | 'evict';
   // AI routing configuration
   primary_ai_provider: string;
   primary_ai_model: string;
@@ -268,7 +274,13 @@ function App() {
     control_port: 6200, 
     mcp_port: 6277, 
     enable_beta: false,
+    verbose_logging: false,
     gateway_api_key: "",
+    auto_cleanup_enabled: true,
+    auto_cleanup_minutes: 10,
+    cleanup_on_session: false,
+    max_active_servers: 5,
+    quota_policy: "evict",
     primary_ai_provider: "",
     primary_ai_model: "",
     fallback_ai_provider: "",
