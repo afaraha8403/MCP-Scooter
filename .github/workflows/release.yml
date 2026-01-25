@@ -133,7 +133,12 @@ jobs:
           GOOS: ${{ matrix.settings.go_os }}
           GOARCH: ${{ matrix.settings.go_arch }}
           CGO_ENABLED: 0
+        shell: bash
         run: |
+          # Ensure binaries directory exists (remove if it's a file)
+          if [ -f desktop/src-tauri/binaries ]; then
+            rm desktop/src-tauri/binaries
+          fi
           mkdir -p desktop/src-tauri/binaries
           go build -ldflags="-s -w" -o desktop/src-tauri/binaries/scooter-${{ matrix.settings.target_triple }}${{ matrix.settings.binary_ext }} ./cmd/scooter
 
