@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="desktop/public/logo/logo-dark.svg" alt="MCP Scooter Logo" width="280" />
+  <img src="desktop/public/logo/logo-dark.svg" alt="MCP Scooter Logo" width="400" />
 </p>
 
 <h1 align="center">MCP Scooter</h1>
