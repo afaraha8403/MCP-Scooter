@@ -3,6 +3,7 @@ use tauri::{
     tray::{TrayIconBuilder, TrayIconEvent},
     Manager,
 };
+use tauri_plugin_updater::UpdaterExt;
 use serde::{Serialize, Deserialize};
 use std::process::Command;
 use sysinfo::{System, Pid};
@@ -167,11 +168,93 @@ async fn kill_process(pid: u32) -> Result<bool, String> {
     Err("Process not found".to_string())
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct UpdateInfo {
+    pub available: bool,
+    pub version: Option<String>,
+    pub notes: Option<String>,
+    pub date: Option<String>,
+}
+
+/// Check for updates using the appropriate channel (stable or beta)
+/// 
+/// The updater endpoints:
+/// - Stable: https://github.com/mcp-scooter/scooter/releases/download/updater/latest.json
+/// - Beta: https://github.com/mcp-scooter/scooter/releases/download/updater/beta.json
+#[tauri::command]
+async fn check_for_updates(app: tauri::AppHandle, include_beta: bool) -> Result<UpdateInfo, String> {
+    let endpoint = if include_beta {
+        "https://github.com/mcp-scooter/scooter/releases/download/updater/beta.json"
+    } else {
+        "https://github.com/mcp-scooter/scooter/releases/download/updater/latest.json"
+    };
+    
+    // Create a custom updater with the appropriate endpoint
+    let updater = app.updater_builder()
+        .endpoints(vec![endpoint.parse().map_err(|e| format!("Invalid URL: {}", e))?])
+        .build()
+        .map_err(|e| format!("Failed to build updater: {}", e))?;
+    
+    match updater.check().await {
+        Ok(Some(update)) => {
+            Ok(UpdateInfo {
+                available: true,
+                version: Some(update.version.clone()),
+                notes: update.body.clone(),
+                date: update.date.map(|d| d.to_string()),
+            })
+        }
+        Ok(None) => {
+            Ok(UpdateInfo {
+                available: false,
+                version: None,
+                notes: None,
+                date: None,
+            })
+        }
+        Err(e) => {
+            Err(format!("Failed to check for updates: {}", e))
+        }
+    }
+}
+
+/// Download and install the available update
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle, include_beta: bool) -> Result<(), String> {
+    let endpoint = if include_beta {
+        "https://github.com/mcp-scooter/scooter/releases/download/updater/beta.json"
+    } else {
+        "https://github.com/mcp-scooter/scooter/releases/download/updater/latest.json"
+    };
+    
+    let updater = app.updater_builder()
+        .endpoints(vec![endpoint.parse().map_err(|e| format!("Invalid URL: {}", e))?])
+        .build()
+        .map_err(|e| format!("Failed to build updater: {}", e))?;
+    
+    match updater.check().await {
+        Ok(Some(update)) => {
+            // Download and install
+            update.download_and_install(|_, _| {}, || {})
+                .await
+                .map_err(|e| format!("Failed to install update: {}", e))?;
+            Ok(())
+        }
+        Ok(None) => {
+            Err("No update available".to_string())
+        }
+        Err(e) => {
+            Err(format!("Failed to check for updates: {}", e))
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![check_port_usage, kill_process])
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .invoke_handler(tauri::generate_handler![check_port_usage, kill_process, check_for_updates, install_update])
         .setup(|app| {
             let handle = app.handle().clone();
             
@@ -288,11 +371,14 @@ pub fn run() {
                             // Load icon based on status
                             let icon_path = std::path::Path::new("icons").join(icon_name);
                             let dev_icon_path = std::path::Path::new("desktop/src-tauri/icons").join(icon_name);
+                            let public_icon_path = std::path::Path::new("desktop/public/logo/icon-source.svg");
 
                             let final_path = if icon_path.exists() {
                                 Some(icon_path)
                             } else if dev_icon_path.exists() {
                                 Some(dev_icon_path)
+                            } else if public_icon_path.exists() && icon_name == "tray-ok.png" {
+                                Some(public_icon_path.to_path_buf())
                             } else {
                                 None
                             };

@@ -1,0 +1,244 @@
+# MCP Scooter Release Workflow
+# ============================
+# Triggered on version tags (v*). Builds the Go backend and Tauri desktop app
+# for Windows, macOS, and Linux, then creates a GitHub Release.
+#
+# Release Channels:
+# - Stable: Tags like v1.0.0, v1.2.3
+# - Beta: Tags like v1.0.0-beta.1, v1.0.0-alpha.2, v1.0.0-rc.1
+#
+# The workflow automatically detects the channel based on the tag format.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.0.1 or 0.0.1-beta.1)'
+        required: true
+        default: '0.0.1'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # First, run tests to ensure quality
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      
+      - name: Run Go tests
+        run: go test ./...
+      
+      - name: Validate registry
+        run: |
+          go build -o validate-registry ./cmd/validate-registry
+          ./validate-registry appdata/registry
+
+  # Build and release for each platform
+  release:
+    name: Build & Release (${{ matrix.settings.platform }})
+    needs: test
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - platform: windows-latest
+            go_os: windows
+            go_arch: amd64
+            binary_ext: .exe
+            target_triple: x86_64-pc-windows-msvc
+            args: ''
+          - platform: macos-latest
+            go_os: darwin
+            go_arch: amd64
+            binary_ext: ''
+            target_triple: x86_64-apple-darwin
+            args: '--target x86_64-apple-darwin'
+          - platform: macos-latest
+            go_os: darwin
+            go_arch: arm64
+            binary_ext: ''
+            target_triple: aarch64-apple-darwin
+            args: '--target aarch64-apple-darwin'
+          - platform: ubuntu-22.04
+            go_os: linux
+            go_arch: amd64
+            binary_ext: ''
+            target_triple: x86_64-unknown-linux-gnu
+            args: ''
+
+    runs-on: ${{ matrix.settings.platform }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      # Determine if this is a beta/prerelease
+      - name: Determine release channel
+        id: channel
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG" =~ -(alpha|beta|rc)\. ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "channel=beta" >> $GITHUB_OUTPUT
+            echo "Release channel: BETA"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "channel=stable" >> $GITHUB_OUTPUT
+            echo "Release channel: STABLE"
+          fi
+
+      # Setup Node.js for frontend build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Setup Go for backend build
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      # Setup Rust for Tauri
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.settings.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      # Install Linux dependencies for Tauri
+      - name: Install Linux dependencies
+        if: matrix.settings.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      # Build the Go backend binary
+      - name: Build Go Backend
+        env:
+          GOOS: ${{ matrix.settings.go_os }}
+          GOARCH: ${{ matrix.settings.go_arch }}
+          CGO_ENABLED: 0
+        run: |
+          mkdir -p desktop/src-tauri/binaries
+          go build -ldflags="-s -w" -o desktop/src-tauri/binaries/scooter-${{ matrix.settings.target_triple }}${{ matrix.settings.binary_ext }} ./cmd/scooter
+
+      # Install frontend dependencies
+      - name: Install frontend dependencies
+        working-directory: desktop
+        run: npm ci
+
+      # Build Tauri app and create release
+      - name: Build Tauri App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          tagName: v__VERSION__
+          releaseName: 'MCP Scooter v__VERSION__'
+          releaseBody: |
+            ## MCP Scooter v__VERSION__
+            
+            ${{ steps.channel.outputs.is_prerelease == 'true' && '⚠️ **This is a beta release.** It may contain bugs and is not recommended for production use.' || '✅ **This is a stable release.**' }}
+            
+            ### Installation
+            
+            Download the appropriate installer for your platform:
+            - **Windows**: `.msi` or `.exe` installer
+            - **macOS**: `.dmg` disk image
+            - **Linux**: `.deb` or `.AppImage`
+            
+            ### What's New
+            
+            See [CHANGELOG.md](https://github.com/mcp-scooter/scooter/blob/main/CHANGELOG.md) for details.
+            
+            ### Getting Started
+            
+            1. Install MCP Scooter
+            2. Launch the app (it will appear in your system tray)
+            3. Configure your AI client (Cursor, Claude, VS Code, etc.) to connect to `http://127.0.0.1:6277/sse`
+            
+            For detailed instructions, visit our [documentation](https://mcp-scooter.com).
+          releaseDraft: true
+          prerelease: ${{ steps.channel.outputs.is_prerelease }}
+          includeUpdaterJson: true
+          args: ${{ matrix.settings.args }}
+
+  # Update the updater JSON files after all builds complete
+  update-updater-json:
+    name: Update Updater Manifests
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Determine release channel
+        id: channel
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG" =~ -(alpha|beta|rc)\. ]]; then
+            echo "channel=beta" >> $GITHUB_OUTPUT
+          else
+            echo "channel=stable" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Download release artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          mkdir -p updater-files
+          
+          # Download the updater JSON that tauri-action created
+          gh release download "$TAG" --pattern "latest.json" --dir updater-files || true
+          
+          # If latest.json exists, we'll use it as the base
+          if [ -f "updater-files/latest.json" ]; then
+            echo "Found updater JSON from release"
+            cat updater-files/latest.json
+          fi
+      
+      - name: Update channel-specific updater file
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          CHANNEL="${{ steps.channel.outputs.channel }}"
+          
+          # Create or update the updater release
+          # This is a special release that holds the updater JSON files
+          if ! gh release view updater &>/dev/null; then
+            gh release create updater --title "Updater Manifests" --notes "This release contains updater manifest files. Do not delete." --prerelease
+          fi
+          
+          # Copy the updater JSON to the appropriate channel file
+          if [ -f "updater-files/latest.json" ]; then
+            if [ "$CHANNEL" = "beta" ]; then
+              # For beta: update both beta.json AND latest.json (beta users get all updates)
+              cp updater-files/latest.json updater-files/beta.json
+              gh release upload updater updater-files/beta.json --clobber
+              gh release upload updater updater-files/latest.json --clobber
+              echo "Updated beta.json and latest.json for beta release"
+            else
+              # For stable: update only latest.json (stable users only get stable)
+              gh release upload updater updater-files/latest.json --clobber
+              echo "Updated latest.json for stable release"
+            fi
+          fi
