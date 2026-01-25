@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+	"time"
+
 	"github.com/mcp-scooter/scooter/tests/protocol"
 	"gopkg.in/yaml.v3"
 )
@@ -65,6 +68,14 @@ func (r *ScenarioRunner) Run(s *Scenario) error {
 			resp, err = r.Client.ListTools()
 		case "call_tool":
 			resp, err = r.Client.CallTool(step.Tool, step.Args)
+		case "wait":
+			seconds, _ := step.Args["seconds"].(int)
+			if seconds == 0 {
+				seconds = 1
+			}
+			fmt.Printf("  Waiting %d seconds...\n", seconds)
+			time.Sleep(time.Duration(seconds) * time.Second)
+			continue
 		default:
 			return fmt.Errorf("unknown action: %s", step.Action)
 		}
@@ -129,6 +140,16 @@ func (r *ScenarioRunner) validateExpectations(expect map[string]interface{}, res
 				if len(result.Content) == 0 {
 					return fmt.Errorf("expected non-empty content")
 				}
+			}
+		case "result_contains":
+			expectedStr := expectedValue.(string)
+			if !strings.Contains(string(resp.Result), expectedStr) {
+				return fmt.Errorf("expected result to contain '%s', but it didn't. Result: %s", expectedStr, string(resp.Result))
+			}
+		case "result_not_contains":
+			unexpectedStr := expectedValue.(string)
+			if strings.Contains(string(resp.Result), unexpectedStr) {
+				return fmt.Errorf("expected result NOT to contain '%s', but it did. Result: %s", unexpectedStr, string(resp.Result))
 			}
 		}
 	}

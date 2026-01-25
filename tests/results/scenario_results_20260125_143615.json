@@ -1,0 +1,113 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "Anthropic created the Model Context Protocol (MCP) and it was announced in November 2024.",
+    "score": 0,
+    "total_duration": 7.376384735107422,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0022602081298828125
+        ]
+      },
+      "scooter_activate": {
+        "count": 2,
+        "durations": [
+          1.2337002754211426,
+          1.1737117767333984
+        ]
+      },
+      "brave_web_search": {
+        "count": 1,
+        "durations": [
+          0.7895147800445557
+        ]
+      }
+    },
+    "num_tool_calls": 4,
+    "summary": "I used the `scooter_find` to identify potential tools for searching the web and code repositories. I activated the \"brave-search\" and \"github\" tools. I used `brave_web_search` to search for \"Model Context Protocol company announcement\". The search results point to Anthropic as the creator of the Model Context Protocol, which was announced in November 2024.",
+    "feedback": "The tools worked well. The `brave_web_search` tool provided sufficient context in the search results to answer the question.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search",
+    "acceptable_answers": [
+      "Anthropic"
+    ]
+  },
+  {
+    "question": "Search for 'github mcp-server' and tell me the name of GitHub's official MCP server repository.",
+    "expected": "github-mcp-server",
+    "actual": "github-mcp-server",
+    "score": 1,
+    "total_duration": 5.018211364746094,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0020978450775146484
+        ]
+      },
+      "scooter_activate": {
+        "count": 1,
+        "durations": [
+          0.003558635711669922
+        ]
+      },
+      "search_repositories": {
+        "count": 1,
+        "durations": [
+          0.7950572967529297
+        ]
+      }
+    },
+    "num_tool_calls": 3,
+    "summary": "The `search_repositories` tool returned a list of repositories. From the list, I can identify \"github/github-mcp-server\" as GitHub's official MCP server repository, as the description says 'GitHub's official MCP Server'.",
+    "feedback": "The tools worked as expected, returning the expected results.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search",
+    "acceptable_answers": [
+      "github-mcp-server",
+      "github/github-mcp-server"
+    ]
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I don't have a dedicated tool for searching academic papers. However, I can use Brave Search for web searches, Context7 for library documentation, or Github for research repositories.",
+    "score": 0,
+    "total_duration": 3.166778326034546,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0022737979888916016
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": "I used the `scooter_find` tool to search for tools related to \"academic papers\". The search results indicate that \"brave-search\", \"context7\", and \"github\" tools are available. While none are specifically tailored for academic papers, Brave Search could be used for web searches, Context7 for library documentation, and Github for research repositories.",
+    "feedback": "The `scooter_find` tool is useful for discovering available tools. However, a dedicated tool for searching academic paper databases (like Google Scholar, Semantic Scholar, or ArXiv) would be a valuable addition.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery",
+    "acceptable_answers": [
+      "search"
+    ]
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": null,
+    "score": 0,
+    "total_duration": 0.6634600162506104,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure",
+    "acceptable_answers": [
+      ""
+    ]
+  }
+]

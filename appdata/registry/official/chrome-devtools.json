@@ -1,0 +1,533 @@
+{
+  "$schema": "../../schemas/mcp-registry.schema.json",
+  "name": "chrome-devtools",
+  "version": "1.0.0",
+  "title": "Chrome DevTools",
+  "description": "Control and inspect a live Chrome browser with full access to Chrome DevTools for automation, debugging, and performance analysis.",
+  "category": "utility",
+  "source": "official",
+  "tags": [
+    "browser",
+    "automation",
+    "debugging",
+    "performance",
+    "chrome"
+  ],
+  "icon": "/registry-logos/chrome-devtools.png",
+  "color": "#4285F4",
+  "about": "## Chrome DevTools MCP\n\n`chrome-devtools-mcp` lets your coding agent control and inspect a live Chrome browser. It acts as an MCP server, giving your AI assistant access to the full power of Chrome DevTools for reliable automation, in-depth debugging, and performance analysis.\n\n### Key Features\n\n- **Browser Automation**: Click, fill forms, hover, and drag elements.\n- **Navigation**: Manage multiple pages, navigate URLs, and wait for content.\n- **Debugging**: Evaluate scripts, inspect console logs, and take screenshots or accessibility snapshots.\n- **Performance**: Record traces and extract actionable performance insights (CWV scores).\n- **Network**: Analyze network requests and responses.\n\n### Getting Started\n\nTo add this MCP server to Scooter, run:\n\n```bash\nscooter add chrome-devtools\n```\n\nBy default, it will start a new Chrome instance. You can also connect to an existing browser using the `--browser-url` or `--autoConnect` flags in the runtime configuration.",
+  "homepage": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
+  "repository": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
+  "documentation": "https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/main/docs/tool-reference.md",
+  "authorization": {
+    "type": "none"
+  },
+  "tools": [
+    {
+      "name": "click",
+      "title": "Click Element",
+      "description": "Clicks on the provided element using its unique identifier from a snapshot.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string",
+            "description": "The uid of an element on the page from the page content snapshot"
+          },
+          "dblClick": {
+            "type": "boolean",
+            "description": "Set to true for double clicks. Default is false."
+          },
+          "includeSnapshot": {
+            "type": "boolean",
+            "description": "Whether to include a snapshot in the response. Default is false."
+          }
+        },
+        "required": [
+          "uid"
+        ]
+      }
+    },
+    {
+      "name": "drag",
+      "title": "Drag and Drop",
+      "description": "Drags an element from one location and drops it onto another element.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "from_uid": {
+            "type": "string",
+            "description": "The uid of the element to drag"
+          },
+          "to_uid": {
+            "type": "string",
+            "description": "The uid of the element to drop into"
+          },
+          "includeSnapshot": {
+            "type": "boolean",
+            "description": "Whether to include a snapshot in the response. Default is false."
+          }
+        },
+        "required": [
+          "from_uid",
+          "to_uid"
+        ]
+      }
+    },
+    {
+      "name": "fill",
+      "title": "Fill Input",
+      "description": "Type text into an input, textarea, or select an option from a <select> element.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string",
+            "description": "The uid of an element on the page from the page content snapshot"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value to fill in"
+          },
+          "includeSnapshot": {
+            "type": "boolean",
+            "description": "Whether to include a snapshot in the response. Default is false."
+          }
+        },
+        "required": [
+          "uid",
+          "value"
+        ]
+      }
+    },
+    {
+      "name": "fill_form",
+      "title": "Fill Form",
+      "description": "Fill out multiple form elements at once using a list of element identifiers and values.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "elements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "uid": { "type": "string" },
+                "value": { "type": "string" }
+              },
+              "required": ["uid", "value"]
+            },
+            "description": "Elements from snapshot to fill out."
+          },
+          "includeSnapshot": {
+            "type": "boolean",
+            "description": "Whether to include a snapshot in the response. Default is false."
+          }
+        },
+        "required": [
+          "elements"
+        ]
+      }
+    },
+    {
+      "name": "handle_dialog",
+      "title": "Handle Dialog",
+      "description": "Accepts or dismisses a browser dialog (alert, confirm, prompt).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "dismiss"
+            ],
+            "description": "Whether to dismiss or accept the dialog"
+          },
+          "promptText": {
+            "type": "string",
+            "description": "Optional prompt text to enter into the dialog."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "name": "hover",
+      "title": "Hover Element",
+      "description": "Hovers the mouse pointer over the provided element.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string",
+            "description": "The uid of an element on the page from the page content snapshot"
+          },
+          "includeSnapshot": {
+            "type": "boolean",
+            "description": "Whether to include a snapshot in the response. Default is false."
+          }
+        },
+        "required": [
+          "uid"
+        ]
+      }
+    },
+    {
+      "name": "press_key",
+      "title": "Press Key",
+      "description": "Press a key or key combination (e.g., 'Enter', 'Control+A').",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "A key or a combination (e.g., 'Enter', 'Control+A'). Modifiers: Control, Shift, Alt, Meta"
+          },
+          "includeSnapshot": {
+            "type": "boolean",
+            "description": "Whether to include a snapshot in the response. Default is false."
+          }
+        },
+        "required": [
+          "key"
+        ]
+      }
+    },
+    {
+      "name": "upload_file",
+      "title": "Upload File",
+      "description": "Uploads a local file through a provided file input element.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "The local path of the file to upload"
+          },
+          "uid": {
+            "type": "string",
+            "description": "The uid of the file input element or an element that will open file chooser"
+          },
+          "includeSnapshot": {
+            "type": "boolean",
+            "description": "Whether to include a snapshot in the response. Default is false."
+          }
+        },
+        "required": [
+          "filePath",
+          "uid"
+        ]
+      }
+    },
+    {
+      "name": "close_page",
+      "title": "Close Page",
+      "description": "Closes a browser page by its ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pageId": {
+            "type": "number",
+            "description": "The ID of the page to close."
+          }
+        },
+        "required": [
+          "pageId"
+        ]
+      }
+    },
+    {
+      "name": "list_pages",
+      "title": "List Pages",
+      "description": "Returns a list of all open pages in the browser.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "navigate_page",
+      "title": "Navigate Page",
+      "description": "Navigates the current page to a URL, or goes back/forward/reloads.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "url",
+              "back",
+              "forward",
+              "reload"
+            ],
+            "description": "Navigation type"
+          },
+          "url": {
+            "type": "string",
+            "description": "Target URL (only for type='url')"
+          },
+          "handleBeforeUnload": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "decline"
+            ],
+            "description": "Auto-handle beforeunload dialogs"
+          },
+          "ignoreCache": {
+            "type": "boolean"
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Maximum wait time in ms"
+          }
+        }
+      }
+    },
+    {
+      "name": "new_page",
+      "title": "New Page",
+      "description": "Creates a new browser page and navigates to the specified URL.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL to load in a new page."
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Maximum wait time in ms"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    },
+    {
+      "name": "select_page",
+      "title": "Select Page",
+      "description": "Selects a page to be the context for future tool calls.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pageId": {
+            "type": "number",
+            "description": "The ID of the page to select."
+          },
+          "bringToFront": {
+            "type": "boolean",
+            "description": "Whether to focus the page."
+          }
+        },
+        "required": [
+          "pageId"
+        ]
+      }
+    },
+    {
+      "name": "wait_for",
+      "title": "Wait For Text",
+      "description": "Waits for specific text to appear on the selected page.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to appear on the page"
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Maximum wait time in ms"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "emulate",
+      "title": "Emulate Features",
+      "description": "Emulates CPU throttling, network conditions, geolocation, user agent, or viewport.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cpuThrottlingRate": { "type": "number" },
+          "networkConditions": {
+            "type": "string",
+            "enum": ["No emulation", "Offline", "Slow 3G", "Fast 3G", "Slow 4G", "Fast 4G"]
+          },
+          "geolocation": { "type": "object" },
+          "userAgent": { "type": "string" },
+          "viewport": { "type": "object" }
+        }
+      }
+    },
+    {
+      "name": "resize_page",
+      "title": "Resize Page",
+      "description": "Resizes the selected page's window to the specified dimensions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "width": { "type": "number" },
+          "height": { "type": "number" }
+        },
+        "required": ["width", "height"]
+      }
+    },
+    {
+      "name": "performance_analyze_insight",
+      "title": "Analyze Performance Insight",
+      "description": "Provides detailed info on a specific Performance Insight from a trace.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "insightName": { "type": "string" },
+          "insightSetId": { "type": "string" }
+        },
+        "required": ["insightName", "insightSetId"]
+      }
+    },
+    {
+      "name": "performance_start_trace",
+      "title": "Start Performance Trace",
+      "description": "Starts recording a performance trace on the selected page.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "autoStop": { "type": "boolean" },
+          "reload": { "type": "boolean" },
+          "filePath": { "type": "string" }
+        },
+        "required": ["autoStop", "reload"]
+      }
+    },
+    {
+      "name": "performance_stop_trace",
+      "title": "Stop Performance Trace",
+      "description": "Stops the active performance trace recording.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filePath": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "get_network_request",
+      "title": "Get Network Request",
+      "description": "Gets details of a network request by ID or the currently selected one.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "reqid": { "type": "number" },
+          "requestFilePath": { "type": "string" },
+          "responseFilePath": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "list_network_requests",
+      "title": "List Network Requests",
+      "description": "Lists all network requests for the selected page since last navigation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "includePreservedRequests": { "type": "boolean" },
+          "pageIdx": { "type": "integer" },
+          "pageSize": { "type": "integer" },
+          "resourceTypes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    {
+      "name": "evaluate_script",
+      "title": "Evaluate Script",
+      "description": "Executes a JavaScript function in the context of the selected page.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "function": { "type": "string", "description": "JS function declaration" },
+          "args": { "type": "array", "description": "Arguments for the function" }
+        },
+        "required": ["function"]
+      }
+    },
+    {
+      "name": "get_console_message",
+      "title": "Get Console Message",
+      "description": "Retrieves a specific console message by its ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "msgid": { "type": "number" }
+        },
+        "required": ["msgid"]
+      }
+    },
+    {
+      "name": "list_console_messages",
+      "title": "List Console Messages",
+      "description": "Lists all console messages for the selected page.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "includePreservedMessages": { "type": "boolean" },
+          "pageIdx": { "type": "integer" },
+          "pageSize": { "type": "integer" },
+          "types": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    {
+      "name": "take_screenshot",
+      "title": "Take Screenshot",
+      "description": "Takes a screenshot of the page or a specific element.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filePath": { "type": "string" },
+          "format": { "type": "string", "enum": ["png", "jpeg", "webp"] },
+          "fullPage": { "type": "boolean" },
+          "quality": { "type": "number" },
+          "uid": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "take_snapshot",
+      "title": "Take Snapshot",
+      "description": "Takes a text/accessibility snapshot of the page with unique element IDs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filePath": { "type": "string" },
+          "verbose": { "type": "boolean" }
+        }
+      }
+    }
+  ],
+  "package": {
+    "type": "npm",
+    "name": "chrome-devtools-mcp",
+    "version": "latest"
+  },
+  "runtime": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "chrome-devtools-mcp@latest"
+    ]
+  },
+  "metadata": {
+    "author": "ChromeDevTools",
+    "license": "Apache-2.0"
+  }
+}

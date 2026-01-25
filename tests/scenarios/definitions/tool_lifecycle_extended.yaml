@@ -1,0 +1,82 @@
+name: tool-lifecycle-extended-test
+description: Tests advanced tool lifecycle features like deactivation, listing, and quotas
+timeout: 120s
+requires:
+  env: []
+  registry: ["github", "brave-search"]
+steps:
+  - name: initialize
+    action: initialize
+    expect:
+      error: null
+
+  # 1. Test scooter_list_active (initially empty)
+  - name: list_active_initial
+    action: call_tool
+    tool: scooter_list_active
+    args: {}
+    expect:
+      error: null
+
+  # 2. Activate GitHub
+  - name: activate_github
+    action: call_tool
+    tool: scooter_activate
+    args:
+      tool_name: "github"
+    expect:
+      error: null
+
+  # 3. Verify GitHub is active via list_active
+  - name: verify_github_active
+    action: call_tool
+    tool: scooter_list_active
+    args: {}
+    expect:
+      error: null
+      result_contains: "github"
+
+  # 4. Deactivate GitHub
+  - name: deactivate_github
+    action: call_tool
+    tool: scooter_deactivate
+    args:
+      tool_name: "github"
+    expect:
+      error: null
+
+  # 5. Verify GitHub is gone
+  - name: verify_github_deactivated
+    action: call_tool
+    tool: scooter_list_active
+    args: {}
+    expect:
+      error: null
+      result_not_contains: "github"
+
+  # 6. Test Quota (if configured in the test environment)
+  # Note: This depends on the daemon's settings.yaml during the test.
+  # If we can't easily change settings mid-test, we focus on the tools.
+  
+  - name: activate_brave
+    action: call_tool
+    tool: scooter_activate
+    args:
+      tool_name: "brave-search"
+    expect:
+      error: null
+
+  - name: deactivate_all
+    action: call_tool
+    tool: scooter_deactivate
+    args:
+      all: true
+    expect:
+      error: null
+
+  - name: verify_all_deactivated
+    action: call_tool
+    tool: scooter_list_active
+    args: {}
+    expect:
+      error: null

@@ -22,59 +22,60 @@ Your primary goal is to solve the user's request using the available tools.
 
 ## TOOL DISCOVERY WORKFLOW
 
-1. **Check active tools first**: Use `scooter_list_active` to see what's already available.
-2. **Search for tools**: Use `scooter_find` with a query like "search" or "github" to discover tools.
-3. **Add tools**: Use `scooter_add` with the SERVER NAME (e.g., "brave-search", NOT "brave_web_search").
-4. **Use tools via scooter_call**: After adding, you MUST use `scooter_call` to invoke the tool:
-   ```json
-   {"tool": "brave_web_search", "arguments": {"query": "your search"}}
-   ```
+1. **Search for tools**: Use `scooter_find` with a query like "search" or "github" to discover available tool servers.
+2. **Activate tools**: Use `scooter_activate` with the SERVER NAME (e.g., "brave-search", "github").
+3. **Call tools DIRECTLY**: After activation, call the tool DIRECTLY by its name. Do NOT use any wrapper.
 
-## CRITICAL: USING scooter_call
+## CRITICAL: HOW TO CALL ACTIVATED TOOLS
 
-After activating a server with `scooter_add`, you MUST use `scooter_call` to invoke its tools:
+After activating a server with `scooter_activate`, the tools become available and you call them DIRECTLY:
 
-### scooter_call (ALWAYS use this for activated tools)
-```json
-{"tool": "brave_web_search", "arguments": {"query": "AI news", "count": 5}}
-```
-- Required: `tool` (string) - The tool name to call
-- Optional: `arguments` (object) - Arguments for the tool
+### Example workflow:
+1. `scooter_find({"query": "search"})` → finds "brave-search" server with tools ["brave_web_search", "brave_local_search"]
+2. `scooter_activate({"tool_name": "brave-search"})` → activates the server
+3. `brave_web_search({"query": "AI news", "count": 5})` → call the tool DIRECTLY by name
 
-## TOOL ARGUMENT FORMATS (Legacy - prefer scooter_call)
+**IMPORTANT**: There is NO `scooter_call` tool. Call activated tools directly by their function name.
 
-### brave_web_search (from brave-search server)
+## TOOL ARGUMENT FORMATS
+
+### brave_web_search (after activating brave-search)
 ```json
 {"query": "your search query here", "count": 5}
 ```
 - Required: `query` (string) - The search query
 - Optional: `count` (integer, 1-20) - Number of results
 
-### search_repositories (from github server)  
+### search_repositories (after activating github)
 ```json
 {"query": "mcp-server language:typescript"}
 ```
 - Required: `query` (string) - GitHub search query
 
-### scooter_find
+### scooter_find (always available)
 ```json
 {"query": "search"}
 ```
 - Optional: `query` (string) - Search term to filter tools
 
-### scooter_add
+### scooter_activate (always available)
 ```json
 {"tool_name": "brave-search"}
 ```
-- Required: `tool_name` (string) - The SERVER name, not the function name
+- Required: `tool_name` (string) - The SERVER name (e.g., "brave-search", "github", "context7")
+
+### scooter_list_active (always available)
+```json
+{}
+```
+- No arguments required. Shows currently active servers and their tools.
 
 ## ERROR RECOVERY
 
-If a tool returns "Invalid arguments":
-1. Check the tool's inputSchema for required parameters
-2. Verify you're using the exact parameter names (case-sensitive)
-3. Ensure required parameters are provided
-4. Try with minimal required arguments first
+If a tool returns "Tool not found":
+1. Make sure you activated the server first with `scooter_activate`
+2. Use `scooter_list_active` to see what tools are available
+3. Call the tool directly by its exact name
 
 ## OUTPUT FORMAT
 

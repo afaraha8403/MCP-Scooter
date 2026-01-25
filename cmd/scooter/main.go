@@ -120,10 +120,10 @@ func run(serve bool) error {
 	logger.AddLog("INFO", fmt.Sprintf("McpPort: %d, ControlPort: %d", settings.McpPort, settings.ControlPort))
 
 	// Initialize Control Server (Management API)
-	controlServer := api.NewControlServer(store, manager, settings, onboardingRequired)
+	controlServer := api.NewControlServer(store, manager, &settings, onboardingRequired)
 
 	// Initialize MCP Gateway (Traffic Proxy)
-	mcpGateway := api.NewMcpGateway(manager, settings)
+	mcpGateway := api.NewMcpGateway(manager, &settings)
 
 	if !serve {
 		return nil

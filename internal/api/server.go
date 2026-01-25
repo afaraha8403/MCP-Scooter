@@ -37,12 +37,13 @@ type ControlServer struct {
 	mux                *http.ServeMux
 	store              *profile.Store
 	manager            *ProfileManager
-	settings           profile.Settings
+	settings           *profile.Settings
 	onboardingRequired bool
+	mu                 sync.RWMutex
 }
 
 // NewControlServer creates a new management server.
-func NewControlServer(store *profile.Store, manager *ProfileManager, settings profile.Settings, onboardingRequired bool) *ControlServer {
+func NewControlServer(store *profile.Store, manager *ProfileManager, settings *profile.Settings, onboardingRequired bool) *ControlServer {
 	s := &ControlServer{
 		mux:                http.NewServeMux(),
 		store:              store,
@@ -69,6 +70,7 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("POST /api/tools/verify", s.handleVerifyTool)
 	s.mux.HandleFunc("DELETE /api/tools", s.handleDeleteTool)
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
+	s.mux.HandleFunc("GET /api/ping", s.handlePing)
 	s.mux.HandleFunc("GET /api/clients", s.handleGetClients)
 	s.mux.HandleFunc("GET /api/settings", s.handleGetSettings)
 	s.mux.HandleFunc("PUT /api/settings", s.handleUpdateSettings)
@@ -182,6 +184,10 @@ func (s *ControlServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *ControlServer) handlePing(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 func (s *ControlServer) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	profiles := s.manager.GetProfiles()
 
@@ -279,7 +285,7 @@ func (s *ControlServer) handleRegenerateKey(w http.ResponseWriter, r *http.Reque
 	s.settings.GatewayAPIKey = newKey
 
 	if s.store != nil {
-		if err := s.store.SaveSettings(s.settings); err != nil {
+		if err := s.store.SaveSettings(*s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -439,10 +445,13 @@ func (s *ControlServer) handleUpdateSettings(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	s.settings = settings
+	s.mu.Lock()
+	*s.settings = settings
+	s.mu.Unlock()
+
 	logger.SetVerbose(settings.VerboseLogging)
 	if s.store != nil {
-		if err := s.store.SaveSettings(s.settings); err != nil {
+		if err := s.store.SaveSettings(*s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -500,7 +509,7 @@ func (s *ControlServer) handleGetProfiles(w http.ResponseWriter, r *http.Request
 		SettingsPath       string           `json:"settings_path"`
 	}{
 		Profiles:           info,
-		Settings:           s.settings,
+		Settings:           *s.settings,
 		OnboardingRequired: s.onboardingRequired,
 		ConfigPath:         configPath,
 		SettingsPath:       settingsPath,
@@ -569,10 +578,13 @@ func (s *ControlServer) handleOnboardingImport(w http.ResponseWriter, r *http.Re
 func (s *ControlServer) handleReset(w http.ResponseWriter, r *http.Request) {
 	s.manager.ClearProfiles()
 	s.onboardingRequired = true
-	s.settings = profile.DefaultSettings()
+	
+	s.mu.Lock()
+	*s.settings = profile.DefaultSettings()
+	s.mu.Unlock()
 
 	if s.store != nil {
-		if err := s.store.Save(s.manager.GetProfiles(), s.settings); err != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), *s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -1430,13 +1442,13 @@ func (s *ControlServer) handleInstallIntegration(w http.ResponseWriter, r *http.
 type McpGateway struct {
 	manager      *ProfileManager
 	mux          *http.ServeMux
-	settings     profile.Settings
+	settings     *profile.Settings
 	sseClients   map[string][]chan string // profileID -> list of SSE notification channels
 	sseSessions  map[string]chan string   // sessionId -> specific session channel
 	sseClientsMu sync.RWMutex
 }
 
-func NewMcpGateway(manager *ProfileManager, settings profile.Settings) *McpGateway {
+func NewMcpGateway(manager *ProfileManager, settings *profile.Settings) *McpGateway {
 	g := &McpGateway{
 		manager:     manager,
 		mux:         http.NewServeMux(),
@@ -1518,20 +1530,24 @@ func (g *McpGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Internal requests from Scooter Desktop bypass authentication
 	isInternal := r.Header.Get("X-Scooter-Internal") == "true"
 
+	g.sseClientsMu.RLock()
+	apiKey := g.settings.GatewayAPIKey
+	g.sseClientsMu.RUnlock()
+
 	// Check authentication if a key is configured (skip for internal requests)
-	if g.settings.GatewayAPIKey != "" && !isInternal {
+	if apiKey != "" && !isInternal {
 		authHeader := r.Header.Get("Authorization")
-		apiKey := r.Header.Get("X-Scooter-API-Key")
+		requestApiKey := r.Header.Get("X-Scooter-API-Key")
 
 		if authHeader != "" {
 			if strings.HasPrefix(authHeader, "Bearer ") {
-				apiKey = strings.TrimPrefix(authHeader, "Bearer ")
+				requestApiKey = strings.TrimPrefix(authHeader, "Bearer ")
 			} else {
-				apiKey = authHeader
+				requestApiKey = authHeader
 			}
 		}
 
-		if apiKey != g.settings.GatewayAPIKey {
+		if requestApiKey != apiKey {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -1587,7 +1603,10 @@ func (g *McpGateway) handleSSE(w http.ResponseWriter, r *http.Request) {
 
 	// Send endpoint event for client to know where to POST messages
 	// Standard MCP SSE transport requires the client to POST to this endpoint
-	fmt.Fprintf(w, "event: endpoint\ndata: http://127.0.0.1:%d/profiles/%s/sse?sessionId=%s\n\n", g.settings.McpPort, id, sessionId)
+	g.sseClientsMu.RLock()
+	mcpPort := g.settings.McpPort
+	g.sseClientsMu.RUnlock()
+	fmt.Fprintf(w, "event: endpoint\ndata: http://127.0.0.1:%d/profiles/%s/sse?sessionId=%s\n\n", mcpPort, id, sessionId)
 	flusher.Flush()
 
 	ticker := time.NewTicker(30 * time.Second) // Increased heartbeat interval
@@ -1660,6 +1679,21 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 	switch req.Method {
 	case "initialize":
 		logger.AddLog("INFO", "Handling 'initialize' request")
+		
+		// Layer 3: Session-Based Cleanup
+		g.sseClientsMu.RLock()
+		cleanupOnSession := g.settings.CleanupOnSession
+		g.sseClientsMu.RUnlock()
+
+		if cleanupOnSession {
+			logger.AddLog("INFO", fmt.Sprintf("CleanupOnSession enabled, deactivating all tools for profile '%s'", id))
+			for _, srv := range engine.ListActive() {
+				engine.Remove(srv)
+			}
+			// Notify client that tools have changed (cleared)
+			g.NotifyToolsChanged(id)
+		}
+
 		resp = NewJSONRPCResponse(req.ID, map[string]interface{}{
 			"protocolVersion": "2024-11-05",
 			"capabilities": map[string]interface{}{
@@ -1750,7 +1784,9 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 		if profileOk {
 			engine.SetEnv(p.Env)
 			engine.SetDisabledTools(p.DisabledSystemTools)
-			engine.SetSettings(g.settings)
+			g.sseClientsMu.RLock()
+			engine.SetSettings(*g.settings)
+			g.sseClientsMu.RUnlock()
 		}
 
 		// Check if this is a builtin tool (always allowed)
@@ -1864,8 +1900,8 @@ func (g *McpGateway) handleMessage(w http.ResponseWriter, r *http.Request) {
 			resp = NewJSONRPCErrorResponse(req.ID, MethodNotFound, fmt.Sprintf("Tool error: %v", err))
 		} else {
 			logger.AddLog("INFO", fmt.Sprintf("Tool '%s' executed successfully in %v", params.Name, duration))
-			// If scooter_activate succeeded, notify SSE clients to refresh tools
-			if params.Name == "scooter_activate" {
+			// If scooter_activate or scooter_deactivate succeeded, notify SSE clients to refresh tools
+			if params.Name == "scooter_activate" || params.Name == "scooter_deactivate" {
 				g.NotifyToolsChanged(id)
 			}
 

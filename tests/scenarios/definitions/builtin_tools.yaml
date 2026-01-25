@@ -1,5 +1,5 @@
 name: builtin-tools-test
-description: Tests builtin scooter_* tools (simplified to 2 core tools)
+description: Tests builtin scooter_* primordial tools (4 core tools)
 timeout: 30s
 requires:
   env: []
@@ -19,8 +19,16 @@ steps:
       error: null
       result.content: not_empty
 
-  - name: list_active
+  - name: list_active_initially_empty
+    action: call_tool
+    tool: scooter_list_active
+    args: {}
+    expect:
+      error: null
+      result.content: not_empty
+
+  - name: verify_primordial_tools
     action: list_tools
     expect:
       error: null
-      tools_contain: ["scooter_find", "scooter_activate"]
+      tools_contain: ["scooter_find", "scooter_activate", "scooter_deactivate", "scooter_list_active"]

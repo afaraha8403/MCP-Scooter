@@ -24,7 +24,7 @@ $env:SCOOTER_URL="http://127.0.0.1:6277"; cd tests; go test ./protocol/... -v
 
 **Validation:**
 - Handshake returns correct protocol version.
-- Builtin tools (`scooter_find`, `scooter_activate`) are listed and callable.
+- Builtin tools (`scooter_find`, `scooter_activate`, `scooter_deactivate`, `scooter_list_active`) are listed and callable.
 </step>
 
 ### Step 2: Multi-Step Scenarios (Layer 2)

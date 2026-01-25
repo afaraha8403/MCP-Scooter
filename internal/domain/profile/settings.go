@@ -13,6 +13,14 @@ type Settings struct {
 	GatewayAPIKey string `yaml:"gateway_api_key" json:"gateway_api_key"`
 	LastProfileID string `yaml:"last_profile_id,omitempty" json:"last_profile_id,omitempty"`
 	VerboseLogging bool `yaml:"verbose_logging" json:"verbose_logging"`
+	
+	// Tool lifecycle settings
+	AutoCleanupEnabled  bool   `yaml:"auto_cleanup_enabled" json:"auto_cleanup_enabled"`
+	AutoCleanupMinutes  int    `yaml:"auto_cleanup_minutes" json:"auto_cleanup_minutes"`
+	CleanupOnSession    bool   `yaml:"cleanup_on_session" json:"cleanup_on_session"`
+	MaxActiveServers    int    `yaml:"max_active_servers" json:"max_active_servers"`
+	QuotaPolicy         string `yaml:"quota_policy" json:"quota_policy"` // "block" or "evict"
+	
 	// AI routing configuration
 	PrimaryAIProvider   string `yaml:"primary_ai_provider" json:"primary_ai_provider"`
 	PrimaryAIModel      string `yaml:"primary_ai_model" json:"primary_ai_model"`
@@ -26,6 +34,11 @@ func DefaultSettings() Settings {
 		ControlPort: 6200,
 		McpPort:     6277,
 		EnableBeta:  false,
+		AutoCleanupEnabled: true,
+		AutoCleanupMinutes: 10,
+		CleanupOnSession:   false,
+		MaxActiveServers:   5,
+		QuotaPolicy:        "evict",
 	}
 }
 

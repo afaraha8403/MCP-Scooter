@@ -381,11 +381,63 @@ func (e *DiscoveryEngine) GetServerForTool(toolName string) (string, bool) {
 // Add installs and activates a tool.
 func (e *DiscoveryEngine) Add(serverName string) error {
 	e.mu.Lock()
-	defer e.mu.Unlock()
-
+	
 	e.lastUsed[serverName] = time.Now()
 	if _, ok := e.activeServers[serverName]; ok {
+		e.mu.Unlock()
 		return nil // Already active
+	}
+
+	// Check quotas before activating
+	maxServers := e.settings.MaxActiveServers
+	if maxServers > 0 && len(e.activeServers) >= maxServers {
+		if e.settings.QuotaPolicy == "block" {
+			active := make([]string, 0, len(e.activeServers))
+			for name := range e.activeServers {
+				active = append(active, name)
+			}
+			e.mu.Unlock()
+			return fmt.Errorf("activation quota reached (%d/%d). Active servers: %v. Deactivate one first", 
+				len(active), maxServers, active)
+		} else {
+			// Evict least recently used server
+			var oldestServer string
+			var oldestTime time.Time
+			
+			for name, lastUsed := range e.lastUsed {
+				// Only consider servers that are actually active
+				if _, ok := e.activeServers[name]; !ok {
+					continue
+				}
+				if oldestServer == "" || lastUsed.Before(oldestTime) {
+					oldestServer = name
+					oldestTime = lastUsed
+				}
+			}
+			
+			if oldestServer != "" {
+				fmt.Printf("[Discovery] Quota reached (%d/%d), evicting oldest server: %s\n", 
+					len(e.activeServers), maxServers, oldestServer)
+				
+				// Close and remove the oldest server
+				if worker, ok := e.activeServers[oldestServer]; ok {
+					worker.Close()
+					delete(e.activeServers, oldestServer)
+					delete(e.lastUsed, oldestServer)
+					for toolName, sName := range e.toolToServer {
+						if sName == oldestServer {
+							delete(e.toolToServer, toolName)
+						}
+					}
+					
+					// Notify callback if set
+					if e.cleanupCallback != nil {
+						// Use a goroutine to avoid deadlock if callback calls back into engine
+						go e.cleanupCallback(oldestServer)
+					}
+				}
+			}
+		}
 	}
 
 	// Check if server exists in registry
@@ -467,6 +519,7 @@ func (e *DiscoveryEngine) Add(serverName string) error {
 	e.activeServers[serverName] = worker
 	fmt.Printf("[Discovery] Activated server: %s\n", serverName)
 	fmt.Printf("[Discovery] Current toolToServer mappings: %v\n", e.toolToServer)
+	e.mu.Unlock()
 	return nil
 }
 
@@ -689,7 +742,20 @@ func (e *DiscoveryEngine) monitor() {
 func (e *DiscoveryEngine) cleanup() {
 	e.mu.Lock()
 	
-	threshold := 10 * time.Minute // Auto-unload after 10 mins
+	// Use configured threshold or default to 10 minutes
+	threshold := 10 * time.Minute
+	if e.settings.AutoCleanupEnabled && e.settings.AutoCleanupMinutes > 0 {
+		threshold = time.Duration(e.settings.AutoCleanupMinutes) * time.Minute
+	}
+	
+	// If auto-cleanup is explicitly disabled, skip
+	if !e.settings.AutoCleanupEnabled && e.settings.AutoCleanupMinutes != 0 {
+		// We still allow cleanup if AutoCleanupMinutes is 0 as a safety measure? 
+		// No, let's respect the enabled flag.
+		e.mu.Unlock()
+		return
+	}
+
 	now := time.Now()
 	
 	var unloadedServers []string

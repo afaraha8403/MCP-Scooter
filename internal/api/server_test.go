@@ -18,7 +18,7 @@ func TestMcpGatewaySSE(t *testing.T) {
 	p := profile.Profile{ID: "test"}
 	pm.AddProfile(p)
 	settings := profile.DefaultSettings()
-	gw := NewMcpGateway(pm, settings)
+	gw := NewMcpGateway(pm, &settings)
 	
 	req := httptest.NewRequest("GET", "/profiles/test/sse", nil)
 	w := httptest.NewRecorder()
@@ -39,7 +39,7 @@ func TestMcpGatewaySSE(t *testing.T) {
 func TestControlServerCRUD(t *testing.T) {
 	pm := NewProfileManager(nil, ".", ".", ".")
 	settings := profile.DefaultSettings()
-	srv := NewControlServer(nil, pm, settings, false)
+	srv := NewControlServer(nil, pm, &settings, false)
 
 	// 1. Create Profile
 	p := profile.Profile{ID: "work"}

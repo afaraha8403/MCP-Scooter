@@ -1,0 +1,186 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 12.252463340759277,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0037813186645507812,
+          0.002058267593383789
+        ]
+      },
+      "scooter_activate": {
+        "count": 1,
+        "durations": [
+          1.2382593154907227
+        ]
+      },
+      "scooter_call": {
+        "count": 7,
+        "durations": [
+          0.002007007598876953,
+          0.002906322479248047,
+          0.002758502960205078,
+          0.0032706260681152344,
+          0.0025091171264648438,
+          0.0031232833862304688,
+          0.0028781890869140625
+        ]
+      },
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.003972291946411133
+        ]
+      }
+    },
+    "num_tool_calls": 11,
+    "summary": "I was asked to find out who created the Model Context Protocol (MCP) and when it was announced. I started by searching for relevant tools and found the `brave-search` tool. I activated this tool and then attempted to use its `brave_web_search` function to find the answer. However, I ran into repeated errors when trying to call the tool, and I am unable to proceed. I am not sure what I am doing wrong.",
+    "feedback": "I am having a lot of trouble understanding how to use the tools after activating them. The instructions mention using `scooter_call`, but it seems like I am misunderstanding how to invoke the tools correctly after they have been activated. The documentation and examples are not clear enough for me.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search",
+    "acceptable_answers": [
+      "Anthropic"
+    ]
+  },
+  {
+    "question": "Search for 'github mcp-server' and tell me the name of GitHub's official MCP server repository.",
+    "expected": "github-mcp-server",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 39.47723722457886,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.002573728561401367,
+          0.0033981800079345703
+        ]
+      },
+      "scooter_add": {
+        "count": 7,
+        "durations": [
+          0.0026235580444335938,
+          0.002389669418334961,
+          0.002187967300415039,
+          0.0026335716247558594,
+          0.0024988651275634766,
+          0.0027320384979248047,
+          0.0035886764526367188
+        ]
+      },
+      "scooter_activate": {
+        "count": 2,
+        "durations": [
+          1.7748534679412842,
+          0.9948441982269287
+        ]
+      },
+      "scooter_call": {
+        "count": 35,
+        "durations": [
+          0.0022363662719726562,
+          0.002134084701538086,
+          0.0019664764404296875,
+          0.0020439624786376953,
+          0.002290487289428711,
+          0.002978086471557617,
+          0.002624988555908203,
+          0.0020513534545898438,
+          0.002808094024658203,
+          0.0014925003051757812,
+          0.0027441978454589844,
+          0.0025167465209960938,
+          0.0025141239166259766,
+          0.0018301010131835938,
+          0.0016207695007324219,
+          0.002070188522338867,
+          0.0033953189849853516,
+          0.002462625503540039,
+          0.0019352436065673828,
+          0.0020356178283691406,
+          0.002593517303466797,
+          0.002117633819580078,
+          0.0021893978118896484,
+          0.0032041072845458984,
+          0.0037567615509033203,
+          0.002656221389770508,
+          0.003984928131103516,
+          0.00305938720703125,
+          0.002348184585571289,
+          0.0020389556884765625,
+          0.002624988555908203,
+          0.0023565292358398438,
+          0.002372264862060547,
+          0.0022056102752685547,
+          0.0028581619262695312
+        ]
+      },
+      "scooter_list_active": {
+        "count": 2,
+        "durations": [
+          0.002870321273803711,
+          0.0027189254760742188
+        ]
+      },
+      "scooter_deactivate": {
+        "count": 1,
+        "durations": [
+          0.027808427810668945
+        ]
+      }
+    },
+    "num_tool_calls": 49,
+    "summary": "I first tried to find the github tool and then activate it. After activating the github tool, I tried to use the search_repositories tool to search for \"mcp-server\". However, I received an error message \"Error executing tool scooter_call: Tool 'scooter_call' not found.\". I tried multiple times, but it didn't work. I then deactivated and reactivated the github tool, but it still didn't fix the issue. I tried to find the github took again, but to no avail.",
+    "feedback": null,
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search",
+    "acceptable_answers": [
+      "github-mcp-server",
+      "github/github-mcp-server"
+    ]
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I can use the \"brave-search\" tool to search for academic papers. Would you like me to try that?",
+    "score": 0,
+    "total_duration": 1.8892266750335693,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.0026407241821289062
+        ]
+      }
+    },
+    "num_tool_calls": 1,
+    "summary": "I used the `scooter_find` tool to search for tools related to \"search\". This returned a list of tools including \"brave-search\", \"context7\", and \"github\". Since I'm looking for academic papers, \"brave-search\" seems like the most relevant tool to investigate further.",
+    "feedback": "The scooter_find tool is useful for discovering available tools. It would be helpful to have a more detailed description of each tool and its capabilities, especially regarding specific search functionalities like academic paper search.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery",
+    "acceptable_answers": [
+      "search"
+    ]
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": null,
+    "score": 0,
+    "total_duration": 0.5242762565612793,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure",
+    "acceptable_answers": [
+      ""
+    ]
+  }
+]

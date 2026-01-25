@@ -17,9 +17,11 @@ import (
 // These are the "meta-layer" tools that are always available to AI clients.
 // External tools (like brave-search) are NOT exposed until explicitly activated via scooter_activate.
 //
-// Simplified to just 2 core tools:
+// Simplified to just 4 core tools:
 // - scooter_find: Discover available tools in the registry
 // - scooter_activate: Turn on a tool server for the current session
+// - scooter_deactivate: Turn off a tool server
+// - scooter_list_active: List currently active tool servers
 //
 // Note: scooter_ai (AI-powered intent routing) is planned for a future release.
 func PrimordialTools() []ToolDefinition {
@@ -69,13 +71,72 @@ func PrimordialTools() []ToolDefinition {
 						Required: []string{"tool_name"},
 					},
 				},
+				{
+					Name:        "scooter_add",
+					Description: "Alias for scooter_activate. Turn on an MCP tool server for the current session.",
+					InputSchema: &registry.JSONSchema{
+						Type: "object",
+						Properties: map[string]registry.PropertySchema{
+							"tool_name": {
+								Type:        "string",
+								Description: "The name of the tool/server to activate (e.g., 'brave-search', 'github').",
+							},
+						},
+						Required: []string{"tool_name"},
+					},
+				},
+			},
+		},
+		{
+			Name:        "scooter_deactivate",
+			Title:       "Deactivate Tool",
+			Description: "Turn off an MCP tool server. Removes its functions from the available tools.",
+			Category:    "system",
+			Source:      "builtin",
+			Installed:   true,
+			Tools: []registry.Tool{
+				{
+					Name:        "scooter_deactivate",
+					Description: "Turn off an MCP tool server for the current session. Once deactivated, the tool's functions are no longer available. Use scooter_list_active to see what's currently active.",
+					InputSchema: &registry.JSONSchema{
+						Type: "object",
+						Properties: map[string]registry.PropertySchema{
+							"tool_name": {
+								Type:        "string",
+								Description: "The name of the tool/server to deactivate (e.g., 'brave-search', 'github').",
+							},
+							"all": {
+								Type:        "boolean",
+								Description: "If true, deactivates all currently active tool servers.",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:        "scooter_list_active",
+			Title:       "List Active Tools",
+			Description: "List all currently active MCP tool servers and their tools.",
+			Category:    "system",
+			Source:      "builtin",
+			Installed:   true,
+			Tools: []registry.Tool{
+				{
+					Name:        "scooter_list_active",
+					Description: "List all currently active MCP tool servers and the tools they provide. Use this to see what is currently taking up context space.",
+					InputSchema: &registry.JSONSchema{
+						Type:       "object",
+						Properties: map[string]registry.PropertySchema{},
+					},
+				},
 			},
 		},
 	}
 }
 
 // HandleBuiltinTool handles calls to the primordial tools.
-// Simplified to just 2 core tools: scooter_find and scooter_activate
+// Simplified to just 4 core tools: scooter_find, scooter_activate, scooter_deactivate, scooter_list_active
 func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]interface{}) (interface{}, error) {
 	e.mu.RLock()
 	isDisabled := e.disabledTools[name]
@@ -132,7 +193,7 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 			"tools": formatted,
 		}, nil
 		
-	case "scooter_activate":
+	case "scooter_activate", "scooter_add":
 		tool, ok := params["tool_name"].(string)
 		if !ok {
 			return nil, fmt.Errorf("tool_name is required")
@@ -159,24 +220,15 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 				toolSchemas = append(toolSchemas, toolSchema)
 			}
 			
-		// Build example call for the first tool
-		exampleTool := ""
-		exampleCall := ""
-		if len(toolNames) > 0 {
-			exampleTool = toolNames[0]
-			exampleCall = fmt.Sprintf(`{"server": "mcp-scooter", "tool": "%s", "arguments": {...}}`, exampleTool)
-		}
-		
+		// Build clear instructions for calling tools directly
 		return map[string]interface{}{
-			"status":          "already_on",
-			"server":          "mcp-scooter",  // Always mcp-scooter, not the original server
+			"status":          "already_active",
 			"activated_from":  tool,
 			"available_tools": toolNames,
+			"tool_count":      len(toolNames),
 			"tool_schemas":    toolSchemas,
-			"message":         fmt.Sprintf("Tools from '%s' are ready. Server name for ALL calls: mcp-scooter", tool),
-			"how_to_call":     fmt.Sprintf("Use server='mcp-scooter' with tool='%s' (or any tool listed above)", exampleTool),
-			"example":         exampleCall,
-			"warning":         "DO NOT use 'context7', 'brave-search', or any other server name. ONLY use 'mcp-scooter'.",
+			"next_step":       fmt.Sprintf("Call any of these tools DIRECTLY by name: %v", toolNames),
+			"important":       "Do NOT use 'scooter_call'. Just call the tool directly, e.g., brave_web_search({\"query\": \"...\"})",
 		}, nil
 		}
 
@@ -195,24 +247,67 @@ func (e *DiscoveryEngine) HandleBuiltinTool(name string, params map[string]inter
 			toolSchemas = append(toolSchemas, toolSchema)
 		}
 		
-		// Build example call for the first tool
-		exampleTool := ""
-		exampleCall := ""
-		if len(toolNames) > 0 {
-			exampleTool = toolNames[0]
-			exampleCall = fmt.Sprintf(`{"server": "mcp-scooter", "tool": "%s", "arguments": {...}}`, exampleTool)
-		}
-		
+		// Build clear instructions for calling tools directly
 		return map[string]interface{}{
-			"status":          "on",
-			"server":          "mcp-scooter",  // Always mcp-scooter, not the original server
+			"status":          "activated",
 			"activated_from":  tool,
 			"available_tools": toolNames,
+			"tool_count":      len(toolNames),
 			"tool_schemas":    toolSchemas,
-			"message":         fmt.Sprintf("Tools from '%s' are now ready. Server name for ALL calls: mcp-scooter", tool),
-			"how_to_call":     fmt.Sprintf("Use server='mcp-scooter' with tool='%s' (or any tool listed above)", exampleTool),
-			"example":         exampleCall,
-			"warning":         "DO NOT use 'context7', 'brave-search', or any other server name. ONLY use 'mcp-scooter'.",
+			"next_step":       fmt.Sprintf("Call any of these tools DIRECTLY by name: %v", toolNames),
+			"important":       "Do NOT use 'scooter_call'. Just call the tool directly, e.g., brave_web_search({\"query\": \"...\"})",
+		}, nil
+
+	case "scooter_deactivate":
+		all, _ := params["all"].(bool)
+		tool, _ := params["tool_name"].(string)
+
+		if all {
+			activeServers := e.ListActive()
+			for _, s := range activeServers {
+				e.Remove(s)
+			}
+			return map[string]interface{}{
+				"status":  "off",
+				"message": "All tool servers have been deactivated.",
+			}, nil
+		}
+
+		if tool == "" {
+			return nil, fmt.Errorf("tool_name is required unless 'all' is true")
+		}
+
+		err := e.Remove(tool)
+		if err != nil {
+			return nil, err
+		}
+
+		return map[string]interface{}{
+			"status":  "off",
+			"server":  tool,
+			"message": fmt.Sprintf("Server '%s' has been deactivated.", tool),
+		}, nil
+
+	case "scooter_list_active":
+		activeServers := e.ListActive()
+		activeInfo := make([]map[string]interface{}, 0, len(activeServers))
+
+		for _, serverName := range activeServers {
+			tools := e.GetActiveToolsForServer(serverName)
+			toolNames := make([]string, 0, len(tools))
+			for _, t := range tools {
+				toolNames = append(toolNames, t.Name)
+			}
+			activeInfo = append(activeInfo, map[string]interface{}{
+				"server": serverName,
+				"tools":  toolNames,
+				"count":  len(toolNames),
+			})
+		}
+
+		return map[string]interface{}{
+			"active_servers": activeInfo,
+			"count":          len(activeServers),
 		}, nil
 
 	default:

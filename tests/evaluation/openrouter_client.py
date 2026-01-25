@@ -82,9 +82,11 @@ async def agent_loop_openrouter(
     ]
     
     tool_metrics = {}
+    # Keep a mutable reference to tools so we can refresh after activation
+    current_tools = list(tools)
     
     while True:
-        response_json = client.chat(messages, tools)
+        response_json = client.chat(messages, current_tools)
         choice = response_json["choices"][0]
         message = choice["message"]
         
@@ -151,3 +153,12 @@ async def agent_loop_openrouter(
                 "name": tool_name,
                 "content": tool_response
             })
+            
+            # Refresh tools after activation so new tools become available to the LLM
+            if tool_name in ("scooter_activate", "scooter_add", "scooter_deactivate"):
+                try:
+                    refreshed_tools = await connection.list_tools()
+                    current_tools = list(refreshed_tools)
+                    print(f"  🔄 Refreshed tool list: {len(current_tools)} tools available")
+                except Exception as e:
+                    print(f"  ⚠️ Failed to refresh tools: {e}")

@@ -263,6 +263,7 @@ function App() {
     { timestamp: new Date().toLocaleTimeString(), level: "INFO", message: "MCP Scooter Command Center initialized." }
   ]);
   const [status, setStatus] = useState({ connected: true, uptime: "0h 0m", latency: "12ms" });
+
   const [appSettings, setAppSettings] = useState<Settings>({ 
     control_port: 6200, 
     mcp_port: 6277, 
@@ -273,6 +274,31 @@ function App() {
     fallback_ai_provider: "",
     fallback_ai_model: ""
   });
+
+  const CONTROL_API = `http://localhost:${appSettings.control_port}/api`;
+
+  // Latency tracking
+  useEffect(() => {
+    let interval: any;
+    const measureLatency = async () => {
+      const start = performance.now();
+      try {
+        const res = await fetch(`${CONTROL_API}/ping`);
+        if (res.ok) {
+          const end = performance.now();
+          const rtt = Math.round(end - start);
+          setStatus(prev => ({ ...prev, latency: `${rtt}ms`, connected: true }));
+        }
+      } catch (err) {
+        setStatus(prev => ({ ...prev, connected: false }));
+      }
+    };
+
+    measureLatency();
+    interval = setInterval(measureLatency, 5000);
+
+    return () => clearInterval(interval);
+  }, [CONTROL_API]);
   const [portConflicts, setPortConflicts] = useState<{ port: number; process: ProcessInfo }[]>([]);
 
   // Track logged messages to avoid duplicates in splash screen
@@ -501,8 +527,6 @@ function App() {
     }
   };
 
-  const CONTROL_API = `http://localhost:${appSettings.control_port}/api`;
-
   // Splash screen helper
   const splashLog = (message: string, type: string = 'normal', once: boolean = false) => {
     if (once && loggedMessages.current.has(message)) {
@@ -670,6 +694,24 @@ function App() {
       }
     } catch (err) {
       addLog(`Error updating settings: ${err}`, "ERROR");
+    }
+  };
+
+  const updateProfile = async (p: Profile) => {
+    try {
+      const res = await fetch(`${CONTROL_API}/profiles`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(p),
+      });
+      if (res.ok) {
+        addLog(`Updated profile: ${p.id}`, "INFO");
+        fetchProfiles();
+      } else {
+        addLog(`Failed to update profile: ${p.id}`, "ERROR");
+      }
+    } catch (err) {
+      addLog(`Error updating profile: ${err}`, "ERROR");
     }
   };
 
@@ -1236,7 +1278,6 @@ function App() {
         <div className={`window-frame ${theme} loading-screen`}>
           <div className="splash-logo-container">
             <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} className="splash-logo" alt="MCP Scooter" />
-            <div className="splash-title">MCP SCOOTER</div>
             <div className="loading-dots">Initializing...</div>
           </div>
         </div>
@@ -1256,7 +1297,7 @@ function App() {
               </div>
               <h1 className="onboarding-title">Create your first profile</h1>
               <p className="onboarding-subtitle">
-                Welcome to MCP Scooter. Let's get you set up with a default profile to start managing your AI tools.
+                Welcome. Let's get you set up with a default profile to start managing your AI tools.
               </p>
 
               <div className="onboarding-main-action">
@@ -1281,7 +1322,7 @@ function App() {
               </div>
 
               <footer className="onboarding-footer">
-                MCP Scooter acts as a universal gateway for your MCPs.
+                Acts as a universal gateway for your MCPs.
               </footer>
             </div>
           </div>
@@ -1298,7 +1339,6 @@ function App() {
         <div className="profile-strip">
           <div className="app-logo-mini">
             <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} alt="S" />
-            <span className="app-name">MCP Scooter</span>
           </div>
           
           <div className="profile-controls-group">
@@ -1755,7 +1795,7 @@ function App() {
 
                     <div className="detail-section">
                       <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Capabilities</span>
+                        <span>Tools</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {selectedTool?.runtime && (
                             (() => {
@@ -2321,7 +2361,7 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  <CheckmarkCircleRegular /> Tools On
+                  <CheckmarkCircleRegular /> MCPs
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'catalog' ? 'active' : ''}`}
@@ -2332,7 +2372,7 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  <SearchRegular /> Tool Discovery
+                  <SearchRegular /> MCP Catalog
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'clients' ? 'active' : ''}`}
@@ -2540,7 +2580,7 @@ function App() {
                           fontSize: '10px',
                           color: 'white'
                         }}>+</span>
-                        Additional Tools
+                        Available MCPs
                       </div>
                     )}
                     
@@ -2622,7 +2662,7 @@ function App() {
                         border: '1px dashed var(--border-subtle)'
                       }}>
                         <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                          No additional tools are on for this profile.
+                          No additional MCPs are on for this profile.
                         </div>
                         <button 
                           className="primary"
@@ -2630,7 +2670,7 @@ function App() {
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         >
                           <SearchRegular style={{ fontSize: '14px' }} />
-                          Go to Tool Discovery
+                          Go to MCP Catalog
                         </button>
                       </div>
                     )}
@@ -3029,6 +3069,10 @@ function App() {
         settings={appSettings}
         onUpdateSettings={updateGlobalSettings}
         onReset={handleResetApp}
+        profiles={profiles}
+        selectedProfileId={selectedProfileId}
+        onUpdateProfile={updateProfile}
+        settingsPath={configPath.replace('profiles.yaml', 'settings.yaml')}
       />
 
       <ProfileSelectionModal

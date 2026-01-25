@@ -1,0 +1,151 @@
+[
+  {
+    "question": "What company created the Model Context Protocol (MCP) and when was it announced?",
+    "expected": "Anthropic",
+    "actual": null,
+    "score": 0,
+    "total_duration": 15.457550764083862,
+    "tool_calls": {
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.002741098403930664
+        ]
+      },
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.0035982131958007812,
+          0.0024268627166748047
+        ]
+      },
+      "scooter_add": {
+        "count": 9,
+        "durations": [
+          0.0023288726806640625,
+          0.0026574134826660156,
+          0.002768278121948242,
+          0.0022873878479003906,
+          0.0033173561096191406,
+          0.002263784408569336,
+          0.001970529556274414,
+          0.002119302749633789,
+          0.0013909339904785156
+        ]
+      },
+      "scooter_call": {
+        "count": 2,
+        "durations": [
+          0.002751588821411133,
+          0.002854585647583008
+        ]
+      }
+    },
+    "num_tool_calls": 14,
+    "summary": "I am unable to use the tools to solve the problem.",
+    "feedback": "The tools are difficult to use and the error messages are not helpful.",
+    "scenario_id": "web-search-natural",
+    "name": "Natural Web Search",
+    "acceptable_answers": [
+      "Anthropic"
+    ]
+  },
+  {
+    "question": "Search for 'github mcp-server' and tell me the name of GitHub's official MCP server repository.",
+    "expected": "github-mcp-server",
+    "actual": "NOT_FOUND",
+    "score": 0,
+    "total_duration": 8.580829381942749,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 2,
+        "durations": [
+          0.00273895263671875,
+          0.0025284290313720703
+        ]
+      },
+      "scooter_add": {
+        "count": 3,
+        "durations": [
+          0.0026979446411132812,
+          0.002737760543823242,
+          0.00244140625
+        ]
+      },
+      "scooter_list_active": {
+        "count": 1,
+        "durations": [
+          0.0021467208862304688
+        ]
+      },
+      "scooter_call": {
+        "count": 2,
+        "durations": [
+          0.003663778305053711,
+          0.002328634262084961
+        ]
+      }
+    },
+    "num_tool_calls": 8,
+    "summary": null,
+    "feedback": "I apologize, I'm still running into issues and seem to be misunderstanding the correct way to use the tool. I'm receiving an error message suggesting that `scooter_call` is not a valid tool. Given the limitations, I am unable to proceed.",
+    "scenario_id": "code-search-natural",
+    "name": "Natural Code Search",
+    "acceptable_answers": [
+      "github-mcp-server",
+      "github/github-mcp-server"
+    ]
+  },
+  {
+    "question": "Can you help me search for academic papers? If not, what tools DO you have for searching?",
+    "expected": "search",
+    "actual": "I am unable to directly search for academic papers with the available tools. Based on my search, the available tools are \"brave-search\" and \"github\", but I encountered errors when trying to use them.",
+    "score": 0,
+    "total_duration": 5.077159404754639,
+    "tool_calls": {
+      "scooter_find": {
+        "count": 1,
+        "durations": [
+          0.003337383270263672
+        ]
+      },
+      "scooter_add": {
+        "count": 2,
+        "durations": [
+          0.0022766590118408203,
+          0.002162456512451172
+        ]
+      },
+      "scooter_call": {
+        "count": 1,
+        "durations": [
+          0.0020971298217773438
+        ]
+      }
+    },
+    "num_tool_calls": 4,
+    "summary": "It seems that I am unable to add or call the tools correctly. I will cease attempting to add or call tools and respond to the user that I cannot complete their request.",
+    "feedback": "The tool system seems unreliable, as I was unable to add or call tools even after finding them with `scooter_find`. The error messages are not helpful in debugging the issue.",
+    "scenario_id": "capability-discovery",
+    "name": "Capability Discovery",
+    "acceptable_answers": [
+      "search"
+    ]
+  },
+  {
+    "question": "Order me a pepperoni pizza from the nearest Domino's.",
+    "expected": "",
+    "actual": null,
+    "score": 0,
+    "total_duration": 0.6018121242523193,
+    "tool_calls": {},
+    "num_tool_calls": 0,
+    "summary": null,
+    "feedback": null,
+    "scenario_id": "error-handling-natural",
+    "name": "Graceful Failure",
+    "acceptable_answers": [
+      ""
+    ]
+  }
+]

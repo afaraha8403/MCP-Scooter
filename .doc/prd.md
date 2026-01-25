@@ -9,7 +9,7 @@ Author: Product Team
 
 **MCP Scooter** is a lightweight, source-available desktop application that acts as the universal "Operating System" for the Model Context Protocol (MCP). It solves the critical scalability issues of AI agents—context bloat, configuration fatigue, and security risks—by replacing heavy Docker containers with a native, high-performance **Dynamic Gateway**.
 
-**The Core Promise:** *"MCP Scooter runs in your system tray, manages your professional and personal AI identities, and instantly spawns tools for any AI client (Cursor, Claude, Antigravity) with zero latency and \<50MB RAM usage."*
+**The Core Promise:** *"MCP Scooter runs in your system tray, manages your professional and personal AI identities, and instantly spawns MCPs for any AI client (Cursor, Claude, Antigravity) with zero latency and \<50MB RAM usage."*
 
 **Distribution:** The project includes a public-facing website (hosted on GitHub Pages) serving documentation, changelogs, and binary downloads directly from GitHub Releases.
 
@@ -18,8 +18,8 @@ Author: Product Team
 As MCP adoption explodes, developers face four compounding crises:
 
 1. **Context Bloat (The "Hard-Coding" Trap):**  
-   * Developers currently hard-code tool definitions into their agent's config.  
-   * *Result:* Connecting 50 tools floods the LLM's context window with 50 unused definitions, degrading performance and increasing costs.
+   * Developers currently hard-code MCP definitions into their agent's config.  
+   * *Result:* Connecting 50 MCPs floods the LLM's context window with 50 unused definitions, degrading performance and increasing costs.
    * *Industry Trend:* Developers are migrating to "Skills + CLI" patterns to reduce token consumption by 70%+. MCP Scooter must provide a native solution.
 
 2. **Configuration Fragmentation:**  
@@ -48,12 +48,12 @@ To become the **standard local runtime** for MCP. If MCP is the "USB port" for A
   * She selects the **"Work @ Corp"** profile.  
   * She opens Cursor. Cursor is configured to talk to 127.0.0.1:6277.  
   * She asks Cursor: *"Check the Prod DB health."*  
-  * **Scooter Action:** Scooter authenticates via the Work Profile, dynamically spawns the Postgres-Prod tool (in a secure sandbox), and pipes the result to Cursor. The LLM *never saw* the definitions for her personal Spotify tool.  
+  * **Scooter Action:** Scooter authenticates via the Work Profile, dynamically spawns the Postgres-Prod MCP (in a secure sandbox), and pipes the result to Cursor. The LLM *never saw* the definitions for her personal Spotify MCP.  
 * **06:00 PM (Personal Mode):**  
   * Alex doesn't close Cursor. She just opens **Claude Desktop** (configured to localhost:6278).  
   * She asks Claude: *"Analyze my Spotify listening history."*  
-  * **Scooter Action:** Scooter detects the request on the Personal Port (:6278). It spawns the Spotify-MCP tool using her personal API key.  
-  * *Crucial:* Her work credentials never leaked to the personal session, and her personal tools never cluttered her work context.
+  * **Scooter Action:** Scooter detects the request on the Personal Port (:6278). It spawns the Spotify-MCP using her personal API key.  
+  * *Crucial:* Her work credentials never leaked to the personal session, and her personal MCPs never cluttered her work context.
 
 ### **3.3 User Journey: "The CLI Power User"**
 
@@ -63,7 +63,7 @@ To become the **standard local runtime** for MCP. If MCP is the "USB port" for A
   * No GUI needed. The CLI talks to the Scooter daemon running in the background.
   * Sam creates a skill file: `scooter skill export context7 > .claude/skills/context7/SKILL.md`
   * Now Claude Code can use the skill with minimal token overhead.
-* **Result:** Sam gets the power of MCP tools with CLI convenience and token efficiency.
+* **Result:** Sam gets the power of MCPs with CLI convenience and token efficiency.
 
 ## **4\. Detailed Feature Specifications**
 
@@ -71,7 +71,7 @@ To become the **standard local runtime** for MCP. If MCP is the "USB port" for A
 
 * **Requirement:** Must be a native binary, not an Electron wrapper or Docker container.  
 * **OS Support:** Windows 11 (ARM/x64), macOS (Apple Silicon/Intel), Linux (Debian/RPM).  
-* **Performance Budget:** \<50MB RAM idle, \<10ms tool startup time.  
+* **Performance Budget:** \<50MB RAM idle, \<10ms MCP startup time.  
 * **Native UI (Windows Priority):**
   * The application must feel **100% Native to Windows**.
   * **Visuals:** Use **WinUI 3** design language (Segoe UI Variable font, standard spacing).
@@ -119,8 +119,8 @@ The killer feature. Users create isolated environments (Profiles) and secure the
     * **Flow:** Scooter detects the challenge \-\> Initiates PKCE Flow \-\> Opens System Browser for SSO Login \-\> Captures Callback \-\> Stores Token in Keychain \-\> Retries Request.
     * **Benefit:** The AI Client (e.g., Cursor) does *not* need to implement OAuth. It just talks to Scooter, and Scooter handles the auth.
   * **Local Tool Auth (3rd Party Tokens):**
-    * For local tools that need user context (e.g., google-drive-mcp), Scooter acts as a **Token Manager**.
-    * Scooter maintains a refresh loop for Google/Slack/GitHub tokens and injects them into the local tool process as environment variables (e.g., GOOGLE\_ACCESS\_TOKEN) at runtime.
+    * For local MCPs that need user context (e.g., google-drive-mcp), Scooter acts as a **Token Manager**.
+    * Scooter maintains a refresh loop for Google/Slack/GitHub tokens and injects them into the local MCP process as environment variables (e.g., GOOGLE\_ACCESS\_TOKEN) at runtime.
 * **Secure Credential Storage:** Scooter integrates with **macOS Keychain**, **Windows Credential Manager**, and **Linux Secret Service**. Tokens are never stored in plain text.
 
 ### **4.3 The "Scooter Gateway" (Dynamic Discovery Engine)**
@@ -129,20 +129,22 @@ This mimics the "Docker MCP Toolkit" pattern but runs natively. Instead of hard-
 
 * **The "Zero-Config" Experience:**
   * When a user installs Scooter, they don't need to manually "install" 50 tools.
-  * Scooter simply connects to the AI Client and exposes **2 Primordial Tools** (the "meta-layer"):
-    * `scooter_find` - Search for available tools in the registry
-    * `scooter_activate` - Turn on a tool server for the current session
+  * Scooter simply connects to the AI Client and exposes **4 Primordial Tools** (the "meta-layer"):
+    * `scooter_find` - Search for available MCPs in the registry
+    * `scooter_activate` - Turn on an MCP server for the current session
+    * `scooter_deactivate` - Turn off an MCP server (or all servers with `all: true`)
+    * `scooter_list_active` - List currently active MCP servers and their tools
   * **Future:** `scooter_ai` (AI-powered intent routing) is planned for a future release.
-  * **Critical:** External tools (like `brave_web_search`) are **NOT** visible to the AI client until the agent explicitly calls `scooter_activate`. This prevents context bloat and matches Docker MCP Toolkit behavior.
+  * **Critical:** External MCPs (like `brave_web_search`) are **NOT** visible to the AI client until the agent explicitly calls `scooter_activate`. This prevents context bloat and matches Docker MCP Toolkit behavior.
 
-* **Why Only 2 Primordial Tools?**
-  * Earlier versions exposed more tools (`scooter_remove`, `scooter_list_active`, `scooter_code_interpreter`).
-  * These were consolidated to minimize the base token footprint (~50 tokens total).
-  * The `scooter_activate` response now includes all necessary information (active tools, schemas).
+* **Why 4 Primordial Tools?**
+  * These 4 tools provide complete lifecycle management for MCP servers.
+  * The base token footprint remains minimal (~100 tokens total).
+  * `scooter_activate` response includes tool schemas inline for immediate use.
   * Code interpreter functionality is available but not exposed as a primordial tool to keep context lean.
 
 * **Tool Activation Flow (Explicit Loading Pattern):**  
-  1. **Initial State:** AI client connects and calls `tools/list`. It only sees the 2 primordial tools.
+  1. **Initial State:** AI client connects and calls `tools/list`. It only sees the 4 primordial tools.
   2. **Discovery:** User asks *"Search the web for AI news"*. Agent calls `scooter_find(query="search")`.
   3. **Results:** Scooter returns available servers: *"Found 'brave-search'. Tools: brave\_web\_search, brave\_local\_search"*.
   4. **Activation:** Agent calls `scooter_activate("brave-search")`.
@@ -151,15 +153,15 @@ This mimics the "Docker MCP Toolkit" pattern but runs natively. Instead of hard-
   7. **Tool Available:** Client refreshes `tools/list` and now sees `brave_web_search` and `brave_local_search`.
   8. **Usage:** Agent calls the tool directly (e.g., `brave_web_search({query: "AI news"})`). MCP Scooter routes the call to the correct backend.
 
-* **No Auto-Loading:** Unlike some implementations, Scooter does **NOT** auto-load tools when called. If an agent tries to call `brave_web_search` without first calling `scooter_activate("brave-search")`, Scooter returns a helpful error: *"Tool 'brave\_web\_search' is not active. Use scooter\_activate('brave-search') to turn it on first."*
+* **No Auto-Loading:** Unlike some implementations, Scooter does **NOT** auto-load MCPs when called. If an agent tries to call `brave_web_search` without first calling `scooter_activate("brave-search")`, Scooter returns a helpful error: *"MCP 'brave\_web\_search' is not active. Use scooter\_activate('brave-search') to turn it on first."*
 
 * **Permission Model:**
-  * Tools must be in the profile's `AllowTools` list before they can be activated via `scooter_activate`.
-  * Attempting to add an unauthorized tool returns: *"Tool 'github' is not allowed for this profile. Add it to AllowTools in your profile configuration."*
+  * MCPs must be in the profile's `AllowTools` list before they can be activated via `scooter_activate`.
+  * Attempting to add an unauthorized MCP returns: *"MCP 'github' is not allowed for this profile. Add it to AllowTools in your profile configuration."*
 
-* **Resource Hygiene:** Scooter monitors usage. If a tool server hasn't been used in 10 minutes, Scooter automatically unloads it to save RAM and Context Window space. When this happens, SSE clients are notified via `tools/list_changed`.
+* **Resource Hygiene:** Scooter monitors usage. If an MCP server hasn't been used in 10 minutes, Scooter automatically unloads it to save RAM and Context Window space. When this happens, SSE clients are notified via `tools/list_changed`.
 
-### **4.4 One-Click Setup (The "Integrations" Tab)**
+* **One-Click Setup (The "Integrations" Tab)**
 
 Scooter automates the configuration of 3rd party clients. The "Integrations" tab allows users to click "Install" for:
 
@@ -179,10 +181,10 @@ Scooter automates the configuration of 3rd party clients. The "Integrations" tab
 ### **4.5 Custom MCP & Export/Import**
 
 * **Custom MCP Wizard:**  
-  * UI to add local tools (e.g., "Run Python Script").  
+  * UI to add local MCPs (e.g., "Run Python Script").  
   * Inputs: Command (python/node), Args, Env Vars.  
   * **Auth Wrapper:** Checkbox for *"Manage OAuth for this tool"*. If checked, Scooter handles the Google/Slack login flow and passes the token to the script.
-  * **Validation:** Scooter dry-runs the tool to verify it speaks MCP protocol.  
+  * **Validation:** Scooter dry-runs the MCP to verify it speaks MCP protocol.  
 * **Export/Import:**  
   * **Format:** scout-bundle.json.  
   * **Scope:** Exports Profiles, Tool Lists, and non-sensitive Configs.  
@@ -211,42 +213,39 @@ Just like Docker's "Code Mode," Scooter allows agents to write scripts to chain 
 
 ### **4.8 Scooter CLI (Developer Experience)**
 
-To compete with CLI-first tools like MCPorter, Scooter provides a command-line interface for developers who prefer terminal workflows.
+The Scooter CLI is a **companion tool** to the Desktop Application, providing terminal access for power users who prefer command-line workflows.
 
-* **Installation:**
-  ```bash
-  # Via npm (cross-platform)
-  npm install -g @mcp-scooter/cli
-  
-  # Via Homebrew (macOS/Linux)
-  brew install mcp-scooter/tap/scooter
-  
-  # Via winget (Windows)
-  winget install mcp-scooter
-  
-  # Via npx (no install)
-  npx @mcp-scooter/cli list
-  ```
+> **Important:** The CLI requires the MCP Scooter Desktop Application to be installed and running. The CLI does not function standalone—it connects to the daemon managed by the Desktop App. Profile creation, tool registration, credential management, and client integrations must be configured via the Desktop UI first.
+
+* **Prerequisites:**
+  * MCP Scooter Desktop Application installed and running (system tray)
+  * At least one profile configured via the Desktop UI
+  * Required tools added to profile's `AllowTools` list
+
+* **Installation (Future - Phase 2):**
+```bash
+# Via npm (cross-platform)
+npm install -g @mcp-scooter/cli
+
+# Via Homebrew (macOS/Linux)
+brew install mcp-scooter/tap/scooter
+
+# Via winget (Windows)
+winget install mcp-scooter
+
+# Via npx (no install)
+npx @mcp-scooter/cli list
+```
 
 * **Core Commands:**
-  ```bash
-  scooter list                     # List available tools in registry
-  scooter find "search"            # Search for tools by capability
-  scooter activate brave-search    # Activate a tool server
-  scooter call brave-search.search query="AI news"  # Call a tool directly
-  scooter status                   # Show active servers and connections
-  scooter deactivate brave-search  # Unload a tool server
-  ```
-
-* **Ad-hoc Connections:**
-  ```bash
-  # Connect to any MCP server without registry entry
-  scooter call --url https://mcp.linear.app/mcp list_issues
-  scooter call --stdio "npx -y context7-mcp" resolve-library-id libraryName=react
-  
-  # Persist ad-hoc server to registry
-  scooter add --url https://mcp.linear.app/mcp --name linear --persist
-  ```
+```bash
+scooter list                     # List available MCPs in registry
+scooter find "search"            # Search for MCPs by capability
+scooter activate brave-search    # Activate an MCP server
+scooter call brave-search.search query="AI news"  # Call a tool directly
+scooter status                   # Show active servers and connections
+scooter deactivate brave-search  # Unload an MCP server
+```
 
 * **Profile Support:**
   ```bash
@@ -256,18 +255,24 @@ To compete with CLI-first tools like MCPorter, Scooter provides a command-line i
   scooter profile switch work
   ```
 
-* **Skill Commands:**
+* **Skill Commands (Phase 2):**
   ```bash
   scooter skill list                           # List available skills
   scooter skill export brave-search            # Generate skill file for a tool
   scooter skill install full-stack-dev         # Install a skill bundle from catalog
-  scooter skill create my-workflow             # Create a custom skill
   ```
 
 * **Implementation:** 
   * The CLI communicates with the running Scooter daemon via the Control API (port 6200).
-  * If no daemon is running, it starts one automatically in headless mode.
+  * The daemon is managed by the Desktop Application (runs in system tray).
   * Output formats: `--json` for machine-readable, `--raw` for unformatted, default for human-friendly.
+
+* **What the CLI Cannot Do (Use Desktop UI Instead):**
+  * Create or delete profiles
+  * Register custom MCP tools
+  * Set API keys or credentials
+  * Configure client integrations (Cursor, Claude, etc.)
+  * Manage gateway settings
 
 ### **4.9 Scooter Skills System**
 
@@ -462,19 +467,28 @@ Skills can work in two modes:
 
 Unlike standard MCP servers that expose a static list, Scooter exposes a dynamic hierarchy. The following **Primordial Tools** are intrinsic to the platform and always available. **External tools are only visible after explicit activation via `scooter_activate`.**
 
-### **5.1 The "Meta-Layer" (Discovery Tools)**
+### **5.1 The "Meta-Layer" (Primordial Tools)**
 
-Every AI client connected to Scooter sees these tools by default. These are the **only** tools visible until the agent activates external tools.
+Every AI client connected to Scooter sees these 4 tools by default. These are the **only** tools visible until the agent activates external tools.
 
 * **scooter\_find(query: string)**  
-  * *Description:* Searches the Local Registry and Community Catalog for tools.  
+  * *Description:* Searches the Local Registry and Community Catalog for MCPs.  
   * *Returns:* Server names, descriptions, and the list of tools each server provides.
-  * *Example Response:* `[{name: "brave-search", tools: ["brave_web_search", "brave_local_search"]}]`
+  * *Example Response:* `{tools: [{name: "brave-search", tools: ["brave_web_search", "brave_local_search"]}]}`
 
 * **scooter\_activate(tool\_name: string)**  
-  * *Description:* Turns on an MCP tool server for the current session.  
+  * *Description:* Turns on an MCP server for the current session.  
   * *Action:* Validates against AllowTools, authenticates (if needed), starts the server process, and notifies clients via SSE.
-  * *Returns:* `{status: "on", server: "brave-search", available_tools: ["brave_web_search", "brave_local_search"], tool_schemas: [...]}`
+  * *Returns:* `{status: "on", server: "mcp-scooter", activated_from: "brave-search", available_tools: ["brave_web_search", "brave_local_search"], tool_schemas: [...]}`
+
+* **scooter\_deactivate(tool\_name: string, all: boolean)**  
+  * *Description:* Turns off an MCP server for the current session.  
+  * *Action:* Stops the server process and removes its tools from the available list. Use `all: true` to deactivate all servers.
+  * *Returns:* `{status: "off", server: "brave-search", message: "Server 'brave-search' has been deactivated."}`
+
+* **scooter\_list\_active()**  
+  * *Description:* Lists all currently active MCP servers and their tools.  
+  * *Returns:* `{active_servers: [{server: "brave-search", tools: ["brave_web_search"], count: 1}], count: 1}`
 
 ### **5.2 Future Tools (Planned)**
 
@@ -549,7 +563,7 @@ The following tools are planned for future releases:
 | Registry Schema | ✅ Done | JSON Schema for MCP server definitions |
 | Registry Validation | ✅ Done | CLI tool to validate registry entries |
 | Profile Management | ✅ Done | Create, update, delete profiles with persistence |
-| Discovery Engine | ✅ Done | `scooter_find`, `scooter_activate` |
+| Discovery Engine | ✅ Done | `scooter_find`, `scooter_activate`, `scooter_deactivate`, `scooter_list_active` |
 | MCP Gateway | ✅ Done | SSE server handling JSON-RPC for all profiles |
 | Client Integrations | ✅ Done | Cursor, Claude Desktop, Claude Code, VS Code, Gemini CLI, Zed, Codex |
 | Keychain Integration | ✅ Done | Secure credential storage (Windows/macOS/Linux) |

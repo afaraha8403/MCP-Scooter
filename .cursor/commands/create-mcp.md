@@ -182,15 +182,18 @@ Create the complete registry JSON file at `appdata/registry/official/{name}.json
 ```
 </step>
 
-### Step 5: Create Icon Placeholder
+### Step 5: Create Icon
 
 <step>
-Note that an icon is needed at `desktop/public/registry-logos/{name}.svg`.
+An icon is needed at `desktop/public/registry-logos/{name}.{extension}`.
 
-Options:
-1. Download from the project's repository if available
-2. Create a simple placeholder SVG
-3. Note it as TODO for manual addition
+**Guidelines for Icons:**
+1. **GitHub URL provided**: Download the logo from the repository's owner/organization avatar.
+   - Example: For `https://github.com/ChromeDevTools/chrome-devtools-mcp`, use the avatar for `ChromeDevTools`.
+   - Use `curl` to download it to `desktop/public/registry-logos/{name}.png` (or `.svg` if available).
+2. **Download from repository**: Check if there is a logo in the repository (e.g., `logo.svg`, `icon.png`).
+3. **Create a placeholder**: If no official logo is found, create a simple placeholder SVG.
+4. **Note it as TODO**: If you cannot find or create a suitable icon, mark it for manual addition.
 
 If creating a placeholder, use this template:
 ```svg
