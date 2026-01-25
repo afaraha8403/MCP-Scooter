@@ -214,19 +214,28 @@ make validate-strict
 
 #### Releasing
 
-MCP Scooter uses GitHub Actions for automated releases. To trigger a release:
+MCP Scooter uses GitHub Actions for automated releases. The release commands automatically update version numbers in all config files, commit, tag, and push.
 
 ```bash
-# Release a stable version (e.g., 1.0.0)
-make release
-./tasks.ps1 release
+# Release a stable version
+./tasks.ps1 release 1.0.0        # Windows
+make release                      # macOS/Linux (interactive prompt)
 
-# Release a beta version (e.g., 1.0.0-beta.1)
-make release-beta
-./tasks.ps1 release-beta
+# Release a beta version  
+./tasks.ps1 release-beta 1.0.0-beta.1    # Windows
+make release-beta                         # macOS/Linux (interactive prompt)
+
+# Just update version without releasing
+./tasks.ps1 set-version 1.0.0
 ```
 
-This will automatically tag the current commit and push it to GitHub, triggering the build and release workflow.
+This will:
+1. Update version in `tauri.conf.json`, `package.json`, and `Cargo.toml`
+2. Commit the version bump
+3. Create and push a git tag
+4. Trigger the GitHub Actions build workflow
+
+See [docs/releasing.md](docs/releasing.md) for detailed release documentation.
 
 ---
 

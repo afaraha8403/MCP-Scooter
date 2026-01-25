@@ -6,13 +6,43 @@ param (
     [string]$Command = "help",
 
     [Parameter(Position=1)]
-    [string]$TestName = ""
+    [string]$Arg1 = "",
+
+    [Parameter(Position=2)]
+    [string]$Arg2 = ""
 )
+
+# Alias for backwards compatibility
+$TestName = $Arg1
+$Version = $Arg1
 
 # Ensure UTF-8 output for better visibility of icons
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $RootDir = Get-Location
+
+function Update-Version {
+    param([string]$NewVersion)
+    
+    Write-Host "Updating version to $NewVersion..." -ForegroundColor Cyan
+    
+    # Update tauri.conf.json
+    $tauriConf = Get-Content "desktop/src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
+    $tauriConf.version = $NewVersion
+    $tauriConf | ConvertTo-Json -Depth 10 | Set-Content "desktop/src-tauri/tauri.conf.json"
+    
+    # Update package.json
+    $packageJson = Get-Content "desktop/package.json" -Raw | ConvertFrom-Json
+    $packageJson.version = $NewVersion
+    $packageJson | ConvertTo-Json -Depth 10 | Set-Content "desktop/package.json"
+    
+    # Update Cargo.toml (simple regex replace)
+    $cargoToml = Get-Content "desktop/src-tauri/Cargo.toml" -Raw
+    $cargoToml = $cargoToml -replace 'version = "[^"]*"', "version = `"$NewVersion`""
+    Set-Content "desktop/src-tauri/Cargo.toml" $cargoToml -NoNewline
+    
+    Write-Host "Version updated to $NewVersion" -ForegroundColor Green
+}
 
 function Show-Help {
     Write-Host "MCP Scooter Task Runner" -ForegroundColor Green
@@ -52,11 +82,17 @@ function Show-Help {
     Write-Host "  lint              - Lint code"
     Write-Host ""
     Write-Host "Release:"
-    Write-Host "  release           - Tag and push a stable release"
-    Write-Host "  release-beta      - Tag and push a beta release"
+    Write-Host "  release [version]      - Update version, tag, and push a stable release"
+    Write-Host "  release-beta [version] - Update version, tag, and push a beta release"
+    Write-Host "  set-version <version>  - Update version in config files only (no commit/tag)"
     Write-Host ""
     Write-Host "Helper:"
     Write-Host "  test-run <name>   - Run specific test by name"
+    Write-Host ""
+    Write-Host "Examples:"
+    Write-Host "  ./tasks.ps1 release 1.0.0"
+    Write-Host "  ./tasks.ps1 release-beta 1.0.0-beta.2"
+    Write-Host "  ./tasks.ps1 set-version 1.0.0"
     Write-Host ""
 }
 
@@ -200,17 +236,49 @@ switch ($Command) {
     }
 
     "release" {
-        $Version = Read-Host "Enter version (e.g., 1.0.0)"
+        if (-not $Version) {
+            $Version = Read-Host "Enter version (e.g., 1.0.0)"
+        }
+        # Update version in all config files
+        Update-Version $Version
+        # Commit version bump
+        git add desktop/src-tauri/tauri.conf.json desktop/package.json desktop/src-tauri/Cargo.toml
+        git commit -m "chore: bump version to $Version"
+        git push origin main
+        # Create and push tag
         git tag -a "v$Version" -m "Release v$Version"
         git push origin "v$Version"
         Write-Host "GitHub Action will now build and release v$Version" -ForegroundColor Green
     }
 
     "release-beta" {
-        $Version = Read-Host "Enter beta version (e.g., 1.0.0-beta.1)"
+        if (-not $Version) {
+            $Version = Read-Host "Enter beta version (e.g., 1.0.0-beta.1)"
+        }
+        # Extract base version (e.g., 1.0.0 from 1.0.0-beta.1)
+        $BaseVersion = $Version -replace '-.*$', ''
+        # Update version in all config files (use base version for files)
+        Update-Version $BaseVersion
+        # Commit version bump
+        git add desktop/src-tauri/tauri.conf.json desktop/package.json desktop/src-tauri/Cargo.toml
+        git commit -m "chore: bump version to $BaseVersion for $Version release"
+        git push origin main
+        # Create and push tag
         git tag -a "v$Version" -m "Beta release v$Version"
         git push origin "v$Version"
         Write-Host "GitHub Action will now build and release v$Version" -ForegroundColor Green
+    }
+
+    "set-version" {
+        if (-not $Version) {
+            $Version = Read-Host "Enter version (e.g., 1.0.0)"
+        }
+        Update-Version $Version
+        Write-Host "Version updated to $Version in all config files." -ForegroundColor Green
+        Write-Host "Files updated:" -ForegroundColor Gray
+        Write-Host "  - desktop/src-tauri/tauri.conf.json"
+        Write-Host "  - desktop/package.json"
+        Write-Host "  - desktop/src-tauri/Cargo.toml"
     }
 
     "help" {
