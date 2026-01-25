@@ -204,8 +204,8 @@
             </h1>
             
             <p class="text-xl md:text-2xl text-gray-400 mb-12 font-light leading-relaxed max-w-3xl mx-auto">
-                Run in your tray. Manage your professional identities. <br class="hidden md:block">
-                Instantly spawn tools for any agent with zero latency.
+                Runs in your system tray. Keeps your work and personal tools separate. <br class="hidden md:block">
+                Instantly connects AI agents to the tools they need.
             </p>
 
             <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-24">
@@ -302,14 +302,58 @@
                 </div>
             </div>
 
+            <!-- Detailed Features Section -->
+            <section id="features" class="py-24 scroll-mt-24">
+                <div class="flex items-center justify-between mb-12">
+                    <h2 class="text-3xl font-bold">Core Capabilities</h2>
+                    <div class="h-px bg-white/10 flex-1 ml-8"></div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-12 text-left">
+                    <div class="space-y-6">
+                        <div class="p-6 border border-white/5 bg-white/[0.02] hover:border-[#00b386]/30 transition-colors group">
+                            <h4 class="text-[#00b386] font-mono text-sm mb-2">:: DYNAMIC_TOOL_DISCOVERY</h4>
+                            <h3 class="text-xl font-bold mb-3 text-white">Zero-Config Tool Activation</h3>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                Scooter monitors your requests and automatically activates the necessary MCP servers. No more manual configuration or restarting your IDE when you need a new tool.
+                            </p>
+                        </div>
+                        <div class="p-6 border border-white/5 bg-white/[0.02] hover:border-[#00b386]/30 transition-colors group">
+                            <h4 class="text-[#00b386] font-mono text-sm mb-2">:: IDENTITY_ISOLATION</h4>
+                            <h3 class="text-xl font-bold mb-3 text-white">Professional Identity Management</h3>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                Switch between Work, Personal, and Open Source profiles instantly. Each profile maintains its own set of tools, environment variables, and secure credentials.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="p-6 border border-white/5 bg-white/[0.02] hover:border-[#00b386]/30 transition-colors group">
+                            <h4 class="text-[#00b386] font-mono text-sm mb-2">:: UNIVERSAL_BRIDGE</h4>
+                            <h3 class="text-xl font-bold mb-3 text-white">One Gateway, All Clients</h3>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                Connect Cursor, Claude Desktop, VS Code, and custom CLI agents to a single Scooter instance. Centralize your tool management across your entire development stack.
+                            </p>
+                        </div>
+                        <div class="p-6 border border-white/5 bg-white/[0.02] hover:border-[#00b386]/30 transition-colors group">
+                            <h4 class="text-[#00b386] font-mono text-sm mb-2">:: LOCAL_FIRST_SECURITY</h4>
+                            <h3 class="text-xl font-bold mb-3 text-white">Native Security Sandbox</h3>
+                            <p class="text-gray-400 text-sm leading-relaxed">
+                                Tools run in isolated processes with scoped filesystem access. Sensitive operations require human-in-the-loop approval, keeping you in control of your data.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Performance Comparison -->
-            <div class="max-w-4xl mx-auto mb-24">
+            <div class="max-w-5xl mx-auto mb-24 scroll-mt-24" id="performance">
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="text-2xl font-bold">System Performance</h2>
                     <div class="h-px bg-white/10 flex-1 ml-8"></div>
                 </div>
                 
-                <div class="border border-white/10 bg-[#0a0a0f]">
+                <div class="border border-white/10 bg-[#0a0a0f] overflow-hidden">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-white/5 font-mono text-xs">
@@ -321,23 +365,39 @@
                         <tbody class="text-sm font-mono">
                             <tr class="border-b border-white/5 hover:bg-white/[0.02]">
                                 <td class="p-4 border-r border-white/10 text-gray-500">Idle RAM Usage</td>
-                                <td class="p-4 border-r border-white/10 text-red-400/70">2GB+</td>
-                                <td class="p-4 text-[#00b386]">&lt;50MB</td>
+                                <td class="p-4 border-r border-white/10 text-red-400/70">
+                                    <span class="mr-2">❌</span> 2GB+ (Docker Desktop)
+                                </td>
+                                <td class="p-4 border-r border-white/10 text-[#00b386]">
+                                    <span class="mr-2">✅</span> &lt;50MB (Native)
+                                </td>
                             </tr>
                             <tr class="border-b border-white/5 hover:bg-white/[0.02]">
                                 <td class="p-4 border-r border-white/10 text-gray-500">Tool Startup Time</td>
-                                <td class="p-4 border-r border-white/10 text-red-400/70">3-5 Seconds</td>
-                                <td class="p-4 text-[#00b386]">&lt;10ms</td>
+                                <td class="p-4 border-r border-white/10 text-red-400/70">
+                                    <span class="mr-2">❌</span> 3-5 Seconds (Container)
+                                </td>
+                                <td class="p-4 border-r border-white/10 text-[#00b386]">
+                                    <span class="mr-2">✅</span> &lt;10ms (WASM/Process)
+                                </td>
                             </tr>
                             <tr class="border-b border-white/5 hover:bg-white/[0.02]">
-                                <td class="p-4 border-r border-white/10 text-gray-500">Architecture</td>
-                                <td class="p-4 border-r border-white/10 text-gray-500">Linux Containers</td>
-                                <td class="p-4 text-gray-300">Native Binary + WASM</td>
+                                <td class="p-4 border-r border-white/10 text-gray-500">Binary Size</td>
+                                <td class="p-4 border-r border-white/10 text-gray-500">
+                                    <span class="mr-2">❌</span> ~500MB+ (Images)
+                                </td>
+                                <td class="p-4 border-r border-white/10 text-[#00b386]">
+                                    <span class="mr-2">✅</span> ~15MB (Single Binary)
+                                </td>
                             </tr>
                             <tr class="hover:bg-white/[0.02]">
                                 <td class="p-4 border-r border-white/10 text-gray-500">Context Efficiency</td>
-                                <td class="p-4 border-r border-white/10 text-gray-500">Static Loading</td>
-                                <td class="p-4 text-[#00b386]">Dynamic Hot-Swapping</td>
+                                <td class="p-4 border-r border-white/10 text-gray-500">
+                                    <span class="mr-2">❌</span> Static Loading
+                                </td>
+                                <td class="p-4 border-r border-white/10 text-[#00b386]">
+                                    <span class="mr-2">✅</span> Dynamic Hot-Swapping
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -345,7 +405,7 @@
             </div>
 
             <!-- Screenshot Gallery -->
-            <div id="features" class="mb-24">
+            <div class="mb-24">
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="text-2xl font-bold">Interface Gallery</h2>
                     <div class="h-px bg-white/10 flex-1 ml-8"></div>
@@ -361,7 +421,7 @@
             </div>
 
             <!-- Project Status -->
-            <div class="max-w-4xl mx-auto border border-[#00b386]/30 bg-[#00b386]/5 p-8 text-left relative overflow-hidden">
+            <div id="phases" class="max-w-4xl mx-auto border border-[#00b386]/30 bg-[#00b386]/5 p-8 text-left relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-2 opacity-20">
                     <svg class="w-16 h-16 text-[#00b386]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
                 </div>
@@ -370,19 +430,19 @@
                 <div class="mb-12 relative z-10">
                     <h3 class="text-xl font-mono font-bold mb-4 flex items-center gap-3 text-[#00b386]">
                         <span class="w-2 h-2 bg-[#00b386] animate-pulse"></span>
-                        PHASE_1: MVP_FOUNDATION [IN_PROGRESS]
+                        PHASE_1: CORE FOUNDATION [ACTIVE]
                     </h3>
                     <p class="text-gray-400 text-sm mb-6 leading-relaxed max-w-2xl">
-                        The core foundation is active. Gateway, Profile Engine, and Client Integrations are stable. Currently finalizing the WASM runtime and OAuth handlers.
+                        The main system is running. You can connect tools, manage profiles, and use it with Cursor and Claude today.
                     </p>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-2 text-xs font-mono tracking-wider">
-                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Gateway Protocol</div>
-                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Profile Engine</div>
-                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Discovery Protocol</div>
-                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Desktop Shell</div>
-                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Client Integrations</div>
+                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Connection Gateway</div>
+                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Profile Management</div>
+                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Tool Discovery</div>
+                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Desktop Tray App</div>
+                        <div class="flex items-center gap-2 text-[#00b386]"><span>[x]</span> Cursor/Claude Sync</div>
                         <div class="flex items-center gap-2 text-yellow-500/80"><span>[ ]</span> WASM Runtime</div>
-                        <div class="flex items-center gap-2 text-yellow-500/80"><span>[ ]</span> OAuth 2.0 Handler</div>
+                        <div class="flex items-center gap-2 text-yellow-500/80"><span>[ ]</span> OAuth 2.0 Flow</div>
                         <div class="flex items-center gap-2 text-yellow-500/80"><span>[ ]</span> Tool Playground</div>
                     </div>
                 </div>
@@ -523,7 +583,7 @@
                         </div>
                     </div>
 
-                    <div id="primordial-tools" class="scroll-mt-24">
+                    <div id="#primordial-tools" class="scroll-mt-24">
                         <h2 class="text-3xl font-bold mb-6 flex items-center gap-3">
                             <span class="text-[#00b386] font-mono text-xl">04.</span> Primordial Tools
                         </h2>
@@ -531,28 +591,28 @@
                             <p class="mb-6">Every AI client connected to Scooter sees these tools by default. They enable **dynamic auto-choosing**—the LLM finds only what it needs for your specific question, avoiding context bloat and saving tokens.</p>
                             <div class="grid md:grid-cols-1 gap-3 font-mono text-sm">
                                 <div class="flex items-start gap-4 p-3 border-b border-white/5">
-                                    <code class="text-[#00b386] whitespace-nowrap">scooter_find(query)</code>
+                                    <code class="text-[#00b386] whitespace-nowrap">scooter find [query]</code>
                                     <p class="text-gray-500">Search for tools by name or capability across the registry.</p>
                                 </div>
                                 <div class="flex items-start gap-4 p-3 border-b border-white/5">
-                                    <code class="text-[#00b386] whitespace-nowrap">scooter_add(name)</code>
+                                    <code class="text-[#00b386] whitespace-nowrap">scooter add [name]</code>
                                     <p class="text-gray-500">Instantly activate a tool server for the current session.</p>
                                 </div>
                                 <div class="flex items-start gap-4 p-3 border-b border-white/5">
-                                    <code class="text-[#00b386] whitespace-nowrap">scooter_remove(name)</code>
+                                    <code class="text-[#00b386] whitespace-nowrap">scooter remove [name]</code>
                                     <p class="text-gray-500">Unload a tool to free up context window space and RAM.</p>
                                 </div>
                                 <div class="flex items-start gap-4 p-3 border-b border-white/5">
-                                    <code class="text-[#00b386] whitespace-nowrap">scooter_list_active()</code>
+                                    <code class="text-[#00b386] whitespace-nowrap">scooter list active</code>
                                     <p class="text-gray-500">List all currently active tools and their capabilities.</p>
+                                </div>
+                                <div class="flex items-start gap-4 p-3 border-b border-white/5">
+                                    <code class="text-[#00b386] whitespace-nowrap">scooter [command]</code>
+                                    <p class="text-gray-500">Directly execute tool commands from the CLI.</p>
                                 </div>
                                 <div class="flex items-start gap-4 p-3 border-b border-white/5">
                                     <code class="text-[#00b386] whitespace-nowrap">scooter_code_interpreter(js)</code>
                                     <p class="text-gray-500">Execute sandboxed JavaScript for data processing.</p>
-                                </div>
-                                <div class="flex items-start gap-4 p-3 border-b border-white/5">
-                                    <code class="text-[#00b386] whitespace-nowrap">scooter_filesystem(op)</code>
-                                    <p class="text-gray-500">Safe, scoped file operations (read/write/list).</p>
                                 </div>
                                 <div class="flex items-start gap-4 p-3">
                                     <code class="text-[#00b386] whitespace-nowrap">scooter_fetch(url)</code>
@@ -655,6 +715,32 @@
     </div>
 
     <script>
+        // Scroll highlighting for documentation menu
+        window.addEventListener('scroll', () => {
+            const sections = ['install', 'profiles', 'integrations', 'primordial-tools', 'registry', 'security'];
+            const navLinks = document.querySelectorAll('aside nav a');
+            
+            let current = '';
+            sections.forEach(id => {
+                const section = document.getElementById(id);
+                if (section) {
+                    const rect = section.getBoundingClientRect();
+                    if (rect.top <= 150) {
+                        current = id;
+                    }
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('text-[#00b386]', 'border-l-2', 'border-[#00b386]', 'pl-2');
+                link.classList.add('text-gray-400');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('text-[#00b386]', 'border-l-2', 'border-[#00b386]', 'pl-2');
+                    link.classList.remove('text-gray-400');
+                }
+            });
+        });
+
         let currentImageIndex = 0;
         const images = Array.from(document.querySelectorAll('#features img')).map(img => img.src);
 

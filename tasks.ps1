@@ -53,6 +53,7 @@ function Show-Help {
     Write-Host "Build & Run:"
     Write-Host "  all               - Validate registry and build"
     Write-Host "  build             - Build the scooter binary"
+    Write-Host "  build-installer   - Build Windows MSI/NSIS installers"
     Write-Host "  dev               - Run in development mode"
     Write-Host "  clean             - Clean build artifacts"
     Write-Host "  deps              - Install dependencies"
@@ -105,6 +106,47 @@ switch ($Command) {
     "build" {
         Write-Host "Building Scooter..." -ForegroundColor Cyan
         go build -o scooter.exe ./cmd/scooter
+    }
+
+    "build-installer" {
+        Write-Host "Building Windows Installer..." -ForegroundColor Cyan
+        
+        # Step 1: Build Go backend for Tauri bundle
+        Write-Host "  [1/3] Building Go backend..." -ForegroundColor Gray
+        $env:GOOS = "windows"
+        $env:GOARCH = "amd64"
+        go build -o desktop/src-tauri/binaries/scooter-x86_64-pc-windows-msvc.exe ./cmd/scooter
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "✗ Go build failed" -ForegroundColor Red
+            exit 1
+        }
+        
+        # Step 2: Install frontend dependencies if needed
+        Write-Host "  [2/3] Checking frontend dependencies..." -ForegroundColor Gray
+        if (-not (Test-Path "desktop/node_modules")) {
+            Set-Location desktop
+            npm install
+            Set-Location $RootDir
+        }
+        
+        # Step 3: Build Tauri app
+        Write-Host "  [3/3] Building Tauri installer..." -ForegroundColor Gray
+        Set-Location desktop
+        npm run tauri build
+        $buildResult = $LASTEXITCODE
+        Set-Location $RootDir
+        
+        if ($buildResult -eq 0) {
+            Write-Host ""
+            Write-Host "✓ Build complete!" -ForegroundColor Green
+            Write-Host ""
+            Write-Host "Installers created:" -ForegroundColor Cyan
+            Write-Host "  MSI:  desktop/src-tauri/target/release/bundle/msi/" -ForegroundColor Gray
+            Write-Host "  NSIS: desktop/src-tauri/target/release/bundle/nsis/" -ForegroundColor Gray
+        } else {
+            Write-Host "✗ Tauri build failed" -ForegroundColor Red
+            exit 1
+        }
     }
 
     "build-validator" {

@@ -1,7 +1,7 @@
 # MCP Scooter Makefile
 # ====================
 
-.PHONY: all build test validate clean dev \
+.PHONY: all build build-installer test validate clean dev \
         test-unit test-registry test-discovery test-profile test-api test-integration \
         test-coverage test-protocol test-auth test-meta-mcp test-e2e \
         test-fast test-all ci-full pre-commit test-run \
@@ -17,6 +17,28 @@ build:
 # Build the CLI binary
 build-cli:
 	go build -o scooter-cli.exe ./cmd/scooter-cli
+
+# Build platform installers (macOS/Linux)
+build-installer:
+	@echo "Building installer..."
+	@echo "  [1/3] Building Go backend..."
+	@GOOS=$$(go env GOOS) GOARCH=$$(go env GOARCH) && \
+	if [ "$$GOOS" = "darwin" ]; then \
+		if [ "$$GOARCH" = "arm64" ]; then \
+			go build -o desktop/src-tauri/binaries/scooter-aarch64-apple-darwin ./cmd/scooter; \
+		else \
+			go build -o desktop/src-tauri/binaries/scooter-x86_64-apple-darwin ./cmd/scooter; \
+		fi; \
+	elif [ "$$GOOS" = "linux" ]; then \
+		go build -o desktop/src-tauri/binaries/scooter-x86_64-unknown-linux-gnu ./cmd/scooter; \
+	fi
+	@echo "  [2/3] Checking frontend dependencies..."
+	@if [ ! -d "desktop/node_modules" ]; then cd desktop && npm install; fi
+	@echo "  [3/3] Building Tauri installer..."
+	cd desktop && npm run tauri build
+	@echo ""
+	@echo "✓ Build complete!"
+	@echo "  Installers: desktop/src-tauri/target/release/bundle/"
 
 # Build the validation tool
 build-validator:
@@ -161,6 +183,7 @@ help:
 	@echo "Build & Run:"
 	@echo "  make              - Validate registry and build"
 	@echo "  make build        - Build the scooter binary"
+	@echo "  make build-installer - Build platform installers (DMG/DEB/AppImage)"
 	@echo "  make dev          - Run in development mode"
 	@echo "  make clean        - Clean build artifacts"
 	@echo "  make deps         - Install dependencies"

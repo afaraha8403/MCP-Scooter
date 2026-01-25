@@ -5,9 +5,21 @@ use tauri::{
 };
 use tauri_plugin_updater::UpdaterExt;
 use serde::{Serialize, Deserialize};
-use std::process::Command;
+use std::process::{Command, Child, Stdio};
+use std::sync::Mutex;
 use sysinfo::{System, Pid};
 use std::time::Duration;
+
+// Windows-specific imports for hiding console window
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+// Windows flag to create process without a console window
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+// Global handle to the backend process so we can clean it up on exit
+static BACKEND_PROCESS: Mutex<Option<Child>> = Mutex::new(None);
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ProcessInfo {
@@ -254,6 +266,53 @@ async fn install_update(app: tauri::AppHandle, include_beta: bool) -> Result<(),
     }
 }
 
+/// Spawn the scooter backend process
+fn spawn_backend() -> Result<Child, String> {
+    // Get the path to the sidecar binary
+    let exe_dir = std::env::current_exe()
+        .map_err(|e| format!("Failed to get current exe path: {}", e))?
+        .parent()
+        .ok_or("Failed to get exe directory")?
+        .to_path_buf();
+    
+    // The sidecar binary is in the same directory as the main executable
+    #[cfg(target_os = "windows")]
+    let sidecar_name = "scooter.exe";
+    #[cfg(not(target_os = "windows"))]
+    let sidecar_name = "scooter";
+    
+    let sidecar_path = exe_dir.join(sidecar_name);
+    
+    if !sidecar_path.exists() {
+        return Err(format!("Backend binary not found at: {:?}", sidecar_path));
+    }
+    
+    // Spawn the backend process
+    let mut cmd = Command::new(&sidecar_path);
+    cmd.current_dir(&exe_dir) // Set working directory to exe location so it finds appdata
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    
+    // On Windows, hide the console window
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    
+    let child = cmd.spawn()
+        .map_err(|e| format!("Failed to spawn backend: {}", e))?;
+    
+    Ok(child)
+}
+
+/// Kill the backend process if it's running
+fn kill_backend() {
+    if let Ok(mut guard) = BACKEND_PROCESS.lock() {
+        if let Some(mut child) = guard.take() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -262,6 +321,26 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![check_port_usage, kill_process, check_for_updates, install_update])
         .setup(|app| {
             let handle = app.handle().clone();
+            
+            // Spawn the backend process
+            match spawn_backend() {
+                Ok(child) => {
+                    if let Ok(mut guard) = BACKEND_PROCESS.lock() {
+                        *guard = Some(child);
+                    }
+                    println!("Backend process started successfully");
+                }
+                Err(e) => {
+                    eprintln!("Warning: Failed to start backend: {}", e);
+                    // Continue anyway - the backend might already be running
+                }
+            }
+            
+            // Show the main window on startup
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
             
             // Initial menu
             let menu = build_tray_menu(&handle, &None)?;
@@ -409,6 +488,12 @@ pub fn run() {
                 api.prevent_close();
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                // Clean up the backend process when the app exits
+                kill_backend();
+            }
+        });
 }

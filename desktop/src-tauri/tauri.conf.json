@@ -35,6 +35,10 @@
     "externalBin": [
       "binaries/scooter"
     ],
+    "resources": {
+      "../../appdata/registry/official/*.json": "appdata/registry/official/",
+      "../../appdata/clients/*.json": "appdata/clients/"
+    },
     "publisher": "Balacode.io",
     "shortDescription": "Universal Operating System for the Model Context Protocol",
     "longDescription": "MCP Scooter is a lightweight, native desktop application that serves as the universal Operating System for the Model Context Protocol (MCP). It manages AI tool integrations through a registry system, providing dynamic discovery, profile isolation, and seamless client integrations.",

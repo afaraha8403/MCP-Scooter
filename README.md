@@ -202,6 +202,22 @@ make dev
 ./tasks.ps1 dev
 ```
 
+#### Build Installers
+
+Build platform-specific installers for distribution:
+
+```bash
+# Windows - Build MSI and NSIS installers
+./tasks.ps1 build-installer
+
+# macOS/Linux - Build app bundles
+make build-installer
+```
+
+The Windows command builds:
+- **MSI**: `desktop/src-tauri/target/release/bundle/msi/MCP Scooter_x.x.x_x64_en-US.msi`
+- **NSIS**: `desktop/src-tauri/target/release/bundle/nsis/MCP Scooter_x.x.x_x64-setup.exe`
+
 #### Validate Registry
 
 ```bash
