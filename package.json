@@ -1,0 +1,13 @@
+{
+  "name": "@mcp-scooter/cli",
+  "version": "1.0.0",
+  "description": "CLI for MCP Scooter - The universal OS for Model Context Protocol",
+  "bin": {
+    "scooter": "./bin/scooter"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Balacode.io",
+  "license": "PolyForm Shield 1.0.0"
+}

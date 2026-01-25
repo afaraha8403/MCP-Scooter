@@ -91,7 +91,86 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("GET /api/credentials/ai", s.handleCheckAICredentials)
 	s.mux.HandleFunc("DELETE /api/credentials/ai-primary", s.handleDeletePrimaryAIKey)
 	s.mux.HandleFunc("DELETE /api/credentials/ai-fallback", s.handleDeleteFallbackAIKey)
+	s.mux.HandleFunc("POST /api/tools/call", s.handleCallTool)
+	s.mux.HandleFunc("POST /api/tools/activate", s.handleActivateTool)
 	s.mux.HandleFunc("GET /api/status", s.handleGetStatus)
+}
+
+func (s *ControlServer) handleCallTool(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Profile   string                 `json:"profile"`
+		Server    string                 `json:"server"`
+		Tool      string                 `json:"tool"`
+		Arguments map[string]interface{} `json:"arguments"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	profileID := req.Profile
+	if profileID == "" {
+		profileID = s.settings.LastProfileID
+	}
+
+	engine, ok := s.manager.GetEngine(profileID)
+	if !ok {
+		http.Error(w, "profile not found", http.StatusNotFound)
+		return
+	}
+
+	// Ensure server is active
+	active := false
+	for _, srv := range engine.ListActive() {
+		if srv == req.Server {
+			active = true
+			break
+		}
+	}
+
+	if !active {
+		http.Error(w, fmt.Sprintf("server '%s' is not active", req.Server), http.StatusNotFound)
+		return
+	}
+
+	result, err := engine.CallTool(req.Tool, req.Arguments)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+func (s *ControlServer) handleActivateTool(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Profile string `json:"profile"`
+		Server  string `json:"server"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	profileID := req.Profile
+	if profileID == "" {
+		profileID = s.settings.LastProfileID
+	}
+
+	engine, ok := s.manager.GetEngine(profileID)
+	if !ok {
+		http.Error(w, "profile not found", http.StatusNotFound)
+		return
+	}
+
+	if err := engine.Add(req.Server); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "activated", "server": req.Server})
 }
 
 func (s *ControlServer) handleHealth(w http.ResponseWriter, r *http.Request) {

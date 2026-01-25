@@ -14,6 +14,10 @@ all: validate build
 build:
 	go build -o scooter.exe ./cmd/scooter
 
+# Build the CLI binary
+build-cli:
+	go build -o scooter-cli.exe ./cmd/scooter-cli
+
 # Build the validation tool
 build-validator:
 	go build -o validate-registry.exe ./cmd/validate-registry
@@ -94,7 +98,7 @@ validate-json: build-validator
 
 # Clean build artifacts
 clean:
-	rm -f scooter.exe validate-registry.exe
+	rm -f scooter.exe scooter-cli.exe validate-registry.exe
 	rm -rf desktop/dist
 
 # Development mode - run with hot reload
