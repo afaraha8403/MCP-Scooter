@@ -39,6 +39,7 @@ import {
 } from "@fluentui/react-icons";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import logo from "./assets/logo.svg";
 import { SettingsModal } from "./components/SettingsModal";
 import { ProfileSelectionModal } from "./components/ProfileSelectionModal";
 import { JsonEditor } from "./components/JsonEditor";
@@ -1354,19 +1355,20 @@ function App() {
         {/* Profile Strip */}
         <div className="profile-strip">
           <div className="app-logo-mini">
-            <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} alt="S" />
+            <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} alt="MCP Scooter" />
           </div>
           
-          <div className="profile-controls-group">
-            <div className="profile-selector-container" onClick={() => setShowProfileModal(true)}>
-              <div className="profile-label-group">
-                <span className="profile-label">Profile</span>
-                <span className="profile-id-text">{selectedProfileId || 'Select Profile'}</span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div className="profile-controls-group">
+              <div className="profile-selector-container" onClick={() => setShowProfileModal(true)}>
+                <div className="profile-label-group">
+                  <span className="profile-label">Active Profile</span>
+                  <span className="profile-id-text">{selectedProfileId || 'default'}</span>
+                </div>
+                <ChevronDownRegular className="profile-chevron" />
               </div>
-              <ChevronDownRegular className="profile-chevron" />
             </div>
-
-            <button className="add-profile-btn" onClick={() => setDrawer({ type: "add-profile" })} title="Add New Profile">
+            <button className="add-profile-btn" title="Create New Profile" onClick={() => setDrawer({ type: "add-profile" })}>
               <AddRegular />
             </button>
           </div>
@@ -1377,7 +1379,7 @@ function App() {
           {/* Detail View */}
           {selectedTool && (
             <section className="section-container detail-view">
-              <header className="section-header">
+              <header className="section-header" style={{ background: 'var(--background-card)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button className="back-button" onClick={() => setSelectedTool(null)} title="Back to Catalog">
                     <ArrowLeftRegular />
@@ -1392,7 +1394,7 @@ function App() {
                     )}
                   </span>
                 </div>
-                <div className="card-actions">
+                <div className="card-actions" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
                   {(selectedTool.source === 'official' || selectedTool.source === 'community') && (
                     <button 
                       className="secondary" 
@@ -2002,7 +2004,7 @@ function App() {
 
           {selectedClient && (
             <section className="section-container detail-view">
-              <header className="section-header">
+              <header className="section-header" style={{ background: 'var(--background-card)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button className="back-button" onClick={() => setSelectedClient(null)} title="Back to Clients">
                     <ArrowLeftRegular />
@@ -2015,7 +2017,7 @@ function App() {
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 400 }}>v{selectedClient.version}</span>
                   )}
                 </div>
-                <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
+                <div className="card-actions" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none', display: 'flex', gap: '8px' }}>
                   {selectedClient.installed ? (
                     <button
                       className="primary"
@@ -2368,7 +2370,7 @@ function App() {
           {/* Main List View */}
           <section className="section-container" style={{ display: (selectedTool || selectedClient) ? 'none' : 'flex' }}>
             <header className="section-header">
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div className="tabs-container" style={{ display: 'flex', gap: '8px' }}>
                 <span 
                   className={`tab-link ${activeTab === 'active' ? 'active' : ''}`}
                   onClick={() => {
@@ -2377,7 +2379,8 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  <CheckmarkCircleRegular /> MCPs
+                  <CheckmarkCircleRegular />
+                  <span>My MCPs</span>
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'catalog' ? 'active' : ''}`}
@@ -2388,7 +2391,8 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  <SearchRegular /> MCP Catalog
+                  <SearchRegular />
+                  <span>Catalog</span>
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'clients' ? 'active' : ''}`}
@@ -2399,7 +2403,8 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  <WindowRegular /> Apps
+                  <WindowRegular />
+                  <span>Apps</span>
                 </span>
                 <span 
                   className={`tab-link ${activeTab === 'logs' ? 'active' : ''}`}
@@ -2410,12 +2415,13 @@ function App() {
                     setSelectedClient(null);
                   }}
                 >
-                  <BookRegular /> Logs
+                  <BookRegular />
+                  <span>Logs</span>
                 </span>
               </div>
               <span className="badge">
                 {activeTab === 'active' 
-                  ? `${(selectedProfile?.allow_tools?.length || 0) + builtinTools.filter(t => !selectedProfile?.disabled_system_tools?.includes(t.name)).length} On` 
+                  ? `${(selectedProfile?.allow_tools?.length || 0) + builtinTools.filter(t => !selectedProfile?.disabled_system_tools?.includes(t.name)).length} Active` 
                   : activeTab === 'catalog'
                   ? `${(filteredTools || []).length} Available`
                   : activeTab === 'clients'
@@ -2479,50 +2485,14 @@ function App() {
                   <>
                     {/* System Tools Section - Toggleable */}
                     {builtinTools.length > 0 && (
-                      <div className="category-section" style={{ marginBottom: '16px' }}>
-                        <div 
-                          className="category-title" 
-                          style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '8px',
-                            color: 'var(--text-secondary)',
-                            fontSize: '11px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px',
-                            marginBottom: '8px'
-                          }}
-                        >
-                          <span style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '4px', 
-                            background: 'var(--accent-primary)', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            fontSize: '10px',
-                            color: 'white'
-                          }}>⚙</span>
+                      <div className="category-section">
+                        <div className="category-title">
                           System Tools
-                          <span style={{ 
-                            fontWeight: 'normal', 
-                            opacity: 0.7, 
-                            textTransform: 'none',
-                            fontSize: '10px'
-                          }}>
+                          <span style={{ fontWeight: 'normal', opacity: 0.6, textTransform: 'none', fontSize: '10px', marginLeft: '4px' }}>
                             (click to toggle)
                           </span>
                         </div>
-                        <div style={{ 
-                          display: 'flex', 
-                          flexWrap: 'wrap', 
-                          gap: '8px',
-                          padding: '8px 12px',
-                          background: 'var(--background-subtle)',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-subtle)'
-                        }}>
+                        <div className="system-tools-container">
                           {builtinTools.map(tool => {
                             const isDisabled = selectedProfile?.disabled_system_tools?.includes(tool.name);
                             return (
@@ -2532,35 +2502,15 @@ function App() {
                                   e.stopPropagation();
                                   toggleSystemTool(tool.name);
                                 }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '4px 10px',
-                                  background: isDisabled ? 'transparent' : 'var(--background-card)',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
-                                  color: isDisabled ? 'var(--text-secondary)' : 'var(--text-primary)',
-                                  border: isDisabled ? '1px dashed var(--border-subtle)' : '1px solid var(--border-subtle)',
-                                  cursor: 'pointer',
-                                  opacity: isDisabled ? 0.5 : 1,
-                                  transition: 'all 0.15s ease',
-                                  margin: 0,
-                                  outline: 'none',
-                                  fontFamily: 'inherit'
-                                }}
+                                className={`system-tool-btn ${isDisabled ? 'disabled' : ''}`}
                                 title={`${tool.description}\n\nClick to ${isDisabled ? 'enable' : 'disable'}`}
                               >
                                 {isDisabled ? (
-                                  <EyeOffRegular style={{ fontSize: '12px', color: 'var(--text-secondary)' }} />
+                                  <EyeOffRegular className="system-tool-icon" style={{ color: 'var(--text-secondary)' }} />
                                 ) : (
-                                  <CheckmarkRegular style={{ fontSize: '12px', color: 'var(--accent-primary)' }} />
+                                  <CheckmarkRegular className="system-tool-icon" style={{ color: 'var(--accent-primary)' }} />
                                 )}
-                                <span style={{ 
-                                  fontFamily: 'monospace', 
-                                  fontSize: '11px',
-                                  textDecoration: isDisabled ? 'line-through' : 'none'
-                                }}>
+                                <span className="system-tool-name">
                                   {tool.name}
                                 </span>
                               </button>
@@ -2572,30 +2522,7 @@ function App() {
                     
                     {/* User's Tools (On) */}
                     {selectedProfile?.allow_tools && selectedProfile.allow_tools.length > 0 && (
-                      <div 
-                        className="category-title" 
-                        style={{ 
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          color: 'var(--text-secondary)',
-                          fontSize: '11px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          marginBottom: '8px'
-                        }}
-                      >
-                        <span style={{ 
-                          width: '16px', 
-                          height: '16px', 
-                          borderRadius: '4px', 
-                          background: 'var(--accent-success)', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          fontSize: '10px',
-                          color: 'white'
-                        }}>+</span>
+                      <div className="category-title">
                         Available MCPs
                       </div>
                     )}
@@ -2610,49 +2537,38 @@ function App() {
                             if (tool) setSelectedTool(tool);
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div className="card-header">
                             {tool?.icon ? (
                               <img 
                                 src={getThemedIcon(tool.icon)} 
                                 alt={toolName} 
                                 style={{ 
-                                  width: '40px', 
-                                  height: '40px', 
-                                  objectFit: 'contain',
                                   backgroundColor: tool.icon_background ? (theme === 'light' ? tool.icon_background.light : tool.icon_background.dark) : 'transparent',
-                                  borderRadius: '8px',
-                                  padding: '4px',
-                                  boxSizing: 'border-box'
                                 }} 
                               />
                             ) : (
                               <img 
                                 src={getThemedIcon("/registry-logos/mcp_fallback_light.svg")} 
                                 alt={toolName} 
-                                style={{ 
-                                  width: '40px', 
-                                  height: '40px', 
-                                  objectFit: 'contain',
-                                  borderRadius: '8px',
-                                  padding: '4px',
-                                  boxSizing: 'border-box',
-                                  background: 'var(--background-card)',
-                                  border: '1px solid var(--border-subtle)'
-                                }} 
                               />
                             )}
                             <div className="card-info">
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span className="card-title">{tool?.title || toolName}</span>
-                                {tool?.tools && tool.tools.length > 0 && (
-                                  <span style={{ fontSize: '10px', opacity: 0.6, background: 'var(--background-card)', padding: '1px 6px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                                    {tool.tools.length} {tool.tools.length === 1 ? 'tool' : 'tools'}
-                                  </span>
-                                )}
-                              </div>
+                              <span className="card-title">{tool?.title || toolName}</span>
                               <span className="card-subtitle">{tool?.description || "Ready for tool calls"}</span>
                             </div>
                           </div>
+
+                          <div className="card-tags">
+                            {tool?.tools && tool.tools.length > 0 && (
+                              <span className="card-tag tools-count">
+                                {tool.tools.length} {tool.tools.length === 1 ? 'tool' : 'tools'}
+                              </span>
+                            )}
+                            <span className="card-tag official" style={{ background: 'var(--status-ok-bg)', color: 'var(--status-ok-text)', borderColor: 'var(--status-ok-border)' }}>
+                              Active
+                            </span>
+                          </div>
+
                           <div className="card-actions">
                             <button onClick={(e) => { e.stopPropagation(); setDrawer({ type: "test-tool", data: toolName }); }}>Test</button>
                             <button 
@@ -2670,23 +2586,22 @@ function App() {
                       );
                     })}
                     {!selectedProfile?.allow_tools?.length && (
-                      <div style={{ 
-                        textAlign: "center", 
-                        padding: "40px 20px",
-                        background: 'var(--background-subtle)',
-                        borderRadius: '12px',
-                        border: '1px dashed var(--border-subtle)'
-                      }}>
-                        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                          No additional MCPs are on for this profile.
+                      <div className="empty-state-container">
+                        <div className="empty-state-icon">
+                          <BoxRegular />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <h3 className="empty-state-title">No Active MCPs</h3>
+                          <p className="empty-state-description">
+                            You haven't enabled any additional MCP tools for this profile yet.
+                          </p>
                         </div>
                         <button 
-                          className="primary"
+                          className="primary empty-state-button"
                           onClick={() => setActiveTab('catalog')}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         >
-                          <SearchRegular style={{ fontSize: '14px' }} />
-                          Go to MCP Catalog
+                          <SearchRegular style={{ fontSize: '16px' }} />
+                          Browse MCP Catalog
                         </button>
                       </div>
                     )}
@@ -2707,124 +2622,57 @@ function App() {
                                 className="compact-card clickable"
                                 onClick={() => setSelectedTool(tool)}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <div className="card-header">
                                   {tool.icon ? (
                                     <img 
                                       src={getThemedIcon(tool.icon)} 
                                       alt={tool.name} 
                                       style={{ 
-                                        width: '40px', 
-                                        height: '40px', 
-                                        objectFit: 'contain',
                                         backgroundColor: tool.icon_background ? (theme === 'light' ? tool.icon_background.light : tool.icon_background.dark) : 'transparent',
-                                        borderRadius: '8px',
-                                        padding: '4px',
-                                        boxSizing: 'border-box'
                                       }} 
                                     />
                                   ) : (
                                     <img 
                                       src={getThemedIcon("/registry-logos/mcp_fallback_light.svg")} 
                                       alt={tool.name} 
-                                      style={{ 
-                                        width: '40px', 
-                                        height: '40px', 
-                                        objectFit: 'contain',
-                                        borderRadius: '8px',
-                                        padding: '4px',
-                                        boxSizing: 'border-box',
-                                        background: 'var(--background-card)',
-                                        border: '1px solid var(--border-subtle)'
-                                      }} 
                                     />
                                   )}
                                   <div className="card-info">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <span className="card-title">{tool.title || tool.name}</span>
-                                      {tool.tools && tool.tools.length > 0 && (
-                                        <span style={{ fontSize: '10px', opacity: 0.6, background: 'var(--background-card)', padding: '1px 6px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                                          {tool.tools.length} {tool.tools.length === 1 ? 'tool' : 'tools'}
-                                        </span>
-                                      )}
-                                      {tool.source === 'official' && (
-                                        <span style={{ 
-                                          fontSize: '9px', 
-                                          padding: '2px 6px', 
-                                          background: 'rgba(0, 120, 212, 0.1)', 
-                                          color: 'var(--accent-primary)', 
-                                          borderRadius: '10px', 
-                                          fontWeight: 700,
-                                          textTransform: 'uppercase',
-                                          letterSpacing: '0.5px',
-                                          border: '1px solid rgba(0, 120, 212, 0.2)',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '4px'
-                                        }}>
-                                          <BuildingRegular style={{ fontSize: '11px' }} />
-                                          Official
-                                        </span>
-                                      )}
-                                      {tool.source === 'community' && (
-                                        <span style={{ 
-                                          fontSize: '9px', 
-                                          padding: '2px 6px', 
-                                          background: 'rgba(128, 128, 128, 0.1)', 
-                                          color: 'var(--text-secondary)', 
-                                          borderRadius: '10px', 
-                                          fontWeight: 700,
-                                          textTransform: 'uppercase',
-                                          letterSpacing: '0.5px',
-                                          border: '1px solid rgba(128, 128, 128, 0.2)',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '4px'
-                                        }}>
-                                          <PeopleRegular style={{ fontSize: '11px' }} />
-                                          Community
-                                        </span>
-                                      )}
-                                      {tool.source === 'enterprise' && (
-                                        <span style={{ 
-                                          fontSize: '9px', 
-                                          padding: '2px 6px', 
-                                          background: 'rgba(128, 128, 128, 0.1)', 
-                                          color: 'var(--text-secondary)', 
-                                          borderRadius: '10px', 
-                                          fontWeight: 700,
-                                          textTransform: 'uppercase',
-                                          letterSpacing: '0.5px',
-                                          border: '1px solid rgba(128, 128, 128, 0.2)',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '4px'
-                                        }}>
-                                          <BoxRegular style={{ fontSize: '11px' }} />
-                                          Enterprise
-                                        </span>
-                                      )}
-                                      {tool.source !== 'official' && tool.source !== 'community' && tool.source !== 'enterprise' && (
-                                        <span style={{ 
-                                          fontSize: '9px', 
-                                          padding: '2px 6px', 
-                                          background: 'rgba(128, 128, 128, 0.1)', 
-                                          color: 'var(--text-secondary)', 
-                                          borderRadius: '10px', 
-                                          fontWeight: 700,
-                                          textTransform: 'uppercase',
-                                          letterSpacing: '0.5px',
-                                          border: '1px solid rgba(128, 128, 128, 0.2)'
-                                        }}>{tool.source === 'local' ? 'Local' : 'Custom'}</span>
-                                      )}
-                                    </div>
+                                    <span className="card-title">{tool.title || tool.name}</span>
                                     <span className="card-subtitle">{tool.description}</span>
                                   </div>
                                 </div>
+
+                                <div className="card-tags">
+                                  {tool.tools && tool.tools.length > 0 && (
+                                    <span className="card-tag tools-count">
+                                      {tool.tools.length} {tool.tools.length === 1 ? 'tool' : 'tools'}
+                                    </span>
+                                  )}
+                                  {tool.source === 'official' && (
+                                    <span className="card-tag official">
+                                      <BuildingRegular style={{ fontSize: '12px' }} />
+                                      Official
+                                    </span>
+                                  )}
+                                  {tool.source === 'community' && (
+                                    <span className="card-tag community">
+                                      <PeopleRegular style={{ fontSize: '12px' }} />
+                                      Community
+                                    </span>
+                                  )}
+                                  {(tool.source === 'enterprise' || tool.source === 'local' || tool.source === 'custom') && (
+                                    <span className="card-tag community">
+                                      {tool.source.charAt(0).toUpperCase() + tool.source.slice(1)}
+                                    </span>
+                                  )}
+                                </div>
+
                                 <div className="card-actions">
                                   {tool.source !== 'official' && tool.source !== 'community' && (
                                     <button 
                                       className="secondary" 
-                                      style={{ marginRight: '4px', borderColor: '#ff4d4d', color: '#ff4d4d' }}
+                                      style={{ borderColor: '#ff4d4d', color: '#ff4d4d' }}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         deleteTool(tool.name);
@@ -2834,7 +2682,7 @@ function App() {
                                     </button>
                                   )}
                                   {isActive ? (
-                                    <button disabled style={{ opacity: 0.5 }} onClick={(e) => e.stopPropagation()}>On</button>
+                                    <button disabled style={{ opacity: 0.5 }} onClick={(e) => e.stopPropagation()}>Active</button>
                                   ) : (
                                     <button 
                                       className="primary"
@@ -2855,6 +2703,28 @@ function App() {
                         </div>
                       </div>
                     ))}
+                    {Object.keys(toolsByCategory || {}).length === 0 && (
+                      <div className="empty-state-container" style={{ gridColumn: '1 / -1' }}>
+                        <div className="empty-state-icon">
+                          <SearchRegular />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <h3 className="empty-state-title">No Tools Found</h3>
+                          <p className="empty-state-description">
+                            No MCP tools match your current search or filter criteria.
+                          </p>
+                        </div>
+                        <button 
+                          className="secondary empty-state-button"
+                          onClick={() => {
+                            setSearchQuery("");
+                            setToolFilter('all');
+                          }}
+                        >
+                          Clear All Filters
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -2865,81 +2735,62 @@ function App() {
                         key={client.id} 
                         className="compact-card clickable" 
                         onClick={() => setSelectedClient(client)}
-                        style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}
                       >
-                        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
-                            {client.icon ? (
-                              <img 
-                                src={theme === 'dark' && client.icon_dark ? client.icon_dark : getThemedIcon(client.icon)} 
-                                alt={client.name} 
-                                style={{ 
-                                  width: '40px', 
-                                  height: '40px', 
-                                  objectFit: 'contain',
-                                  borderRadius: '8px',
-                                  padding: '4px',
-                                  boxSizing: 'border-box',
-                                  background: 'var(--background-card)',
-                                  border: '1px solid var(--border-subtle)'
-                                }} 
-                              />
-                            ) : (
-                              <div style={{ width: '40px', height: '40px', background: 'var(--border-subtle)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <PhoneLaptopRegular style={{ fontSize: '20px', opacity: 0.5 }} />
-                              </div>
-                            )}
-                            <div className="card-info" style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span className="card-title" style={{ fontSize: '15px' }}>{client.name}</span>
-                                {client.developer && (
-                                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.8 }}>by {client.developer}</span>
-                                )}
-                              </div>
-                              <span className="card-subtitle" style={{ fontSize: '12px', lineHeight: '1.4' }}>{client.description}</span>
-                              <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                {client.category && (
-                                  <span style={{ 
-                                    fontSize: '10px', 
-                                    padding: '2px 8px', 
-                                    borderRadius: '10px', 
-                                    background: 'var(--card-hover)',
-                                    color: 'var(--text-secondary)',
-                                    fontWeight: 500
-                                  }}>
-                                    {client.category}
-                                  </span>
-                                )}
-                                {client.mcp_support && (
-                                  <span style={{ 
-                                    fontSize: '10px', 
-                                    padding: '2px 8px', 
-                                    borderRadius: '10px', 
-                                    background: client.mcp_support.status === 'stable' ? 'rgba(0, 200, 83, 0.15)' : 
-                                               client.mcp_support.status === 'beta' ? 'rgba(255, 193, 7, 0.15)' : 'rgba(156, 39, 176, 0.15)',
-                                    color: client.mcp_support.status === 'stable' ? '#00c853' : 
-                                           client.mcp_support.status === 'beta' ? '#ffc107' : '#9c27b0',
-                                    fontWeight: 600
-                                  }}>
-                                    MCP {client.mcp_support.status}
-                                  </span>
-                                )}
-                                {client.platforms && client.platforms.length > 0 && (
-                                  <span style={{ 
-                                    fontSize: '10px', 
-                                    color: 'var(--text-secondary)',
-                                    opacity: 0.7
-                                  }}>
-                                    {client.platforms.slice(0, 3).join(' · ')}
-                                  </span>
-                                )}
-                              </div>
+                        <div className="card-header">
+                          {client.icon ? (
+                            <img 
+                              src={theme === 'dark' && client.icon_dark ? client.icon_dark : getThemedIcon(client.icon)} 
+                              alt={client.name} 
+                              style={{ 
+                                background: 'var(--background-card)',
+                              }} 
+                            />
+                          ) : (
+                            <div className="tool-icon-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <PhoneLaptopRegular style={{ fontSize: '20px', opacity: 0.5 }} />
                             </div>
+                          )}
+                          <div className="card-info">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className="card-title" style={{ fontSize: '15px' }}>{client.name}</span>
+                              {client.developer && (
+                                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.8 }}>by {client.developer}</span>
+                              )}
+                            </div>
+                            <span className="card-subtitle">{client.description}</span>
                           </div>
+                        </div>
+
+                        <div className="card-tags">
+                          {client.category && (
+                            <span className="card-tag community">
+                              {client.category}
+                            </span>
+                          )}
+                          {client.mcp_support && (
+                            <span className="card-tag" style={{ 
+                              background: client.mcp_support.status === 'stable' ? 'rgba(0, 200, 83, 0.1)' : 
+                                         client.mcp_support.status === 'beta' ? 'rgba(255, 193, 7, 0.1)' : 'rgba(156, 39, 176, 0.1)',
+                              color: client.mcp_support.status === 'stable' ? '#00c853' : 
+                                     client.mcp_support.status === 'beta' ? '#ffc107' : '#9c27b0',
+                              borderColor: client.mcp_support.status === 'stable' ? 'rgba(0, 200, 83, 0.2)' : 
+                                          client.mcp_support.status === 'beta' ? 'rgba(255, 193, 7, 0.2)' : 'rgba(156, 39, 176, 0.2)',
+                              border: '1px solid'
+                            }}>
+                              MCP {client.mcp_support.status}
+                            </span>
+                          )}
+                          {client.platforms && client.platforms.length > 0 && (
+                            <span className="card-tag community" style={{ textTransform: 'none' }}>
+                              {client.platforms.slice(0, 3).join(' · ')}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="card-actions">
                           {client.installed ? (
                             <button
                               className="primary"
-                              style={{ flexShrink: 0, marginLeft: '12px' }}
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 try {
@@ -2971,17 +2822,31 @@ function App() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="primary"
-                                style={{ flexShrink: 0, marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}
+                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none', height: '32px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}
+                                onClick={e => e.stopPropagation()}
                               >
                                 Download
                               </a>
                             ) : (
-                              <button className="primary" disabled style={{ flexShrink: 0, marginLeft: '12px' }}>Download</button>
+                              <button className="primary" disabled>Download</button>
                             )
                           )}
                         </div>
                       </div>
                     ))}
+                    {allClients.length === 0 && (
+                      <div className="empty-state-container" style={{ gridColumn: '1 / -1' }}>
+                        <div className="empty-state-icon">
+                          <WindowRegular />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <h3 className="empty-state-title">No Apps Found</h3>
+                          <p className="empty-state-description">
+                            No supported AI applications were detected or found.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
                 {activeTab === 'logs' && (
@@ -3017,25 +2882,18 @@ function App() {
                     
                     <div className="log-stream" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', userSelect: 'text' }}>
                       {filteredLogs.map((log, i) => (
-                        <div key={i} style={{ 
-                          fontFamily: "Google Sans Code, JetBrains Mono, monospace", 
-                          fontSize: "11px", 
-                          marginBottom: "4px", 
-                          borderBottom: '1px solid var(--border-subtle)', 
-                          paddingBottom: '6px',
-                          paddingTop: '2px',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}>
-                          <span style={{ opacity: 0.4, marginRight: '12px', whiteSpace: 'nowrap' }}>
+                        <div key={i} className="log-entry">
+                          <span className="log-timestamp">
                             {formatLogTimestamp(log.timestamp)}
                           </span>
-                          <span style={getLogLevelStyle(log.level)}>{log.level}</span>
-                          <span style={{ color: 'var(--text-primary)', lineHeight: '1.4' }}>{log.message}</span>
+                          <span className={`log-level ${log.level.toLowerCase()}`}>
+                            {log.level}
+                          </span>
+                          <span className="log-message">{log.message}</span>
                         </div>
                       ))}
                       {filteredLogs.length === 0 && (
-                        <div style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No logs found!</div>
+                        <div style={{ textAlign: 'center', opacity: 0.5, padding: '40px' }}>No logs found!</div>
                       )}
                     </div>
                   </div>
@@ -3050,33 +2908,36 @@ function App() {
       {/* Persistent Bottom Toolbar */}
       <footer className="bottom-toolbar">
         <div className="toolbar-group">
-          <div className="stat-item">
+          <div className="stat-item" title={status.connected ? "Connected to Backend" : "Disconnected from Backend"}>
             <span className={`status-dot ${status.connected ? "active" : "error"}`}></span>
-            <span className="stat-label">API:</span>
+            <span className="stat-label">API</span>
             <span className="stat-value">localhost:{appSettings.control_port}</span>
           </div>
-          <div className="stat-item">
-            <span className="stat-label">Latency:</span>
+          <div className="stat-item" title="Network Latency">
+            <RocketRegular style={{ fontSize: '14px', opacity: 0.6 }} />
+            <span className="stat-label">Latency</span>
             <span className="stat-value">{status.latency}</span>
+          </div>
+          <div className="stat-item" title="Application Uptime">
+            <ArrowClockwiseRegular style={{ fontSize: '14px', opacity: 0.6 }} />
+            <span className="stat-label">Uptime</span>
+            <span className="stat-value">{status.uptime}</span>
           </div>
         </div>
 
         <div className="toolbar-group">
-          <div className="stat-item">
-            <span className="stat-label">Uptime:</span>
-            <span className="stat-value">{status.uptime}</span>
-          </div>
           <div className="toolbar-button" onClick={() => {
             setSettingsTab('global');
             setShowSettings(true);
           }}>
-            <SettingsRegular style={{ marginRight: '4px' }} /> Settings
+            <SettingsRegular />
+            <span>Settings</span>
           </div>
-          <div className="toolbar-button" onClick={toggleTheme}>
+          <div className="toolbar-button" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}>
             {theme === "dark" ? (
-              <><WeatherMoonRegular style={{ marginRight: '4px' }} /> Dark</>
+              <><WeatherSunnyRegular /> <span>Light</span></>
             ) : (
-              <><WeatherSunnyRegular style={{ marginRight: '4px' }} /> Light</>
+              <><WeatherMoonRegular /> <span>Dark</span></>
             )}
           </div>
         </div>
