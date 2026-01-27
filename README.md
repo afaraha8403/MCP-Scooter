@@ -165,7 +165,7 @@ Or you could click one button in Scooter and have all your clients configured in
 ### 📦 Download
 
 > **🎉 First Beta Release is Ready!**  
-> Pre-built installers for Windows, macOS, and Linux are now available under [GitHub Releases](https://github.com/mcp-scooter/scooter/releases).
+> Pre-built installers for Windows, macOS, and Linux are now available under [GitHub Releases](https://github.com/afaraha8403/MCP-Scooter/releases).
 >
 > Download the latest version and run MCP Scooter with a single click.
 
@@ -186,8 +186,8 @@ Want to contribute or hack on MCP Scooter? Here's how to build it yourself.
 #### Build & Run
 ```bash
 # Clone the repository
-git clone https://github.com/mcp-scooter/scooter.git
-cd scooter
+git clone https://github.com/afaraha8403/MCP-Scooter.git
+cd MCP-Scooter
 
 # Install dependencies
 make deps

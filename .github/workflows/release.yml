@@ -282,6 +282,14 @@ jobs:
       #   3. Create/update GitHub release with artifacts
       #   4. Generate updater JSON manifest
       #
+      # CRITICAL: tagName must use the actual git tag that triggered the workflow!
+      #   - CORRECT:   tagName: ${{ github.ref_name }}  → uses "v0.0.1-beta.8"
+      #   - WRONG:     tagName: v__VERSION__            → reads from tauri.conf.json
+      #
+      # The v__VERSION__ placeholder reads from tauri.conf.json which contains
+      # the BASE version (e.g., "0.0.1"), not the full tag (e.g., "0.0.1-beta.8").
+      # This would cause beta releases to accidentally create stable releases!
+      #
       # ENVIRONMENT VARIABLES:
       #   - GITHUB_TOKEN: Required for creating releases (auto-provided)
       #   - TAURI_SIGNING_PRIVATE_KEY: Required for signing updates
@@ -302,10 +310,12 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: desktop
-          tagName: v__VERSION__
-          releaseName: 'MCP Scooter v__VERSION__'
+          # IMPORTANT: Use the actual git tag, NOT v__VERSION__ which reads from config
+          # github.ref_name gives us the tag that triggered this workflow (e.g., "v0.0.1-beta.8")
+          tagName: ${{ github.ref_name }}
+          releaseName: 'MCP Scooter ${{ github.ref_name }}'
           releaseBody: |
-            ## MCP Scooter v__VERSION__
+            ## MCP Scooter ${{ github.ref_name }}
             
             ${{ steps.channel.outputs.is_prerelease == 'true' && '⚠️ **This is a beta release.** It may contain bugs and is not recommended for production use.' || '✅ **This is a stable release.**' }}
             
@@ -318,7 +328,7 @@ jobs:
             
             ### What's New
             
-            See [CHANGELOG.md](https://github.com/mcp-scooter/scooter/blob/main/CHANGELOG.md) for details.
+            See [CHANGELOG.md](https://github.com/afaraha8403/MCP-Scooter/blob/main/CHANGELOG.md) for details.
             
             ### Getting Started
             
@@ -326,7 +336,7 @@ jobs:
             2. Launch the app (it will appear in your system tray)
             3. Configure your AI client (Cursor, Claude, VS Code, etc.) to connect to `http://127.0.0.1:6277/sse`
             
-            For detailed instructions, visit our [documentation](https://mcp-scooter.com).
+            For detailed instructions, visit our [documentation](https://afaraha8403.github.io/MCP-Scooter/).
           releaseDraft: true
           prerelease: ${{ steps.channel.outputs.is_prerelease }}
           # Upload the updater JSON manifest (latest.json) for auto-updates

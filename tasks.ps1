@@ -443,7 +443,7 @@ switch ($Command) {
         Write-Host "  3. Sign update artifacts"
         Write-Host "  4. Create a draft release"
         Write-Host ""
-        Write-Host "Monitor progress at: https://github.com/mcp-scooter/scooter/actions" -ForegroundColor Gray
+        Write-Host "Monitor progress at: https://github.com/afaraha8403/MCP-Scooter/actions" -ForegroundColor Gray
     }
 
     "release-beta" {

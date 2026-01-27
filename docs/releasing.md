@@ -112,19 +112,21 @@ git push origin v1.0.0
 
 ## What Happens After You Push a Tag
 
-1. **GitHub Actions triggers** the Release workflow
+1. **GitHub Actions triggers** the Release workflow when it sees a `v*` tag
 2. **Tests run** (Go tests + registry validation)
 3. **Builds start** in parallel for:
    - Windows (x64)
    - macOS (Intel x64)
    - macOS (Apple Silicon ARM64)
    - Linux (x64)
-4. **Draft release created** with all installers attached
+4. **Draft release created** with all installers attached using the **exact tag you pushed**
 5. **Updater manifests updated** (`latest.json` for stable, `beta.json` for beta)
+
+> **Note:** The release uses the git tag name directly (e.g., `v0.0.1-beta.8`), not the version from config files. This ensures beta releases don't accidentally create stable releases.
 
 ## After the Build Completes
 
-1. Go to [GitHub Releases](https://github.com/mcp-scooter/scooter/releases)
+1. Go to [GitHub Releases](https://github.com/afaraha8403/MCP-Scooter/releases)
 2. Find your **draft** release
 3. Review the release notes and installers
 4. Click **"Publish release"** to make it public
@@ -156,11 +158,26 @@ make release-beta  # Interactive prompt for version
 make release       # Interactive prompt for stable version
 ```
 
+### Config Version vs Git Tag
+
+The version in config files is the **base version** (e.g., `0.0.1`), while the git tag includes the full version with prerelease suffix (e.g., `v0.0.1-beta.8`).
+
+| Component | Example | Notes |
+|-----------|---------|-------|
+| Config files | `0.0.1` | Base version only, no prefix or suffix |
+| Git tag (stable) | `v0.0.1` | Prefix with `v` |
+| Git tag (beta) | `v0.0.1-beta.8` | Prefix with `v`, include prerelease suffix |
+| GitHub Release | Uses git tag | Created from the exact tag you push |
+
+The `release-beta` command automatically handles this:
+- Updates config files to base version (`0.0.1`)
+- Creates git tag with full version (`v0.0.1-beta.8`)
+
 ## Troubleshooting
 
 ### Build Failed
 
-1. Check the [Actions tab](https://github.com/mcp-scooter/scooter/actions) for error logs
+1. Check the [Actions tab](https://github.com/afaraha8403/MCP-Scooter/actions) for error logs
 2. Common issues:
    - Go tests failing → Fix tests first
    - Missing dependencies → Check workflow file
