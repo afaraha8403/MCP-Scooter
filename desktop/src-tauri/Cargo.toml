@@ -1,11 +1,32 @@
+# ==============================================================================
+# MCP Scooter Desktop - Cargo Configuration
+# ==============================================================================
+#
+# This is the Rust/Tauri backend configuration for the desktop application.
+#
+# IMPORTANT NOTES:
+# ----------------
+# 1. The `version` field here should match:
+#    - desktop/package.json version
+#    - desktop/src-tauri/tauri.conf.json version
+#    Use `./tasks.ps1 set-version X.Y.Z` to update all three at once.
+#
+# 2. Tauri plugins (tauri-plugin-*) should use major version "2" to match
+#    Tauri 2.x. The Cargo.lock pins exact versions for reproducible builds.
+#
+# 3. The updater plugin requires signing keys for release builds.
+#    See: .github/workflows/release.yml for setup instructions.
+#
+# ==============================================================================
+
 [package]
 name = "desktop"
 version = "0.0.1"
-description = "A Tauri App"
-authors = ["you"]
+description = "MCP Scooter - Universal Operating System for the Model Context Protocol"
+authors = ["Balacode.io"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "PolyForm-Shield-1.0.0"
+repository = "https://github.com/mcp-scooter/scooter"
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
@@ -14,17 +35,50 @@ edition = "2021"
 name = "desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+# ==============================================================================
+# Build Dependencies
+# ==============================================================================
+# These are only used during compilation, not at runtime.
+# ==============================================================================
+
 [build-dependencies]
-tauri-build = { version = "0.0.1", features = [] }
+# Tauri build script helper - must match Tauri major version
+tauri-build = { version = "2", features = [] }
+
+# ==============================================================================
+# Runtime Dependencies
+# ==============================================================================
 
 [dependencies]
-tauri = { version = "0.0.1", features = ["tray-icon", "image-png", "image-ico"] }
+# --- Tauri Core ---
+# The main Tauri framework. Features enabled:
+#   - tray-icon: System tray support (required for background operation)
+#   - image-png/ico: Icon format support for tray icons
+tauri = { version = "2", features = ["tray-icon", "image-png", "image-ico"] }
+
+# --- Tauri Plugins ---
+# opener: Opens URLs/files with system default applications
 tauri-plugin-opener = "2"
+# updater: Auto-update functionality (requires signing keys in CI)
+#          See .github/workflows/release.yml for signing setup
 tauri-plugin-updater = "2"
-serde = { version = "0.0.1", features = ["derive"] }
+
+# --- Serialization ---
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# --- System Information ---
+# Used to get system stats (CPU, memory, etc.) for the dashboard
 sysinfo = "0.33"
-reqwest = { version = "0.0.1", features = ["json", "blocking"] }
-tokio = { version = "0.0.1", features = ["full"] }
+
+# --- HTTP Client ---
+# Used for API calls to the Go backend and external services
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+
+# --- Async Runtime ---
+# Tokio is required by Tauri for async operations
+tokio = { version = "1", features = ["full"] }
+
+# --- Utilities ---
 url = "2"
 time = "0.3"
