@@ -67,7 +67,10 @@ func TestControlServerCRUD(t *testing.T) {
 
 	// 3. Update Profile
 	p.RemoteServerURL = "http://remote"
-	pJSON, _ = json.Marshal(p)
+	pJSON, _ = json.Marshal(map[string]interface{}{
+		"old_id":  "work",
+		"profile": p,
+	})
 	req = httptest.NewRequest("PUT", "/api/profiles", strings.NewReader(string(pJSON)))
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
