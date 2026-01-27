@@ -17,20 +17,20 @@
 }
 
 :root {
-  --background-base: #f8f9fa;
+  --background-base: #fcfcfc;
   --background-card: #ffffff;
   --accent-primary: #006d5b;
   --accent-text: #ffffff;
-  --text-primary: #1b1b1b;
-  --text-secondary: #5d5d5d;
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --toolbar-bg: #f1f1f1;
-  --toolbar-text: #333333;
-  --card-hover: rgba(0, 109, 91, 0.04);
-  --log-bg: rgba(0, 0, 0, 0.04);
-  --status-ok-bg: rgba(0, 109, 91, 0.1);
+  --text-primary: #111111;
+  --text-secondary: #444444;
+  --border-subtle: rgba(0, 0, 0, 0.1);
+  --toolbar-bg: #f5f5f5;
+  --toolbar-text: #222222;
+  --card-hover: rgba(0, 109, 91, 0.06);
+  --log-bg: rgba(0, 0, 0, 0.05);
+  --status-ok-bg: rgba(0, 109, 91, 0.12);
   --status-ok-text: #006d5b;
-  --status-ok-border: rgba(0, 109, 91, 0.2);
+  --status-ok-border: rgba(0, 109, 91, 0.25);
   
   font-family: "Google Sans Flex", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   font-size: 13px;
@@ -45,34 +45,34 @@ body, div, span, h1, h2, h3, h4, h5, h6, p, section, header, footer, label {
 }
 
 [data-theme="dark"], .window-frame.dark {
-  --background-base: #0a0a0f;
-  --background-card: rgba(255, 255, 255, 0.03);
-  --accent-primary: #00b386;
-  --accent-text: #ffffff;
-  --text-primary: #e0e0e0;
-  --text-secondary: #888888;
-  --border-subtle: rgba(255, 255, 255, 0.05);
-  --toolbar-bg: #0d0d14;
-  --toolbar-text: #a0a0a0;
-  --card-hover: rgba(0, 179, 134, 0.08);
-  --log-bg: rgba(0, 0, 0, 0.4);
-  --status-ok-bg: rgba(0, 179, 134, 0.1);
-  --status-ok-text: #00b386;
-  --status-ok-border: rgba(0, 179, 134, 0.2);
+  --background-base: #0c0c12;
+  --background-card: #16161f;
+  --accent-primary: #00d9a0;
+  --accent-text: #000000;
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --toolbar-bg: #08080c;
+  --toolbar-text: #cccccc;
+  --card-hover: rgba(0, 217, 160, 0.1);
+  --log-bg: rgba(0, 0, 0, 0.5);
+  --status-ok-bg: rgba(0, 217, 160, 0.15);
+  --status-ok-text: #00d9a0;
+  --status-ok-border: rgba(0, 217, 160, 0.3);
 }
 
 .window-frame.light {
-  --background-base: #f8f9fa;
+  --background-base: #f0f2f5;
   --background-card: #ffffff;
   --accent-primary: #006d5b;
   --accent-text: #ffffff;
-  --text-primary: #1a1a1a;
-  --text-secondary: #5f6368;
-  --border-subtle: rgba(0, 0, 0, 0.06);
+  --text-primary: #1a1a1b;
+  --text-secondary: #4a4a4e;
+  --border-subtle: rgba(0, 0, 0, 0.08);
   --toolbar-bg: #ffffff;
-  --toolbar-text: #3c4043;
-  --card-hover: rgba(0, 109, 91, 0.05);
-  --log-bg: rgba(0, 0, 0, 0.02);
+  --toolbar-text: #202124;
+  --card-hover: rgba(0, 109, 91, 0.04);
+  --log-bg: #e8eaed;
 }
 
 body {
@@ -767,7 +767,8 @@ select.filter-btn:hover {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
 }
 
 .drawer-title { font-weight: 600; font-size: 15px; color: var(--text-primary); }
@@ -1187,21 +1188,46 @@ button.secondary:hover {
    but for now we just show/hide. */
 
 .settings-modal {
-  border-left: 4px solid var(--border-subtle);
+  border-left: 4px solid var(--accent-primary);
+  background-color: var(--background-base);
+}
+
+.settings-modal .scroll-section {
+  padding: 16px;
 }
 
 .settings-section {
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 32px;
+  padding: 24px;
+  background: var(--background-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.window-frame.dark .settings-section {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .settings-section h3 {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--accent-primary);
   margin-top: 0;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.05em;
+}
+
+.settings-section h3::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+  opacity: 0.5;
 }
 
 .input-hint {
@@ -1389,48 +1415,45 @@ button.secondary:hover {
 
 .settings-tabs {
   display: flex;
-  gap: 24px;
+  gap: 8px;
   margin-top: 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 0;
-  background: var(--background-card);
-  padding: 0 16px;
+  padding: 4px;
+  background: var(--log-bg);
   border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  width: fit-content;
 }
 
 .tab-btn {
   background: none;
   border: none;
-  padding: 8px 4px;
+  padding: 6px 16px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-secondary);
   position: relative;
   transition: all 0.2s ease;
-  opacity: 0.7;
+  border-radius: 6px;
 }
 
 .tab-btn:hover {
   color: var(--text-primary);
-  opacity: 1;
+  background: var(--background-card);
 }
 
 .tab-btn.active {
   color: var(--accent-primary);
-  font-weight: 600;
-  opacity: 1;
+  background: var(--background-card);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.window-frame.dark .tab-btn.active {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .tab-btn.active::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: var(--accent-primary);
-  border-radius: 2px 2px 0 0;
+  display: none;
 }
 
 .window-frame.dark .tab-btn {
