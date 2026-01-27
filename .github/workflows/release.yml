@@ -1,13 +1,46 @@
+# ==============================================================================
 # MCP Scooter Release Workflow
-# ============================
-# Triggered on version tags (v*). Builds the Go backend and Tauri desktop app
-# for Windows, macOS, and Linux, then creates a GitHub Release.
+# ==============================================================================
 #
-# Release Channels:
-# - Stable: Tags like v1.0.0, v1.2.3
-# - Beta: Tags like v1.0.0-beta.1, v1.0.0-alpha.2, v1.0.0-rc.1
+# This workflow builds the Go backend and Tauri desktop app for Windows, macOS,
+# and Linux, then creates a GitHub Release with all artifacts.
 #
-# The workflow automatically detects the channel based on the tag format.
+# TRIGGER:
+#   - Push of version tags (v*)
+#   - Manual dispatch with version input
+#
+# RELEASE CHANNELS:
+#   - Stable: Tags like v1.0.0, v1.2.3
+#   - Beta:   Tags like v1.0.0-beta.1, v1.0.0-alpha.2, v1.0.0-rc.1
+#
+# REQUIRED GITHUB SECRETS (must be configured before running this workflow):
+# ┌──────────────────────────────────────┬─────────────────────────────────────┐
+# │ Secret Name                          │ Description                         │
+# ├──────────────────────────────────────┼─────────────────────────────────────┤
+# │ TAURI_SIGNING_PRIVATE_KEY            │ Private key for signing updates.    │
+# │                                      │ Generate with:                      │
+# │                                      │ `npm run tauri signer generate`     │
+# │                                      │ Store the PRIVATE key content here. │
+# ├──────────────────────────────────────┼─────────────────────────────────────┤
+# │ TAURI_SIGNING_PRIVATE_KEY_PASSWORD   │ Password for the private key.       │
+# │                                      │ Set during key generation.          │
+# │                                      │ Can be empty if no password was set.│
+# └──────────────────────────────────────┴─────────────────────────────────────┘
+#
+# SETUP INSTRUCTIONS:
+#   1. Generate signing keys locally:
+#      cd desktop && npm run tauri signer generate -- -w ~/.tauri/mcp-scooter.key
+#
+#   2. Copy the PUBLIC key (from ~/.tauri/mcp-scooter.key.pub) to:
+#      desktop/src-tauri/tauri.conf.json -> plugins.updater.pubkey
+#
+#   3. Add GitHub secrets (Settings > Secrets > Actions):
+#      - TAURI_SIGNING_PRIVATE_KEY: Content of ~/.tauri/mcp-scooter.key
+#      - TAURI_SIGNING_PRIVATE_KEY_PASSWORD: Your key password
+#
+#   4. Run: ./tasks.ps1 release <version>
+#
+# ==============================================================================
 
 name: Release
 
@@ -26,7 +59,14 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # First, run tests to ensure quality
+  # ============================================================================
+  # Job 1: Run Tests
+  # ============================================================================
+  # Ensures code quality before building release artifacts.
+  # This job runs on Ubuntu for speed and validates:
+  #   - All Go unit tests pass
+  #   - Registry JSON files are valid
+  # ============================================================================
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -46,7 +86,32 @@ jobs:
           go build -o validate-registry ./cmd/validate-registry
           ./validate-registry appdata/registry
 
-  # Build and release for each platform
+  # ============================================================================
+  # Job 2: Build & Release
+  # ============================================================================
+  # Builds platform-specific installers using Tauri.
+  #
+  # MATRIX STRATEGY:
+  #   - Windows:     x86_64 (amd64)
+  #   - macOS:       x86_64 (Intel) and aarch64 (Apple Silicon M1+)
+  #   - Linux:       x86_64 (amd64) on Ubuntu 22.04
+  #
+  # EXTERNAL BINARY (SIDECAR):
+  #   Tauri bundles the Go backend as an "external binary" (sidecar).
+  #   The binary MUST be named with the target triple suffix:
+  #     - scooter-x86_64-pc-windows-msvc.exe    (Windows)
+  #     - scooter-x86_64-apple-darwin           (macOS Intel)
+  #     - scooter-aarch64-apple-darwin          (macOS Apple Silicon)
+  #     - scooter-x86_64-unknown-linux-gnu      (Linux)
+  #
+  #   This naming convention is REQUIRED by Tauri's externalBin feature.
+  #   See: https://v2.tauri.app/develop/sidecar/
+  #
+  # UPDATER SIGNING:
+  #   The updater requires cryptographic signatures to verify update integrity.
+  #   TAURI_SIGNING_PRIVATE_KEY must be set as a GitHub secret.
+  #   See workflow header for setup instructions.
+  # ============================================================================
   release:
     name: Build & Release (${{ matrix.settings.platform }})
     needs: test
@@ -56,24 +121,31 @@ jobs:
       fail-fast: false
       matrix:
         settings:
+          # ---- Windows x86_64 ----
           - platform: windows-latest
             go_os: windows
             go_arch: amd64
             binary_ext: .exe
             target_triple: x86_64-pc-windows-msvc
             args: ''
+          
+          # ---- macOS Intel (x86_64) ----
           - platform: macos-latest
             go_os: darwin
             go_arch: amd64
             binary_ext: ''
             target_triple: x86_64-apple-darwin
             args: '--target x86_64-apple-darwin'
+          
+          # ---- macOS Apple Silicon (aarch64) ----
           - platform: macos-latest
             go_os: darwin
             go_arch: arm64
             binary_ext: ''
             target_triple: aarch64-apple-darwin
             args: '--target aarch64-apple-darwin'
+          
+          # ---- Linux x86_64 ----
           - platform: ubuntu-22.04
             go_os: linux
             go_arch: amd64
@@ -86,7 +158,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Determine if this is a beta/prerelease
+      # ------------------------------------------------------------------------
+      # Step: Determine Release Channel
+      # ------------------------------------------------------------------------
+      # Parses the git tag to determine if this is a stable or beta release.
+      # Beta releases include: -alpha.X, -beta.X, -rc.X suffixes
+      # ------------------------------------------------------------------------
       - name: Determine release channel
         id: channel
         shell: bash
@@ -102,32 +179,74 @@ jobs:
             echo "Release channel: STABLE"
           fi
 
-      # Setup Node.js for frontend build
+      # ------------------------------------------------------------------------
+      # Step: Setup Node.js
+      # ------------------------------------------------------------------------
+      # Required for building the React frontend and running Tauri CLI.
+      # ------------------------------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # Setup Go for backend build
+      # ------------------------------------------------------------------------
+      # Step: Setup Go
+      # ------------------------------------------------------------------------
+      # Required for building the scooter backend binary.
+      # ------------------------------------------------------------------------
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24'
 
-      # Setup Rust for Tauri
+      # ------------------------------------------------------------------------
+      # Step: Setup Rust
+      # ------------------------------------------------------------------------
+      # Required for compiling the Tauri application shell.
+      # On macOS, we need both Intel and Apple Silicon targets for universal builds.
+      # ------------------------------------------------------------------------
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.settings.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      # Install Linux dependencies for Tauri
+      # ------------------------------------------------------------------------
+      # Step: Rust Cache
+      # ------------------------------------------------------------------------
+      # Caches Cargo registry, index, and build artifacts to speed up builds.
+      # Without this, each build would recompile all Rust dependencies (~10 min).
+      # The workspaces path must point to the Tauri project's src-tauri folder.
+      # ------------------------------------------------------------------------
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './desktop/src-tauri -> target'
+
+      # ------------------------------------------------------------------------
+      # Step: Install Linux Dependencies
+      # ------------------------------------------------------------------------
+      # Tauri on Linux requires system libraries for WebKit, AppIndicator, etc.
+      # These are NOT needed on Windows/macOS (they use native WebView).
+      # ------------------------------------------------------------------------
       - name: Install Linux dependencies
         if: matrix.settings.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      # Build the Go backend binary
+      # ------------------------------------------------------------------------
+      # Step: Build Go Backend (Sidecar)
+      # ------------------------------------------------------------------------
+      # Compiles the Go backend binary that Tauri will bundle as a sidecar.
+      #
+      # CRITICAL: The binary MUST be named with the target triple suffix!
+      #   Format: scooter-{TARGET_TRIPLE}{EXT}
+      #   Example: scooter-x86_64-pc-windows-msvc.exe
+      #
+      # This naming convention is required by Tauri's externalBin feature.
+      # The tauri.conf.json specifies "binaries/scooter" and Tauri automatically
+      # appends the appropriate target triple based on the build target.
+      # ------------------------------------------------------------------------
       - name: Build Go Backend
         env:
           GOOS: ${{ matrix.settings.go_os }}
@@ -135,23 +254,52 @@ jobs:
           CGO_ENABLED: 0
         shell: bash
         run: |
-          # Ensure binaries directory exists (remove if it's a file)
+          # Ensure binaries directory exists (remove if it's accidentally a file)
           if [ -f desktop/src-tauri/binaries ]; then
             rm desktop/src-tauri/binaries
           fi
           mkdir -p desktop/src-tauri/binaries
+          
+          # Build with target triple suffix (REQUIRED by Tauri sidecar)
           go build -ldflags="-s -w" -o desktop/src-tauri/binaries/scooter-${{ matrix.settings.target_triple }}${{ matrix.settings.binary_ext }} ./cmd/scooter
 
-      # Install frontend dependencies
+      # ------------------------------------------------------------------------
+      # Step: Install Frontend Dependencies
+      # ------------------------------------------------------------------------
+      # Installs npm packages for the React frontend.
+      # Using `npm ci` for reproducible builds from package-lock.json.
+      # ------------------------------------------------------------------------
       - name: Install frontend dependencies
         working-directory: desktop
         run: npm ci
 
-      # Build Tauri app and create release
+      # ------------------------------------------------------------------------
+      # Step: Build Tauri App & Create Release
+      # ------------------------------------------------------------------------
+      # Uses the official tauri-action to:
+      #   1. Build the Tauri desktop application
+      #   2. Sign update artifacts (requires TAURI_SIGNING_PRIVATE_KEY)
+      #   3. Create/update GitHub release with artifacts
+      #   4. Generate updater JSON manifest
+      #
+      # ENVIRONMENT VARIABLES:
+      #   - GITHUB_TOKEN: Required for creating releases (auto-provided)
+      #   - TAURI_SIGNING_PRIVATE_KEY: Required for signing updates
+      #   - TAURI_SIGNING_PRIVATE_KEY_PASSWORD: Password for the signing key
+      #
+      # If TAURI_SIGNING_PRIVATE_KEY is not set, the build will FAIL with:
+      #   "Error incorrect updater private key password" or similar.
+      #
+      # See workflow header for setup instructions.
+      # ------------------------------------------------------------------------
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing keys - MUST be configured as GitHub secrets
+          # Generate with: npm run tauri signer generate -- -w ~/.tauri/mcp-scooter.key
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: desktop
           tagName: v__VERSION__
@@ -181,10 +329,24 @@ jobs:
             For detailed instructions, visit our [documentation](https://mcp-scooter.com).
           releaseDraft: true
           prerelease: ${{ steps.channel.outputs.is_prerelease }}
-          includeUpdaterJson: true
+          # Upload the updater JSON manifest (latest.json) for auto-updates
+          # This requires TAURI_SIGNING_PRIVATE_KEY to be set
+          uploadUpdaterJson: true
           args: ${{ matrix.settings.args }}
 
-  # Update the updater JSON files after all builds complete
+  # ============================================================================
+  # Job 3: Update Updater Manifests
+  # ============================================================================
+  # After all platform builds complete, this job consolidates the updater
+  # JSON files for the auto-update system.
+  #
+  # UPDATER CHANNELS:
+  #   - latest.json: Points to the latest stable OR beta release
+  #   - beta.json:   Points to the latest beta release only
+  #
+  # Stable users only receive stable updates (check latest.json).
+  # Beta users receive both stable and beta updates (check beta.json).
+  # ============================================================================
   update-updater-json:
     name: Update Updater Manifests
     needs: release
@@ -214,7 +376,7 @@ jobs:
           # Download the updater JSON that tauri-action created
           gh release download "$TAG" --pattern "latest.json" --dir updater-files || true
           
-          # If latest.json exists, we'll use it as the base
+          # Log the downloaded file for debugging
           if [ -f "updater-files/latest.json" ]; then
             echo "Found updater JSON from release"
             cat updater-files/latest.json
@@ -227,8 +389,8 @@ jobs:
           TAG="${GITHUB_REF#refs/tags/}"
           CHANNEL="${{ steps.channel.outputs.channel }}"
           
-          # Create or update the updater release
-          # This is a special release that holds the updater JSON files
+          # Create or update the special "updater" release that holds manifest files
+          # This release is used by the app to check for updates
           if ! gh release view updater &>/dev/null; then
             gh release create updater --title "Updater Manifests" --notes "This release contains updater manifest files. Do not delete." --prerelease
           fi

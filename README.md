@@ -230,14 +230,38 @@ make validate-strict
 
 #### Releasing
 
-MCP Scooter uses GitHub Actions for automated releases. The release commands automatically update version numbers in all config files, commit, tag, and push.
+MCP Scooter uses GitHub Actions for automated releases. Before your first release, you need to set up signing keys for the auto-updater.
+
+##### First-Time Setup (Required Once)
+
+The auto-updater requires cryptographic signatures to verify updates. Run these commands once:
 
 ```bash
-# Release a stable version
+# 1. Generate signing keypair (you'll be prompted for a password)
+./tasks.ps1 generate-keys
+
+# 2. Display the public key
+./tasks.ps1 show-pubkey
+```
+
+Then:
+1. Copy the public key and paste it into `desktop/src-tauri/tauri.conf.json` under `plugins.updater.pubkey`
+2. Add GitHub Secrets (Settings → Secrets and variables → Actions):
+   - `TAURI_SIGNING_PRIVATE_KEY`: Content of `~/.tauri/mcp-scooter.key`
+   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: The password you set during key generation
+
+> ⚠️ **Never commit the private key to the repository!**
+
+##### Creating Releases
+
+Once signing is configured, use these commands to release:
+
+```bash
+# Release a stable version (e.g., 1.0.0, 2.1.0)
 ./tasks.ps1 release 1.0.0        # Windows
 make release                      # macOS/Linux (interactive prompt)
 
-# Release a beta version  
+# Release a beta version (e.g., 1.0.0-beta.1, 1.0.0-alpha.2, 1.0.0-rc.1)
 ./tasks.ps1 release-beta 1.0.0-beta.1    # Windows
 make release-beta                         # macOS/Linux (interactive prompt)
 
@@ -250,6 +274,8 @@ This will:
 2. Commit the version bump
 3. Create and push a git tag
 4. Trigger the GitHub Actions build workflow
+5. Build signed installers for Windows, macOS, and Linux
+6. Create a draft release on GitHub
 
 See [docs/releasing.md](docs/releasing.md) for detailed release documentation.
 

@@ -2,6 +2,59 @@
 
 This guide explains how to create releases for MCP Scooter using the automated GitHub Actions workflow.
 
+## Prerequisites: Signing Keys Setup
+
+Before your first release, you must set up signing keys for the auto-updater. The updater requires cryptographic signatures to verify update integrity and authenticity.
+
+### 1. Generate Signing Keys
+
+```powershell
+# Windows PowerShell
+./tasks.ps1 generate-keys
+```
+
+```bash
+# macOS/Linux
+cd desktop && npx tauri signer generate -w ~/.tauri/mcp-scooter.key
+```
+
+You'll be prompted to enter a password. **Remember this password!**
+
+### 2. Add Public Key to Configuration
+
+```powershell
+# Display the public key
+./tasks.ps1 show-pubkey
+```
+
+Copy the output and paste it into `desktop/src-tauri/tauri.conf.json`:
+
+```json
+{
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbm..."
+    }
+  }
+}
+```
+
+### 3. Add GitHub Secrets
+
+Go to your repository's **Settings → Secrets and variables → Actions** and add:
+
+| Secret Name | Value |
+|-------------|-------|
+| `TAURI_SIGNING_PRIVATE_KEY` | Content of `~/.tauri/mcp-scooter.key` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | The password you set during generation |
+
+> ⚠️ **Security Notes:**
+> - Never commit the private key to the repository
+> - Store a backup of the private key securely
+> - If you lose the private key, users won't be able to receive updates signed with it
+
+---
+
 ## Release Channels
 
 MCP Scooter supports two release channels:
@@ -15,24 +68,44 @@ Other prerelease formats also work: `v1.0.0-alpha.1`, `v1.0.0-rc.1`
 
 ## Quick Reference
 
-### Release a Beta Version
+### Using Task Runner (Recommended)
 
-```bash
-# 1. Make sure all changes are committed and pushed
-git push origin main
+The task runner handles version bumping, committing, tagging, and pushing automatically:
 
-# 2. Create and push the tag
-git tag -a v0.0.2-beta.1 -m "Beta release v0.0.2-beta.1"
-git push origin v0.0.2-beta.1
+```powershell
+# Windows PowerShell
+
+# Release a stable version (e.g., 1.0.0)
+./tasks.ps1 release 1.0.0
+
+# Release a beta version (e.g., 1.0.0-beta.1)
+./tasks.ps1 release-beta 1.0.0-beta.1
+
+# Just update version numbers without releasing
+./tasks.ps1 set-version 1.0.0
 ```
 
-### Release a Stable Version
+```bash
+# macOS/Linux
+make release          # Interactive prompt for stable version
+make release-beta     # Interactive prompt for beta version
+```
+
+### Manual Release (Advanced)
+
+If you prefer manual control:
 
 ```bash
-# 1. Make sure all changes are committed and pushed
+# 1. Update version in config files (all three must match!)
+#    - desktop/src-tauri/tauri.conf.json
+#    - desktop/package.json  
+#    - desktop/src-tauri/Cargo.toml
+
+# 2. Commit and push
+git add -A && git commit -m "chore: bump version to X.Y.Z"
 git push origin main
 
-# 2. Create and push the tag
+# 3. Create and push the tag
 git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
@@ -93,6 +166,15 @@ make release       # Interactive prompt for stable version
    - Missing dependencies → Check workflow file
    - Rust compilation errors → Check `desktop/src-tauri/`
 
+### Signing Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Error signing` or `Missing comment in secret key` | Private key not set or malformed | Verify `TAURI_SIGNING_PRIVATE_KEY` secret contains the full key content |
+| `incorrect updater private key password` | Wrong password | Check `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` secret |
+| `pubkey must not be empty` | Empty pubkey in config | Run `./tasks.ps1 show-pubkey` and add to `tauri.conf.json` |
+| Build works locally but fails in CI | Missing GitHub secrets | Add both `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` secrets |
+
 ### Delete a Tag (if needed)
 
 ```bash
@@ -119,6 +201,19 @@ The app checks for updates on startup and periodically while running.
 
 ## Files Involved
 
-- `.github/workflows/release.yml` - The release automation workflow
-- `desktop/src-tauri/tauri.conf.json` - App version and updater config
-- `desktop/src-tauri/src/lib.rs` - Update checking logic
+| File | Purpose |
+|------|---------|
+| `.github/workflows/release.yml` | Release automation workflow (builds, signs, publishes) |
+| `desktop/src-tauri/tauri.conf.json` | App version, updater config, and **public key** |
+| `desktop/package.json` | npm package version (must match tauri.conf.json) |
+| `desktop/src-tauri/Cargo.toml` | Rust crate version (must match tauri.conf.json) |
+| `desktop/src-tauri/src/lib.rs` | Update checking logic |
+| `tasks.ps1` | Windows task runner with release commands |
+| `Makefile` | macOS/Linux task runner with release commands |
+
+### Signing Key Locations (Local Machine Only)
+
+| File | Purpose |
+|------|---------|
+| `~/.tauri/mcp-scooter.key` | **Private key** - Used to sign updates (KEEP SECRET!) |
+| `~/.tauri/mcp-scooter.key.pub` | **Public key** - Copy to `tauri.conf.json` |
