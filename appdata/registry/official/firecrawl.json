@@ -1,0 +1,307 @@
+{
+  "$schema": "../../schemas/mcp-registry.schema.json",
+  "name": "firecrawl",
+  "version": "1.0.0",
+  "title": "Firecrawl",
+  "description": "Powerful web scraping, crawling, and search with LLM-ready markdown output and structured data extraction.",
+  "category": "search",
+  "source": "official",
+  "tags": [
+    "scraping",
+    "crawler",
+    "search",
+    "markdown",
+    "llm-ready"
+  ],
+  "icon": "/registry-logos/firecrawl.png",
+  "color": "#FF4500",
+  "homepage": "https://firecrawl.dev",
+  "repository": "https://github.com/firecrawl/firecrawl-mcp-server",
+  "documentation": "https://docs.firecrawl.dev",
+  "about": "# Firecrawl MCP Server\n\nFirecrawl is a powerful web scraping and crawling engine that turns any website into LLM-ready markdown or structured data. This MCP server allows you to use Firecrawl's capabilities directly within your AI client.\n\n## Key Features\n\n- **Scrape**: Convert any URL to clean markdown, optimized for LLMs.\n- **Search**: Search the web and get content from results in one go.\n- **Crawl**: Recursively crawl websites with smart filtering and depth control.\n- **Map**: Discover all indexed URLs on a domain.\n- **Extract**: Use LLMs to extract structured data (JSON) from web pages using custom schemas.\n- **Agent**: Autonomous web data gathering agent that searches and navigates to find exactly what you need.\n\n## Getting Started\n\nTo use this MCP, you'll need a Firecrawl API key. You can get one for free at [firecrawl.dev](https://firecrawl.dev).\n\nOnce you have your key, add the MCP using:\n\n```bash\nscooter_add firecrawl\n```\n\nYou will be prompted to enter your `FIRECRAWL_API_KEY`.",
+  "authorization": {
+    "type": "api_key",
+    "env_var": "FIRECRAWL_API_KEY",
+    "display_name": "Firecrawl API Key",
+    "help_url": "https://firecrawl.dev/app/api-keys"
+  },
+  "tools": [
+    {
+      "name": "firecrawl_scrape",
+      "title": "Scrape URL",
+      "description": "Scrape content from a single URL with advanced options. Best for single page content extraction when the URL is known.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL to scrape"
+          },
+          "formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "html",
+                "rawHtml",
+                "screenshot",
+                "links",
+                "summary",
+                "changeTracking",
+                "branding"
+              ]
+            },
+            "description": "Formats to return (default: ['markdown'])"
+          },
+          "onlyMainContent": {
+            "type": "boolean",
+            "description": "Only return the main content of the page, excluding headers, footers, and nav"
+          },
+          "maxAge": {
+            "type": "integer",
+            "description": "Maximum age of cached data in milliseconds. Set to 0 to disable cache."
+          },
+          "waitFor": {
+            "type": "integer",
+            "description": "Time in milliseconds to wait for the page to load"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "firecrawl_search",
+      "title": "Web Search",
+      "description": "Search the web and optionally extract content from search results. Supports search operators like site: and intitle:.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The search query"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of results to return (default: 5)"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "web",
+                    "images",
+                    "news"
+                  ]
+                }
+              }
+            },
+            "description": "Sources to search from"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "firecrawl_map",
+      "title": "Map Website",
+      "description": "Map a website to discover all indexed URLs. Useful for finding specific sections before scraping.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The base URL to map"
+          },
+          "search": {
+            "type": "string",
+            "description": "Search term to filter URLs"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of URLs to return"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "firecrawl_crawl",
+      "title": "Crawl Website",
+      "description": "Starts a crawl job on a website and extracts content from all pages. Best for comprehensive coverage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to start crawling from"
+          },
+          "maxDiscoveryDepth": {
+            "type": "integer",
+            "description": "Maximum depth to crawl"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of pages to crawl"
+          },
+          "allowExternalLinks": {
+            "type": "boolean",
+            "description": "Whether to allow crawling external links"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "firecrawl_check_crawl_status",
+      "title": "Check Crawl Status",
+      "description": "Check the status and progress of a crawl job using its ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The crawl job ID"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "firecrawl_extract",
+      "title": "Extract Structured Data",
+      "description": "Extract structured information from web pages using LLM capabilities and a JSON schema.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of URLs to extract from"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Custom prompt for extraction"
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON schema for the extracted data"
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "firecrawl_agent",
+      "title": "Autonomous Agent",
+      "description": "Autonomous web data gathering agent. Describe what data you want, and it will search and navigate to find it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Natural language description of the data you want"
+          },
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional focus URLs"
+          },
+          "schema": {
+            "type": "object",
+            "description": "Optional JSON schema for structured output"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "firecrawl_agent_status",
+      "title": "Check Agent Status",
+      "description": "Check the status and results of an autonomous agent job.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The agent job ID"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    }
+  ],
+  "package": {
+    "type": "npm",
+    "name": "firecrawl-mcp",
+    "version": "^3.7.4"
+  },
+  "runtime": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "firecrawl-mcp"
+    ]
+  },
+  "metadata": {
+    "author": "firecrawl",
+    "license": "MIT"
+  }
+}

@@ -64,6 +64,7 @@ func (s *ControlServer) routes() {
 	s.mux.HandleFunc("POST /api/onboarding/start-fresh", s.handleOnboardingStartFresh)
 	s.mux.HandleFunc("POST /api/onboarding/import", s.handleOnboardingImport)
 	s.mux.HandleFunc("POST /api/reset", s.handleReset)
+	s.mux.HandleFunc("POST /api/shutdown", s.handleShutdown)
 	s.mux.HandleFunc("GET /api/tools", s.handleGetTools)
 	s.mux.HandleFunc("POST /api/tools", s.handleRegisterTool)
 	s.mux.HandleFunc("POST /api/tools/refresh", s.handleRefreshTools)
@@ -593,6 +594,19 @@ func (s *ControlServer) handleReset(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "reset_successful"})
+}
+
+func (s *ControlServer) handleShutdown(w http.ResponseWriter, r *http.Request) {
+	logger.AddLog("INFO", "Shutdown requested via API")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "shutdown_initiated"})
+
+	// Gracefully shutdown the server after a short delay to allow the response to be sent
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		os.Exit(0)
+	}()
 }
 
 func (s *ControlServer) handleGetTools(w http.ResponseWriter, r *http.Request) {
@@ -1339,26 +1353,42 @@ func (s *ControlServer) handleCreateProfile(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *ControlServer) handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
-	var p profile.Profile
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	var req struct {
+		OldID   string          `json:"old_id"`
+		Profile profile.Profile `json:"profile"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := s.manager.UpdateProfile(p); err != nil {
+	// Default to current profile ID if old_id not provided (legacy support)
+	oldID := req.OldID
+	if oldID == "" {
+		oldID = req.Profile.ID
+	}
+
+	if err := s.manager.UpdateProfile(oldID, req.Profile); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
+	// Update last profile ID if it was renamed
+	s.mu.Lock()
+	if s.settings.LastProfileID == oldID {
+		s.settings.LastProfileID = req.Profile.ID
+	}
+	s.mu.Unlock()
+
 	if s.store != nil {
-		if err := s.store.SaveProfiles(s.manager.GetProfiles()); err != nil {
+		if err := s.store.Save(s.manager.GetProfiles(), *s.settings); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(p)
+	json.NewEncoder(w).Encode(req.Profile)
 }
 
 func (s *ControlServer) handleDeleteProfile(w http.ResponseWriter, r *http.Request) {
@@ -2048,12 +2078,26 @@ func (pm *ProfileManager) AddProfile(p profile.Profile) error {
 	return nil
 }
 
-func (pm *ProfileManager) UpdateProfile(p profile.Profile) error {
+func (pm *ProfileManager) UpdateProfile(oldID string, p profile.Profile) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
 	for i, existing := range pm.profiles {
-		if existing.ID == p.ID {
+		if existing.ID == oldID {
+			// If ID changed, update the engines map
+			if p.ID != oldID {
+				// Check if new ID already exists
+				for _, other := range pm.profiles {
+					if other.ID == p.ID {
+						return fmt.Errorf("profile with ID '%s' already exists", p.ID)
+					}
+				}
+				// Move engine to new ID
+				if engine, ok := pm.engines[oldID]; ok {
+					pm.engines[p.ID] = engine
+					delete(pm.engines, oldID)
+				}
+			}
 			pm.profiles[i] = p
 			return nil
 		}

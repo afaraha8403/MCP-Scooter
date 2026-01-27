@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { EyeRegular, EyeOffRegular, SettingsRegular, DismissRegular, ArrowResetRegular } from "@fluentui/react-icons";
 
@@ -37,9 +37,11 @@ interface SettingsModalProps {
   onUpdateSettings: (s: Settings) => void;
   onReset: () => void;
   settingsPath?: string;
+  configPath?: string;
   profiles: Profile[];
   selectedProfileId: string;
-  onUpdateProfile: (p: Profile) => void;
+  onUpdateProfile: (oldId: string, p: Profile) => void;
+  initialTab?: 'global' | 'profile';
 }
 
 export function SettingsModal({ 
@@ -49,12 +51,21 @@ export function SettingsModal({
   onUpdateSettings, 
   onReset, 
   settingsPath,
+  configPath,
   profiles,
   selectedProfileId,
-  onUpdateProfile
+  onUpdateProfile,
+  initialTab = 'global'
 }: SettingsModalProps) {
   const [showApiKey, setShowApiKey] = useState(false);
-  const [activeTab, setActiveTab] = useState<'global' | 'profile'>('global');
+  const [activeTab, setActiveTab] = useState<'global' | 'profile'>(initialTab);
+
+  // Update activeTab when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 
@@ -66,6 +77,16 @@ export function SettingsModal({
         await revealItemInDir(settingsPath);
       } catch (err) {
         console.error("Failed to open settings file location:", err);
+      }
+    }
+  };
+
+  const handleOpenConfig = async () => {
+    if (configPath) {
+      try {
+        await revealItemInDir(configPath);
+      } catch (err) {
+        console.error("Failed to open config file location:", err);
       }
     }
   };
@@ -577,11 +598,22 @@ export function SettingsModal({
               ) : (
                 <>
                   <div className="form-field">
+                    <label>Profile Name</label>
+                    <input 
+                      type="text" 
+                      value={selectedProfile.id || ''} 
+                      onChange={e => onUpdateProfile(selectedProfile.id, { ...selectedProfile, id: e.target.value })}
+                      placeholder="e.g., work, personal"
+                    />
+                    <span className="input-hint">Unique identifier for this profile</span>
+                  </div>
+
+                  <div className="form-field" style={{ marginTop: '12px' }}>
                     <label>Remote Server URL</label>
                     <input 
                       type="text" 
                       value={selectedProfile.remote_server_url || ''} 
-                      onChange={e => onUpdateProfile({ ...selectedProfile, remote_server_url: e.target.value })}
+                      onChange={e => onUpdateProfile(selectedProfile.id, { ...selectedProfile, remote_server_url: e.target.value })}
                       placeholder="e.g., https://mcp.example.com"
                     />
                     <span className="input-hint">URL of the remote MCP server to proxy to</span>
@@ -591,7 +623,7 @@ export function SettingsModal({
                     <label>Remote Auth Mode</label>
                     <select 
                       value={selectedProfile.remote_auth_mode || 'none'} 
-                      onChange={e => onUpdateProfile({ ...selectedProfile, remote_auth_mode: e.target.value })}
+                      onChange={e => onUpdateProfile(selectedProfile.id, { ...selectedProfile, remote_auth_mode: e.target.value })}
                       style={{ width: '100%', padding: '8px' }}
                     >
                       <option value="none">None</option>
@@ -605,13 +637,17 @@ export function SettingsModal({
           )}
         </div>
 
-        {settingsPath && (
+        {(activeTab === 'global' ? settingsPath : configPath) && (
           <div style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid var(--border-subtle)', textAlign: 'center' }}>
             <a 
               href="#" 
               onClick={(e) => {
                 e.preventDefault();
-                handleOpenSettings();
+                if (activeTab === 'global') {
+                  handleOpenSettings();
+                } else {
+                  handleOpenConfig();
+                }
               }}
               style={{ 
                 fontSize: '12px', 
@@ -624,7 +660,8 @@ export function SettingsModal({
               onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
               onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}
             >
-              <SettingsRegular style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Manually configure settings.yaml
+              <SettingsRegular style={{ verticalAlign: 'middle', marginRight: '4px' }} /> 
+              {activeTab === 'global' ? "Manual Configure Settings" : "Manual Configure Profile"}
             </a>
           </div>
         )}

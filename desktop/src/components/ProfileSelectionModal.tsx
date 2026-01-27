@@ -20,6 +20,7 @@ interface ProfileSelectionModalProps {
   onSelectProfile: (id: string) => void;
   onDeleteProfile: (id: string) => void;
   onCreateProfile: () => void;
+  onOpenSettings: () => void;
   configPath?: string;
 }
 
@@ -31,6 +32,7 @@ export function ProfileSelectionModal({
   onSelectProfile,
   onDeleteProfile,
   onCreateProfile,
+  onOpenSettings,
   configPath
 }: ProfileSelectionModalProps) {
   const [search, setSearch] = useState('');
@@ -126,29 +128,28 @@ export function ProfileSelectionModal({
             <AddRegular /> Create New Profile
           </button>
           
-          {configPath && (
-            <div style={{ textAlign: 'center' }}>
-              <a 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleOpenConfig();
-                }}
-                style={{ 
-                  fontSize: '12px', 
-                  color: 'var(--accent-primary)', 
-                  textDecoration: 'none',
-                  opacity: 0.8,
-                  display: 'inline-block',
-                  padding: '4px 8px'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}
-              >
-                <SettingsRegular style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Manually configure profiles.yaml
-              </a>
-            </div>
-          )}
+          <div style={{ textAlign: 'center' }}>
+            <a 
+              href="#" 
+              onClick={(e) => {
+                e.preventDefault();
+                onClose();
+                onOpenSettings();
+              }}
+              style={{ 
+                fontSize: '12px', 
+                color: 'var(--accent-primary)', 
+                textDecoration: 'none',
+                opacity: 0.8,
+                display: 'inline-block',
+                padding: '4px 8px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}
+            >
+              <SettingsRegular style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Configure Profiles
+            </a>
+          </div>
         </div>
       </div>
     </div>

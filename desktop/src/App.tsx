@@ -331,6 +331,7 @@ function App() {
   const [editingAuthValue, setEditingAuthValue] = useState("");
   const [copiedAuthKey, setCopiedAuthKey] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'global' | 'profile'>('global');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [savedToolParams, setSavedToolParams] = useState<Record<string, Record<string, any>>>({});
   const [optionalAuthExpanded, setOptionalAuthExpanded] = useState(false);
@@ -709,15 +710,18 @@ function App() {
     }
   };
 
-  const updateProfile = async (p: Profile) => {
+  const updateProfile = async (oldId: string, p: Profile) => {
     try {
       const res = await fetch(`${CONTROL_API}/profiles`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(p),
+        body: JSON.stringify({ old_id: oldId, profile: p }),
       });
       if (res.ok) {
         addLog(`Updated profile: ${p.id}`, "INFO");
+        if (oldId !== p.id) {
+          setSelectedProfileId(p.id);
+        }
         fetchProfiles();
       } else {
         addLog(`Failed to update profile: ${p.id}`, "ERROR");
@@ -3062,7 +3066,10 @@ function App() {
             <span className="stat-label">Uptime:</span>
             <span className="stat-value">{status.uptime}</span>
           </div>
-          <div className="toolbar-button" onClick={() => setShowSettings(true)}>
+          <div className="toolbar-button" onClick={() => {
+            setSettingsTab('global');
+            setShowSettings(true);
+          }}>
             <SettingsRegular style={{ marginRight: '4px' }} /> Settings
           </div>
           <div className="toolbar-button" onClick={toggleTheme}>
@@ -3085,6 +3092,8 @@ function App() {
         selectedProfileId={selectedProfileId}
         onUpdateProfile={updateProfile}
         settingsPath={configPath.replace('profiles.yaml', 'settings.yaml')}
+        configPath={configPath}
+        initialTab={settingsTab}
       />
 
       <ProfileSelectionModal
@@ -3095,6 +3104,10 @@ function App() {
         onSelectProfile={handleSelectProfile}
         onDeleteProfile={deleteProfile}
         onCreateProfile={() => setDrawer({ type: "add-profile" })}
+        onOpenSettings={() => {
+          setSettingsTab('profile');
+          setShowSettings(true);
+        }}
         configPath={configPath}
       />
 

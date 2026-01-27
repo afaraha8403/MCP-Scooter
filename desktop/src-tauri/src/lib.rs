@@ -102,7 +102,7 @@ fn build_tray_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>, status: &Option
         }
         
         items.push(Box::new(PredefinedMenuItem::separator(app)?));
-        items.push(Box::new(MenuItem::with_id(app, "reload", "↻ Reload Gateway", true, None::<&str>)?));
+        items.push(Box::new(MenuItem::with_id(app, "restart", "↻ Restart Gateway", true, None::<&str>)?));
         items.push(Box::new(PredefinedMenuItem::separator(app)?));
     } else {
         items.push(Box::new(MenuItem::with_id(app, "gateway_status", "Connecting to Gateway...", false, None::<&str>)?));
@@ -360,10 +360,36 @@ pub fn run() {
                                 let _ = window.set_focus();
                             }
                         }
-                        "reload" => {
+                        "restart" => {
+                            let handle = app.clone();
                             tauri::async_runtime::spawn(async move {
+                                // 1. Tell the backend to shutdown
                                 let client = reqwest::Client::new();
-                                let _ = client.post("http://127.0.0.1:6200/api/reset").send().await;
+                                let _ = client.post("http://127.0.0.1:6200/api/shutdown").send().await;
+                                
+                                // 2. Wait a bit for it to exit
+                                tokio::time::sleep(Duration::from_millis(1000)).await;
+                                
+                                // 3. Kill it just in case it's still hanging
+                                kill_backend();
+                                
+                                // 4. Spawn a new one
+                                match spawn_backend() {
+                                    Ok(child) => {
+                                        if let Ok(mut guard) = BACKEND_PROCESS.lock() {
+                                            *guard = Some(child);
+                                        }
+                                        println!("Backend process restarted successfully");
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Error: Failed to restart backend: {}", e);
+                                    }
+                                }
+
+                                // 5. Reload the frontend window if it exists
+                                if let Some(window) = handle.get_webview_window("main") {
+                                    let _ = window.eval("window.location.reload()");
+                                }
                             });
                         }
                         _ => {}
