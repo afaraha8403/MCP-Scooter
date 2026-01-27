@@ -184,7 +184,7 @@
             <div class="flex gap-8 text-sm font-medium font-mono text-gray-400">
                 <a href="#features" class="hover:text-[#00b386] transition-colors">/FEATURES</a>
                 <a href="#docs" class="hover:text-[#00b386] transition-colors">/DOCS</a>
-                <a href="https://github.com/mcp-scooter" class="hover:text-[#00b386] transition-colors">/GITHUB</a>
+                <a href="https://github.com/afaraha8403/MCP-Scooter" class="hover:text-[#00b386] transition-colors">/GITHUB</a>
             </div>
         </div>
     </nav>
@@ -209,7 +209,7 @@
             </p>
 
             <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-24">
-                <a id="download-btn" href="https://github.com/mcp-scooter/scooter/releases" class="group relative px-8 py-4 bg-[#00b386] text-black font-bold text-lg hover:bg-[#00cc99] transition-colors overflow-hidden min-w-[280px] text-center">
+                <a id="download-btn" href="https://github.com/afaraha8403/MCP-Scooter/releases" class="group relative px-8 py-4 bg-[#00b386] text-black font-bold text-lg hover:bg-[#00cc99] transition-colors overflow-hidden min-w-[280px] text-center">
                     <span class="relative z-10 flex items-center justify-center gap-2" id="download-text">
                         LOADING_RELEASE...
                         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -221,10 +221,21 @@
             </div>
 
             <script>
+                // ==========================================================================
+                // Release Fetcher Script
+                // ==========================================================================
+                // Fetches the latest release (including pre-releases/betas) from GitHub
+                // and displays an OS-appropriate download button.
+                //
+                // NOTE: Uses /releases endpoint (not /releases/latest) to include betas.
+                // The /releases/latest endpoint ONLY returns stable releases.
+                // ==========================================================================
                 (async function() {
                     const btn = document.getElementById('download-btn');
                     const text = document.getElementById('download-text');
-                    const repo = 'mcp-scooter/scooter';
+                    
+                    // GitHub repository - UPDATE THIS if the repo changes
+                    const repo = 'afaraha8403/MCP-Scooter';
                     
                     // OS Detection
                     const os = (() => {
@@ -236,49 +247,73 @@
                     })();
 
                     try {
-                        const response = await fetch(`https://api.github.com/repos/${repo}/releases/latest`);
-                        if (!response.ok) throw new Error('No release found');
+                        // Fetch ALL releases (including pre-releases/betas)
+                        // The first item is the most recent release
+                        const response = await fetch(`https://api.github.com/repos/${repo}/releases`);
+                        if (!response.ok) throw new Error('Failed to fetch releases');
                         
-                        const data = await response.json();
+                        const releases = await response.json();
+                        if (!releases || releases.length === 0) throw new Error('No releases found');
+                        
+                        // Get the most recent release (first in array)
+                        const data = releases[0];
                         const version = data.tag_name;
+                        const isPrerelease = data.prerelease;
                         
                         // Find asset based on OS
                         let asset = null;
                         let label = 'DOWNLOAD';
                         
                         if (os === 'windows') {
-                            asset = data.assets.find(a => a.name.endsWith('.exe') || a.name.endsWith('.msi'));
+                            // Prefer .msi over .exe for cleaner installs
+                            asset = data.assets.find(a => a.name.endsWith('.msi')) 
+                                 || data.assets.find(a => a.name.endsWith('.exe') && a.name.includes('setup'));
                             label = `DOWNLOAD_WIN_x64`;
                         } else if (os === 'macos') {
                             asset = data.assets.find(a => a.name.endsWith('.dmg'));
                             label = `DOWNLOAD_MAC_OS`;
                         } else if (os === 'linux') {
-                            asset = data.assets.find(a => a.name.endsWith('.deb') || a.name.endsWith('.AppImage'));
+                            // Prefer .AppImage for universal compatibility, then .deb
+                            asset = data.assets.find(a => a.name.endsWith('.AppImage'))
+                                 || data.assets.find(a => a.name.endsWith('.deb'));
                             label = `DOWNLOAD_LINUX`;
                         }
+
+                        // Build version badge (show BETA tag for pre-releases)
+                        const versionBadge = isPrerelease 
+                            ? `<span class="opacity-50 text-xs ml-2">[${version}]</span><span class="ml-2 px-1.5 py-0.5 text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">BETA</span>`
+                            : `<span class="opacity-50 text-xs ml-2">[${version}]</span>`;
 
                         if (asset) {
                             btn.href = asset.browser_download_url;
                             text.innerHTML = `
-                                ${label} <span class="opacity-50 text-xs ml-2">[${version}]</span>
+                                ${label} ${versionBadge}
                                 <svg class="w-4 h-4 transition-transform group-hover:translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
                             `;
                         } else {
-                            // Release exists but no asset for this OS
+                            // Release exists but no asset for this OS - link to release page
                             btn.href = data.html_url;
                             text.innerHTML = `
-                                VIEW_RELEASE <span class="opacity-50 text-xs ml-2">[${version}]</span>
+                                VIEW_RELEASE ${versionBadge}
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                             `;
                         }
+                        
+                        // Update the version badge in the hero section
+                        const heroBadge = document.querySelector('.inline-block.mb-6');
+                        if (heroBadge) {
+                            const statusText = isPrerelease ? 'BETA_RELEASE' : 'STABLE_RELEASE';
+                            heroBadge.textContent = `${version} :: ${statusText}`;
+                        }
+                        
                     } catch (e) {
                         console.log('Release fetch failed:', e);
-                        // Fallback / In Development state
-                        btn.href = "https://github.com/mcp-scooter/scooter";
+                        // Fallback / No releases available
+                        btn.href = `https://github.com/${repo}/releases`;
                         btn.className = "px-8 py-4 border border-[#00b386]/30 bg-[#00b386]/10 text-[#00b386] font-bold text-lg cursor-default min-w-[280px] text-center";
                         text.innerHTML = `
                             IN_DEVELOPMENT
-                            <span class="block text-[10px] font-mono font-normal opacity-70 mt-1">CHECK_GITHUB_FOR_UPDATES</span>
+                            <span class="block text-[10px] font-mono font-normal opacity-70 mt-1">CHECK_GITHUB_FOR_RELEASES</span>
                         `;
                     }
                 })();
@@ -701,7 +736,7 @@
             <span class="text-gray-600 text-sm font-mono">© 2026 MCP Scooter Team. PolyForm Shield License.</span>
             <div class="flex gap-6 text-gray-400 font-mono text-sm">
                 <a href="#docs" class="hover:text-[#00b386] transition-colors">DOCS</a>
-                <a href="https://github.com/mcp-scooter" class="hover:text-[#00b386] transition-colors">GITHUB</a>
+                <a href="https://github.com/afaraha8403/MCP-Scooter" class="hover:text-[#00b386] transition-colors">GITHUB</a>
                 <a href="#" class="hover:text-[#00b386] transition-colors">TWITTER</a>
             </div>
         </div>

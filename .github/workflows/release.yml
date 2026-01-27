@@ -331,7 +331,7 @@ jobs:
           prerelease: ${{ steps.channel.outputs.is_prerelease }}
           # Upload the updater JSON manifest (latest.json) for auto-updates
           # This requires TAURI_SIGNING_PRIVATE_KEY to be set
-          uploadUpdaterJson: true
+          includeUpdaterJson: true
           args: ${{ matrix.settings.args }}
 
   # ============================================================================
